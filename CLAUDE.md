@@ -27,6 +27,9 @@ Eu quero escrever o código deste projeto. Você é meu par de programação e m
 
 ## Exceções
 - Configurações repetitivas/boilerplate: pode sugerir fazer, mas pergunte antes.
+- Front-end visual (páginas, estilos, animações, componentes de UI): posso pedir
+  para você escrever, a partir de prints de referência. Isso vale para UI; schema,
+  Server Actions, validação, auth e banco continuam no modo mentor.
 
 # Meu nível
 - Base sólida em Java (OO, tipagem, lógica, controllers, Spring Security).
@@ -44,6 +47,8 @@ Eu quero escrever o código deste projeto. Você é meu par de programação e m
 - Escrita de dados via Server Actions; leitura via Server Components
 - Hospedagem: Vercel
 - Identidade visual: cores do meu site institucional, aplicadas no sistema e na proposta
+  (tokens em `app/globals.css`: grafite, marfim, cinza, dourado, bronze; fontes Inter e
+  Space Grotesk). Preferência: visual leve e calmo, sem blocos pretos pesados.
 
 # Regras do projeto
 - Valores em dinheiro SEMPRE como inteiro em centavos (R$ 1.500,00 = 150000).
@@ -78,16 +83,21 @@ Foco atual. Gestão completa de clientes, contratos, pagamentos e gateway ficam 
 
 ## Seções da proposta (na ordem da página)
 Fixas = vêm do modelo, iguais para todos. Variáveis = preenchidas por proposta.
+0. Capa (título da proposta + card flutuante com o nome/logo do cliente; variável)
 1. Quem sou eu (fixa)
 2. Vantagens de trabalhar comigo (fixa)
-3. Sobre o seu projeto (variável: o que o cliente precisa e o que será entregue)
-4. Portfólio / projetos (fixa)
-5. Processo de desenvolvimento (fixa)
-6. Investimento (variável: itens, descontos, total, valor no Pix, hospedagem)
-7. Bônus (variável, opcional)
-8. Pagamento (fixa)
-9. Prazo e entrega (prazo variável; texto sobre entrega fixo)
-10. Contrato (fixa)
+3. Etapa por etapa / processo de desenvolvimento (fixa), com o card de prazo de entrega
+   (prazo variável) e o texto de manutenção (fixo) junto da última etapa
+4. Portfólio / projetos (fixa, 2 projetos por enquanto)
+5. Investimento (um card único): serviços solicitados, itens, descontos, total,
+   hospedagem (variáveis), bônus (variável, opcional) e formas de pagamento
+   (fixas; valores do Pix e das parcelas calculados na exibição)
+6. FAQ / perguntas frequentes (fixa)
+7. Fechamento com o botão "Aprovar proposta"
+
+Removidas do plano original: "Sobre o seu projeto" (o que será entregue vai nos serviços
+do Investimento), "Contrato" e "Prazo e entrega" como seção própria (fundida no processo).
+O layout da página já existe com dados mock (ver "Estado atual").
 
 ## Textos padrão e "foto" da proposta
 - Os textos fixos ficam numa tabela de modelo (proposal_template), com um único
@@ -124,8 +134,10 @@ Fixas = vêm do modelo, iguais para todos. Variáveis = preenchidas por proposta
   criado em, atualizado em
   (mínimo, só para vincular à proposta; sem CPF/CNPJ por enquanto)
 - proposal_template: id, textos das seções fixas, atualizado em
+  (as seções fixas são: about, advantages, portfolio, process, payment, delivery e faq;
+  tipo `FixedContent` em `lib/proposal-content.ts`)
 - proposals: id, public_token (aleatório, único), client_id, título,
-  about_project (texto), bonus (texto, opcional), delivery_days (prazo),
+  about_project (texto; SEM USO na página atual, decidir se remove), bonus (texto, opcional), delivery_days (prazo),
   discount_type (percentual | fixo | nulo), discount_value,
   hosting_monthly (centavos, opcional), fixed_content (jsonb, cópia do modelo),
   status, sent_at, approved_at, criado em, atualizado em
@@ -144,6 +156,13 @@ rascunho → enviada → aprovada
 - Tela para editar os textos do modelo.
 - Portfólio: fixo no modelo ou escolher projetos por proposta.
 - Notificação (email) quando a proposta for aprovada.
+- `about_project`: remover da tabela e do formulário (a seção deixou de existir)?
+- Detalhe de cada serviço (ex.: "Design + Implementação"): criar campo em `proposal_items`?
+  Hoje a página mostra só descrição e quantidade.
+- Logo do cliente no card da capa: coluna `logo_url` em `clients` (arquivo hospedado,
+  ex.: Vercel Blob) ou só iniciais/nome? Hoje é um placeholder com as iniciais.
+- Texto do botão final da página ("formalizarmos o contrato"): ajustar, já que não há
+  mais seção de contrato.
 
 ## Etapas
 1. Setup: criar projeto Next, conectar ao Neon, configurar Drizzle. (CONCLUÍDA)
@@ -151,10 +170,12 @@ rascunho → enviada → aprovada
    e criar o seed do modelo de textos.
 3. Listagem: página que lista propostas lendo do banco (Server Components).
 4. Criar proposta: formulário + Server Action + validação com Zod
-   (cliente, título, sobre o projeto, bônus, prazo, hospedagem).
+   (cliente, título, bônus, prazo, hospedagem; "sobre o projeto" só se mantivermos
+   a coluna `about_project`).
 5. Itens e valores: adicionar/remover itens, descontos e cálculo dos totais
    (Client Components, estado).
 6. Página pública: rota com token mostrando a proposta completa com a identidade visual.
+   (Layout pronto com dados mock; falta buscar a proposta no banco pelo token.)
 7. Enviar e aprovar: travar a proposta ao enviar, gerar o link,
    botão de aprovar na página pública.
 8. Login: Better Auth protegendo todo o sistema, exceto a página pública
@@ -163,6 +184,10 @@ rascunho → enviada → aprovada
 
 # Estado atual
 - Etapa atual: 2 (Schema), em andamento
+- Pronto (visual, fora do fluxo): modelo da página pública em `app/proposta/[token]/page.tsx`,
+  componentes em `app/proposta/_components/`, textos fixos em `lib/proposal-content.ts`,
+  cálculos em centavos em `lib/proposal-calc.ts` e dados falsos em `lib/proposal-mock.ts`.
+  Ainda não ligada ao banco. Textos e elementos serão refinados depois, antes do seed.
 - Pronto na Etapa 2: tabela `clients` em `db/schema.ts` (id uuid, type, name, email, phoneNumber, createdAt).
 - Pronto: Etapa 1 (Setup).
   - Projeto Next sem `src/`: `app/` e `db/` ficam na raiz (alias `@/*` aponta para a raiz).
@@ -190,5 +215,6 @@ rascunho → enviada → aprovada
   - Repositório no GitHub ainda não criado (commits só locais).
   - Passar o schema para `drizzle(...)` em `db/index.ts` quando existir.
 - Próximo passo: escrever a tabela `proposalTemplate` em `db/schema.ts` (id uuid, `content` jsonb tipado
-  com as 7 seções fixas, `updatedAt` com `$onUpdate`). Depois: `proposals`, `proposal_items`,
+  com as 7 seções fixas, usando o tipo `FixedContent` de `lib/proposal-content.ts`,
+  e `updatedAt` com `$onUpdate`). Depois: `proposals`, `proposal_items`,
   primeira migration e seed.
