@@ -5,7 +5,6 @@ type SectionProps = {
   overlap?: boolean; // abre espaço no topo para um elemento da seção anterior que invade esta
   id?: string;
   tone?: "light" | "sand" | "dark";
-  pill?: string;
   title?: string; // opcional quando bare
   bare?: boolean; // sem título padrão: o conteúdo monta o próprio layout
   split?: boolean; // título à esquerda, conteúdo à direita
@@ -15,10 +14,10 @@ type SectionProps = {
 
 // Cada tom define variáveis que os filhos usam: --card, --line, --mute.
 const tones = {
-  sand: "bg-[#efe8da] text-grafite [--card:#ffffff] [--line:rgb(22_22_28/0.1)] [--mute:#6e6c66] [--strong:#16161c]",
+  sand: "bg-[#efe8da] text-grafite [--card:#ffffff] [--line:rgb(22_22_28/0.1)] [--mute:#5f5d57] [--accent:#82612f] [--strong:#16161c]",
   light:
-    "bg-marfim text-grafite [--card:#ffffff] [--line:rgb(22_22_28/0.1)] [--mute:#6e6c66] [--strong:#16161c]",
-  dark: "bg-grafite text-marfim [--card:rgb(255_255_255/0.05)] [--line:rgb(255_255_255/0.1)] [--mute:rgb(250_247_242/0.6)] [--strong:#faf7f2]",
+    "bg-marfim text-grafite [--card:#ffffff] [--line:rgb(22_22_28/0.1)] [--mute:#5f5d57] [--accent:#82612f] [--strong:#16161c]",
+  dark: "bg-grafite text-marfim [--card:rgb(255_255_255/0.07)] [--line:rgb(255_255_255/0.12)] [--mute:rgb(250_247_242/0.72)] [--accent:#b4915a] [--strong:#faf7f2]",
 };
 
 export function Section({
@@ -26,7 +25,6 @@ export function Section({
   overlap,
   bare,
   tone = "light",
-  pill,
   title,
   split,
   center,
@@ -36,10 +34,10 @@ export function Section({
     return (
       <section
         id={id}
-        className={`animate-fade-up overflow-hidden ${tones[tone]}`}
+        className={`animate-fade-up overflow-clip ${tones[tone]}`}
       >
         <div
-          className={`mx-auto max-w-6xl px-6 ${overlap ? "pt-64" : "pt-20"}`}
+          className={`mx-auto max-w-6xl px-6 ${overlap ? "pt-28 lg:pt-64" : "pt-24 lg:pt-32"}`}
         >
           {children}
         </div>
@@ -49,13 +47,7 @@ export function Section({
 
   const heading = (
     <div className={center ? "text-center" : ""}>
-      {pill && (
-        <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-(--line) px-3 py-1 text-sm text-(--mute)">
-          <span className="size-1.5 rounded-full bg-dourado" />
-          {pill}
-        </p>
-      )}
-      <h2 className="font-display text-4xl leading-tight tracking-tight sm:text-5xl">
+      <h2 className="text-balance font-display text-4xl leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
         <Rich text={title ?? ""} as="title" />
       </h2>
     </div>
@@ -63,7 +55,7 @@ export function Section({
 
   return (
     <section id={id} className={`animate-fade-up ${tones[tone]}`}>
-      <div className={`mx-auto max-w-6xl px-6 pb-20 ${overlap ? "pt-64" : "pt-20"}`}>
+      <div className={`mx-auto max-w-6xl px-6 pb-24 lg:pb-32 ${overlap ? "pt-28 lg:pt-64" : "pt-24 lg:pt-32"}`}>
         {split ? (
           <div className="grid gap-12 lg:grid-cols-2">
             {heading}

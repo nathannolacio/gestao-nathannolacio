@@ -32,7 +32,7 @@ export function ClientCard({ clientName }: { clientName: string }) {
             Preparada para
           </p>
           <div className="flex aspect-4/3 items-center justify-center rounded-2xl border border-dashed border-dourado/60 bg-marfim">
-            <span className="font-display text-6xl font-bold text-dourado/70">
+            <span className="font-display text-6xl font-bold text-bronze">
               {initials}
             </span>
           </div>

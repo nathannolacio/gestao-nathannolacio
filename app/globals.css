@@ -15,6 +15,20 @@ html {
   scroll-padding-top: 5rem;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Foco do teclado visível; a cor vem do --accent da seção (bronze por padrão) */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent, var(--color-bronze));
+  outline-offset: 3px;
+}
+
 body {
   background: var(--color-marfim);
   color: var(--color-grafite);
@@ -85,6 +99,10 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up {
+    animation: none;
+  }
+
+  .glow-card::before {
     animation: none;
   }
 }

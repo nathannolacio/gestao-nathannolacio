@@ -18,7 +18,12 @@ export type FixedContent = {
   portfolio: {
     title: string;
     intro: string;
-    projects: { name: string; description: string; url?: string }[];
+    projects: {
+      name: string;
+      description: string;
+      url?: string;
+      image?: string;
+    }[];
   };
   process: {
     title: string;
@@ -75,13 +80,18 @@ export const defaultFixedContent: FixedContent = {
     intro: "Alguns projetos que desenvolvi recentemente.",
     projects: [
       {
-        name: "Projeto exemplo 1",
-        description: "Descrição curta do projeto e do resultado entregue.",
-        url: "https://exemplo.com",
+        name: "Método Florescer",
+        description:
+          "Landing page de venda de e-book de educação financeira para mães.",
+        url: "https://metodo-florescer.vercel.app/",
+        image: "/proposta/projeto-florescer.jpg",
       },
       {
-        name: "Projeto exemplo 2",
-        description: "Descrição curta do projeto e do resultado entregue.",
+        name: "Maria Reis · Terapia TRG",
+        description:
+          "Site institucional de terapeuta, com atendimento online e agendamento de sessão.",
+        url: "https://www.mariareisterapeuta.com/",
+        image: "/proposta/projeto-maria-reis.jpg",
       },
     ],
   },
@@ -140,7 +150,7 @@ export const defaultFixedContent: FixedContent = {
   },
 
   faq: {
-    title: "*Perguntas* frequentes",
+    title: "Perguntas *frequentes*",
     items: [
       {
         question: "Está incluso o registro de domínio e a hospedagem?",

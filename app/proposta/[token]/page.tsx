@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Suspense } from "react";
 import {
   formatBRL,
@@ -8,10 +9,11 @@ import {
   projectTotal,
   splitPayment,
 } from "@/lib/proposal-calc";
-import { mockProposal } from "@/lib/proposal-mock";
+import { getMockProposal } from "@/lib/proposal-mock";
 import { ApproveButton } from "../_components/approve-button";
 import { ClientCard } from "../_components/client-card";
 import { CoverGrid, Sunburst } from "../_components/cover-art";
+import { DevDataToggle } from "../_components/dev-data-toggle";
 import { Icon } from "../_components/icons";
 import { ProjectCard } from "../_components/project-card";
 import { Rich } from "../_components/rich";
@@ -25,11 +27,14 @@ export const metadata: Metadata = {
 // Pílula de valor usada no Investimento e no Pagamento.
 const pill = "rounded-full px-4 py-1.5 font-display font-semibold";
 
-type ProposalPageProps = { params: Promise<{ token: string }> };
+type ProposalPageProps = {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ data?: string }>; // só dev: ?data=worst|one|empty
+};
 
 // A página em si não espera `params`: só repassa a promessa. O `await` fica
 // em <Proposal>, dentro do Suspense (exigência do cacheComponents).
-export default function ProposalPage({ params }: ProposalPageProps) {
+export default function ProposalPage({ params, searchParams }: ProposalPageProps) {
   return (
     <Suspense
       fallback={
@@ -38,16 +43,17 @@ export default function ProposalPage({ params }: ProposalPageProps) {
         </div>
       }
     >
-      <Proposal params={params} />
+      <Proposal params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Proposal({ params }: ProposalPageProps) {
+async function Proposal({ params, searchParams }: ProposalPageProps) {
   // TODO (etapa 6): buscar a proposta no banco pelo token.
   const { token } = await params;
   void token;
-  const p = mockProposal;
+  const { data } = await searchParams;
+  const p = getMockProposal(data);
   const c = p.fixedContent;
 
   const subtotal = projectSubtotal(p.items);
@@ -57,9 +63,9 @@ async function Proposal({ params }: ProposalPageProps) {
   const pixSaving = total - pixTotal(total);
 
   return (
-    <main>
+    <main className="overflow-x-clip">
       {/* Capa */}
-      <header className="relative z-20 flex min-h-svh flex-col rounded-b-[3rem] bg-marfim text-grafite shadow-[0_24px_40px_-24px_rgb(22_22_28/0.25)]">
+      <header className="relative z-20 flex min-h-svh flex-col rounded-b-[3rem] bg-marfim text-grafite [--accent:#82612f] shadow-[0_24px_40px_-24px_rgb(22_22_28/0.25)]">
         <div aria-hidden className="absolute inset-0 overflow-hidden rounded-b-[3rem]">
         {/* grade + sol */}
         <div
@@ -80,9 +86,9 @@ async function Proposal({ params }: ProposalPageProps) {
             {c.about.name}
           </p>
           <nav className="hidden gap-8 text-xs uppercase tracking-widest text-cinza sm:flex">
-            <a href="#sobre" className="hover:text-grafite">Sobre</a>
-            <a href="#portfolio" className="hover:text-grafite">Portfólio</a>
-            <a href="#investimento" className="hover:text-grafite">Investimento</a>
+            <a href="#sobre" className="-my-3.5 py-3.5 hover:text-grafite">Sobre</a>
+            <a href="#portfolio" className="-my-3.5 py-3.5 hover:text-grafite">Portfólio</a>
+            <a href="#investimento" className="-my-3.5 py-3.5 hover:text-grafite">Investimento</a>
           </nav>
         </div>
 
@@ -91,7 +97,7 @@ async function Proposal({ params }: ProposalPageProps) {
             <h1 className="font-display text-5xl uppercase leading-[1.05] tracking-tight sm:text-7xl">
               Proposta
               <br />
-              de <span className="text-dourado">{p.title}</span>
+              de <span className="text-(--accent)">{p.title}</span>
             </h1>
           </div>
           <div className="-mb-44">
@@ -104,14 +110,10 @@ async function Proposal({ params }: ProposalPageProps) {
       <Section id="sobre" overlap tone="sand" bare>
         <div className="relative grid items-end gap-12 lg:grid-cols-2">
           <div className="self-center pb-20">
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-(--line) px-3 py-1 text-sm text-(--mute)">
-              <span className="size-1.5 rounded-full bg-dourado" />
-              {c.about.title}
-            </p>
-            <h2 className="font-display text-5xl tracking-tight">
+            <h2 className="font-display text-5xl tracking-tight lg:text-6xl">
               {c.about.name}
             </h2>
-            <p className="mb-8 mt-2 text-xl text-dourado">{c.about.role}</p>
+            <p className="mb-8 mt-2 text-xl text-(--accent)">{c.about.role}</p>
             <div className="space-y-5 text-lg leading-8 text-(--mute)">
               {c.about.paragraphs.map((t) => (
                 <p key={t}>
@@ -121,7 +123,7 @@ async function Proposal({ params }: ProposalPageProps) {
             </div>
           </div>
 
-          {/* foto: placeholder até termos a imagem real (PNG sem fundo) */}
+          {/* foto: PNG sem fundo, apoiada na base do arco */}
           <div className="relative flex justify-center lg:justify-end">
             <div
               aria-hidden
@@ -133,8 +135,15 @@ async function Proposal({ params }: ProposalPageProps) {
             >
               {c.about.name[0]}
             </span>
-            <div className="relative flex h-[30rem] w-80 items-end justify-center rounded-t-[10rem] bg-linear-to-b from-dourado/30 to-bronze/50 pb-6 text-sm text-grafite/50">
-              Foto
+            <div className="relative h-120 w-full max-w-80 overflow-hidden rounded-t-[10rem] bg-linear-to-b from-dourado/30 to-bronze/50">
+              <Image
+                src="/proposta/nathan.png"
+                alt={c.about.name}
+                fill
+                sizes="320px"
+                priority
+                className="origin-bottom scale-112 object-contain object-bottom"
+              />
             </div>
           </div>
         </div>
@@ -142,7 +151,7 @@ async function Proposal({ params }: ProposalPageProps) {
 
       {/* 2. Vantagens */}
       <Section tone="dark" bare>
-        <div className="relative pb-24 pt-4">
+        <div className="relative pb-24 pt-4 lg:pb-32">
           {/* brilhos de fundo */}
           <div
             aria-hidden
@@ -154,11 +163,7 @@ async function Proposal({ params }: ProposalPageProps) {
           />
           <div className="relative grid gap-14 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="lg:sticky lg:top-24 lg:self-start">
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-(--line) px-3 py-1 text-sm text-(--mute)">
-                <span className="size-1.5 rounded-full bg-dourado" />
-                Vantagens
-              </p>
-              <h2 className="font-display text-4xl leading-tight tracking-tight sm:text-5xl">
+              <h2 className="text-balance font-display text-4xl leading-[1.1] tracking-tight sm:text-5xl">
                 <Rich text={c.advantages.title} as="title" />
               </h2>
               <p className="mt-6 max-w-md text-lg leading-8 text-(--mute)">
@@ -167,62 +172,66 @@ async function Proposal({ params }: ProposalPageProps) {
               <div className="mt-10 h-px w-24 bg-linear-to-r from-dourado to-transparent" />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <ul className="border-t border-(--line)">
               {c.advantages.items.map((i) => (
-                <div
+                <li
                   key={i.title}
-                  className="min-h-56 rounded-2xl border border-(--line) bg-(--card) p-6"
+                  className="grid gap-5 border-b border-(--line) py-8 sm:grid-cols-[auto_1fr] sm:gap-8"
                 >
-                  <span className="mb-8 flex size-12 items-center justify-center rounded-2xl bg-dourado/15 text-dourado ring-1 ring-dourado/30">
+                  <span className="flex size-12 items-center justify-center rounded-full bg-dourado/15 text-dourado ring-1 ring-dourado/30">
                     <Icon name={i.icon} />
                   </span>
-                  <h3 className="mb-2 font-display text-xl">{i.title}</h3>
-                  <p className="text-sm leading-6 text-(--mute)">{i.text}</p>
-                </div>
+                  <div>
+                    <h3 className="font-display text-2xl leading-tight">
+                      {i.title}
+                    </h3>
+                    <p className="mt-2 max-w-prose text-lg leading-8 text-(--mute)">
+                      {i.text}
+                    </p>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </div>
       </Section>
 
       {/* 5 + 9. Processo e prazo de entrega */}
       <Section tone="light" bare>
-        <div className="grid gap-12 pb-24 pt-4 lg:grid-cols-2">
-          <div className="flex flex-col justify-between gap-10">
-            <div>
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-(--line) px-3 py-1 text-sm text-(--mute)">
-                <span className="size-1.5 rounded-full bg-dourado" />
-                Etapa por etapa
-              </p>
-              <h2 className="font-display text-4xl leading-tight tracking-tight sm:text-5xl">
-                <Rich text={c.process.title} as="title" />
-              </h2>
-            </div>
+        <div className="grid gap-12 pb-24 pt-4 lg:grid-cols-2 lg:pb-32">
+          <div className="flex flex-col gap-10 lg:sticky lg:top-24 lg:self-start">
+            <h2 className="text-balance font-display text-3xl leading-[1.1] tracking-tight min-[400px]:text-4xl sm:text-5xl">
+              <Rich text={c.process.title} as="title" />
+            </h2>
 
-            <div className="w-fit rounded-3xl border border-(--line) bg-(--card) p-6 shadow-sm">
-              <p className="text-(--mute)">Prazo de entrega do projeto:</p>
-              <p className="my-3 border-l-2 border-dourado pl-4 font-display text-4xl font-bold sm:text-5xl">
-                {p.deliveryDays} dias
+            <div className="w-fit rounded-3xl border border-(--line) bg-(--card) p-6">
+              <p className="text-base text-(--mute)">Prazo de entrega do projeto:</p>
+              <p className="my-3 font-display text-5xl font-bold tracking-tight text-(--accent) sm:text-6xl">
+                {p.deliveryDays} {p.deliveryDays === 1 ? "dia" : "dias"}
               </p>
-              <p className="text-sm text-(--mute)">{c.delivery.note}</p>
+              <p className="text-base text-(--mute)">{c.delivery.note}</p>
             </div>
           </div>
 
-          <ol className="relative ml-2 space-y-10 border-l border-dourado/60 pl-8">
+          <ol className="relative space-y-12 before:absolute before:bottom-4 before:left-4.5 before:top-4 before:w-px before:bg-dourado/50">
             {c.process.steps.map((s, idx) => {
               const last = idx === c.process.steps.length - 1;
               return (
-                <li key={s.title} className="relative">
-                  <span className="absolute -left-[37px] top-2 size-2.5 rounded-full bg-dourado" />
-                  {s.note && (
-                    <p className="mb-1 text-sm italic text-(--mute)">{s.note}</p>
-                  )}
-                  <h3 className="font-display text-xl">
-                    {s.title} {last && <span aria-hidden>🚀</span>}
+                <li key={s.title} className="relative pl-16">
+                  <span className="absolute left-0 top-0 flex size-9 items-center justify-center rounded-full border border-dourado bg-marfim font-display text-base font-semibold tabular-nums text-(--accent)">
+                    {idx + 1}
+                  </span>
+                  <h3 className="pt-0.5 font-display text-2xl leading-tight">
+                    {s.title}
                   </h3>
-                  <p className="text-(--mute)">{s.text}</p>
+                  <p className="mt-2 max-w-prose text-lg leading-8 text-(--mute)">
+                    {s.text}
+                  </p>
+                  {s.note && (
+                    <p className="mt-2 text-base text-(--accent)">{s.note}</p>
+                  )}
                   {last && (
-                    <p className="mt-3 rounded-2xl bg-dourado/10 px-4 py-3 text-sm text-(--mute)">
+                    <p className="mt-4 rounded-2xl bg-dourado/10 px-5 py-4 text-base leading-7 text-(--mute)">
                       {c.delivery.maintenance}
                     </p>
                   )}
@@ -234,7 +243,7 @@ async function Proposal({ params }: ProposalPageProps) {
       </Section>
 
       {/* 4. Portfólio */}
-      <Section id="portfolio" tone="dark" pill="Portfólio" title={c.portfolio.title}>
+      <Section id="portfolio" tone="sand" title={c.portfolio.title}>
         <div className="grid gap-5 sm:grid-cols-2">
           {c.portfolio.projects.map((proj) => (
             <ProjectCard key={proj.name} project={proj} />
@@ -242,9 +251,9 @@ async function Proposal({ params }: ProposalPageProps) {
         </div>
       </Section>
 
-      {/* 6-8. Investimento + Bônus + Pagamento (coluna única, centralizada) */}
+      {/* 6-8. Investimento + Bônus + Pagamento (card único, coluna centralizada) */}
       <Section id="investimento" tone="light" bare>
-        <div className="relative pb-24 pt-4">
+        <div className="relative pb-24 pt-4 lg:pb-32">
           {/* arcos laterais, como na referência */}
           <div
             aria-hidden
@@ -255,193 +264,178 @@ async function Proposal({ params }: ProposalPageProps) {
             className="absolute -bottom-72 -right-64 size-[32rem] rounded-full border-[110px] border-dourado/30"
           />
 
-          <div className="relative mx-auto max-w-2xl rounded-[3rem] border border-white bg-[#f4efe6] p-6 shadow-[0_50px_100px_-40px_rgb(22_22_28/0.3)] sm:p-12">
-            {/* 1. título */}
-            <div className="text-center">
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-(--line) px-3 py-1 text-sm text-(--mute)">
-                <span className="size-1.5 rounded-full bg-dourado" />
-                Bora para o que mais interessa?
-              </p>
-              <h2 className="font-display text-4xl leading-tight tracking-tight sm:text-5xl">
-                <Rich text="*Serviços* solicitados:" as="title" />
-              </h2>
-            </div>
+          <div className="relative mx-auto max-w-2xl rounded-4xl bg-white p-6 shadow-[0_40px_80px_-30px_rgb(22_22_28/0.25)] sm:p-10">
+            <h2 className="text-balance text-center font-display text-4xl leading-tight tracking-tight sm:text-5xl">
+              Investimento para <span className="text-(--accent)">o projeto</span>
+            </h2>
 
-            {/* 2. serviços */}
-            <ul className="mt-8 space-y-3">
+            {/* serviços: uma lista só, com quantidade e desconto no detalhe */}
+            <ul className="mt-8 divide-y divide-(--line)">
               {p.items.map((item) => (
                 <li
                   key={item.description}
-                  className="flex items-center gap-4 rounded-full border border-dourado/30 bg-dourado/10 px-6 py-3"
+                  className="flex flex-col gap-1 py-4 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between min-[420px]:gap-4"
                 >
-                  <span className="size-2 shrink-0 rounded-full bg-dourado" />
-                  <div>
-                    <p className="text-sm font-medium">{item.description}</p>
-                    <p className="text-xs text-(--mute)">
-                      Quantidade: {item.quantity}
-                    </p>
+                  <div className="min-w-0">
+                    <p className="text-lg font-medium">{item.description}</p>
+                    {(item.quantity > 1 || item.discount) && (
+                      <p className="mt-0.5 text-base text-(--mute)">
+                        {item.quantity > 1 &&
+                          `${item.quantity} × ${formatBRL(item.unitPrice)}`}
+                        {item.quantity > 1 && item.discount && " · "}
+                        {item.discount &&
+                          (item.discount.type === "percent"
+                            ? `${item.discount.value}% de desconto`
+                            : `${formatBRL(item.discount.value)} de desconto`)}
+                      </p>
+                    )}
                   </div>
+                  <span className="shrink-0 font-display text-xl font-semibold tabular-nums">
+                    {formatBRL(itemSubtotal(item))}
+                  </span>
                 </li>
               ))}
             </ul>
 
-            {/* 3. card: investimento -> bônus -> pagamento -> fechar */}
-            <div className="mt-8 rounded-[2.5rem] border border-white bg-white p-6 shadow-[0_40px_80px_-30px_rgb(22_22_28/0.25)] sm:p-8">
-              <h3 className="text-center font-display text-3xl leading-tight">
-                Investimento para <span className="text-dourado">o projeto</span>
-              </h3>
-
-              <ul className="mt-6 space-y-2">
-                {p.items.map((item) => (
-                  <li
-                    key={item.description}
-                    className="flex items-center justify-between gap-4 rounded-full bg-grafite/5 py-2 pl-5 pr-2"
-                  >
-                    <span className="min-w-0 truncate text-sm">
-                      <span className="mr-2 text-dourado">›</span>
-                      {item.description}
-                      {item.discount && (
-                        <span className="ml-2 text-xs text-(--mute)">
-                          (
-                          {item.discount.type === "percent"
-                            ? `${item.discount.value}% off`
-                            : `${formatBRL(item.discount.value)} off`}
-                          )
-                        </span>
-                      )}
-                    </span>
-                    <span className={`${pill} shrink-0 bg-dourado/20 text-bronze`}>
-                      {formatBRL(itemSubtotal(item))}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* total em destaque */}
-              <div className="mt-4 rounded-3xl bg-linear-to-br from-dourado/25 to-dourado/10 px-6 py-5 text-center">
-                <p className="text-sm text-bronze">Total do projeto</p>
-                <p className="font-display text-5xl font-bold">
-                  {formatBRL(total)}
-                </p>
-                {generalDiscount > 0 && (
-                  <p className="mt-1 text-xs text-(--mute)">
-                    já com {formatBRL(generalDiscount)} de desconto aplicado
-                  </p>
-                )}
-                {p.hostingMonthly !== null && (
-                  <p className="mt-3 border-t border-dourado/30 pt-3 text-xs text-(--mute)">
-                    + Hospedagem mensal, à parte:{" "}
-                    <strong className="text-grafite">
-                      {formatBRL(p.hostingMonthly)}/mês
-                    </strong>
-                  </p>
-                )}
-              </div>
-
-              {p.bonus && (
-                <p className="mt-3 rounded-2xl border border-dashed border-dourado/50 px-5 py-3 text-center text-sm text-(--mute)">
-                  🎁 <strong className="text-bronze">Bônus:</strong> {p.bonus}
+            {/* total em destaque */}
+            <div className="mt-2 rounded-3xl bg-linear-to-br from-dourado/25 to-dourado/10 px-6 py-5 text-center">
+              <p className="text-base font-medium text-bronze">Total do projeto</p>
+              <p className="font-display text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
+                {formatBRL(total)}
+              </p>
+              {generalDiscount > 0 && (
+                <p className="mt-1 text-base text-(--mute)">
+                  já com {formatBRL(generalDiscount)} de desconto aplicado
                 </p>
               )}
-
-              {/* formas de pagamento */}
-              <h3 className="mt-10 text-center font-display text-3xl">
-                <Rich text={c.payment.title} as="title" />
-              </h3>
-              <p className="mt-1 text-center text-xs text-(--mute)">
-                {c.payment.intro}
-              </p>
-
-              <div className="mt-5 space-y-3">
-                {c.payment.methods.map((m) =>
-                  m.id === "pix" ? (
-                    <div
-                      key={m.id}
-                      className="rounded-[1.75rem] border border-dourado/40 bg-dourado/10 p-5"
-                    >
-                      <span className="rounded-full bg-dourado/25 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-bronze">
-                        Melhor opção
-                      </span>
-                      <div className="mt-3 flex items-end justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium">{m.title}</p>
-                          <p className="text-xs text-(--mute)">{m.text}</p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className="text-xs text-(--mute) line-through">
-                            {formatBRL(total)}
-                          </p>
-                          <p className="font-display text-3xl font-bold text-bronze">
-                            {formatBRL(pixTotal(total))}
-                          </p>
-                          <p className="text-[11px] font-medium text-emerald-700">
-                            Você economiza {formatBRL(pixSaving)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : m.id === "split" ? (
-                    <div
-                      key={m.id}
-                      className="rounded-[1.75rem] bg-grafite/5 px-5 py-4"
-                    >
-                      <p className="text-sm font-medium">{m.title}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-(--mute)">
-                        <span>50% na entrada</span>
-                        <span className={`${pill} bg-white text-grafite`}>
-                          {formatBRL(entry)}
-                        </span>
-                        <span className="ml-1">50% na entrega</span>
-                        <span className={`${pill} bg-white text-grafite`}>
-                          {formatBRL(onDelivery)}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      key={m.id}
-                      className="rounded-[1.75rem] bg-grafite/5 px-5 py-4"
-                    >
-                      <p className="text-sm font-medium">{m.title}</p>
-                      <p className="text-xs text-(--mute)">{m.text}</p>
-                    </div>
-                  ),
-                )}
-              </div>
-
-              {/* fechar: leva ao botão de aprovar no fim da página */}
-              <a
-                href="#aprovar"
-                className="mx-auto mt-8 flex w-fit items-center gap-3 rounded-full bg-dourado px-7 py-3.5 font-semibold text-grafite shadow-lg shadow-dourado/30 transition hover:bg-bronze hover:text-marfim active:scale-95"
-              >
-                Quero fechar o projeto agora
-                <span aria-hidden>→</span>
-              </a>
             </div>
 
-            <p className="mt-10 text-center font-display text-2xl font-bold tracking-tight">
-              {c.about.name}
+            {/* hospedagem: fora do total, em linha própria para não passar batido */}
+            {p.hostingMonthly !== null && (
+              <p className="mt-5 flex items-baseline justify-between gap-4 text-base text-(--mute)">
+                <span>Hospedagem mensal, cobrada à parte</span>
+                <strong className="shrink-0 font-semibold tabular-nums text-grafite">
+                  {formatBRL(p.hostingMonthly)}/mês
+                </strong>
+              </p>
+            )}
+
+            {p.bonus && (
+              <p className="mt-5 rounded-2xl border border-dashed border-dourado/50 px-5 py-4 text-center text-base leading-7 text-(--mute)">
+                <strong className="text-bronze">Bônus:</strong> {p.bonus}
+              </p>
+            )}
+
+            {/* formas de pagamento */}
+            <h3 className="mt-16 text-balance text-center font-display text-3xl leading-tight sm:text-4xl">
+              <Rich text={c.payment.title} as="title" />
+            </h3>
+            <p className="mx-auto mt-2 max-w-md text-balance text-center text-base leading-7 text-(--mute)">
+              {c.payment.intro}
             </p>
+
+            <div className="mt-6 space-y-3">
+              {c.payment.methods.map((m) =>
+                m.id === "pix" ? (
+                  <div
+                    key={m.id}
+                    className="rounded-3xl border border-dourado/40 bg-dourado/10 p-5"
+                  >
+                    <span className="rounded-full bg-dourado/25 px-3 py-1 text-sm font-semibold text-bronze">
+                      Melhor opção
+                    </span>
+                    <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+                      <div className="min-w-0">
+                        <p className="text-lg font-medium">{m.title}</p>
+                        <p className="text-base text-(--mute)">{m.text}</p>
+                      </div>
+                      <div className="shrink-0 sm:text-right">
+                        <p className="text-base text-(--mute) line-through tabular-nums">
+                          {formatBRL(total)}
+                        </p>
+                        <p className="font-display text-4xl font-bold tracking-tight tabular-nums text-bronze">
+                          {formatBRL(pixTotal(total))}
+                        </p>
+                        <p className="text-base font-medium text-bronze">
+                          Você economiza {formatBRL(pixSaving)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : m.id === "split" ? (
+                  <div key={m.id} className="rounded-3xl bg-grafite/5 px-5 py-4">
+                    <p className="text-lg font-medium">{m.title}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-base text-(--mute)">
+                      <span>50% na entrada</span>
+                      <span className={`${pill} bg-white text-grafite tabular-nums`}>
+                        {formatBRL(entry)}
+                      </span>
+                      <span>50% na entrega</span>
+                      <span className={`${pill} bg-white text-grafite tabular-nums`}>
+                        {formatBRL(onDelivery)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={m.id} className="rounded-3xl bg-grafite/5 px-5 py-4">
+                    <p className="text-lg font-medium">{m.title}</p>
+                    <p className="text-base text-(--mute)">{m.text}</p>
+                  </div>
+                ),
+              )}
+            </div>
+
+            {/* fechar: leva ao botão de aprovar no fim da página */}
+            <a
+              href="#aprovar"
+              className="mx-auto mt-8 flex w-fit items-center gap-3 rounded-full bg-dourado px-7 py-3.5 font-semibold text-grafite shadow-lg shadow-dourado/30 transition hover:bg-bronze hover:text-marfim focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-bronze active:scale-95"
+            >
+              Quero fechar o projeto agora
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                className="size-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
           </div>
+
+          <p className="relative mt-10 text-center font-display text-2xl font-bold tracking-tight">
+            {c.about.name}
+          </p>
         </div>
       </Section>
 
       {/* FAQ */}
-      <Section tone="dark" pill="Dúvidas" title={c.faq.title} center>
-        <div className="mx-auto max-w-3xl space-y-3">
+      <Section tone="sand" title={c.faq.title} split>
+        <div className="border-t border-(--line)">
           {c.faq.items.map((f, idx) => (
             <details
               key={f.question}
-              className="group rounded-3xl border border-(--line) bg-(--card) p-6"
+              open={idx === 0}
+              className="group border-b border-(--line)"
             >
-              <summary className="flex cursor-pointer list-none items-center gap-4 font-medium">
-                <span className="font-display text-dourado">{idx + 1}</span>
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-lg py-6 font-display text-xl leading-snug">
                 {f.question}
-                <span className="ml-auto text-dourado transition group-open:rotate-45">
-                  +
-                </span>
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  className="size-6 shrink-0 text-(--accent) transition group-open:rotate-45"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                  strokeLinecap="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
               </summary>
-              <p className="mt-4 pl-8 text-sm leading-6 text-(--mute)">
+              <p className="max-w-prose pb-6 pr-10 text-lg leading-8 text-(--mute)">
                 {f.answer}
               </p>
             </details>
@@ -450,17 +444,21 @@ async function Proposal({ params }: ProposalPageProps) {
       </Section>
 
       {/* Aprovar */}
-      <footer id="aprovar" className="bg-grafite px-6 pb-24 pt-8 text-center text-marfim">
-        <div className="mx-auto max-w-3xl rounded-3xl bg-linear-to-br from-bronze to-dourado/80 px-6 py-16">
-          <h2 className="mb-3 font-display text-3xl sm:text-4xl">
+      <footer
+        id="aprovar"
+        className="bg-linear-to-br from-bronze to-[#8a6a3a] px-6 py-24 text-center text-marfim [--accent:#faf7f2] lg:py-32"
+      >
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-balance font-display text-4xl leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
             Tudo certo com a proposta?
           </h2>
-          <p className="mb-8 text-marfim/80">
+          <p className="mx-auto mb-10 mt-6 max-w-xl text-pretty text-lg leading-8 text-marfim">
             Ao aprovar, entro em contato para formalizarmos o contrato.
           </p>
           <ApproveButton />
         </div>
       </footer>
+      <DevDataToggle active={data ?? "demo"} />
     </main>
   );
 }

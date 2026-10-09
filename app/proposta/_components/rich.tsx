@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 
-// Converte *trecho* em destaque. "title": cor dourada; "body": negrito.
+// Converte *trecho* em destaque. "title": cor de destaque (--accent, definida
+// pelo tom da seção); "body": negrito.
 export function Rich({
   text,
   as = "body",
@@ -8,7 +9,7 @@ export function Rich({
   text: string;
   as?: "title" | "body";
 }) {
-  const cls = as === "title" ? "text-dourado" : "font-semibold text-(--strong)";
+  const cls = as === "title" ? "text-(--accent)" : "font-semibold text-(--strong)";
   return (
     <>
       {text.split("*").map((part, i) => (
