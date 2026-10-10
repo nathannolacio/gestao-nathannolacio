@@ -119,7 +119,7 @@ O layout da página já existe com dados mock (ver "Estado atual").
   3. Total do projeto = subtotal do projeto − desconto geral
   4. Valor à vista no Pix = total do projeto × 0,9 (10% de desconto, calculado na exibição)
 - Arredondamento sempre para centavos inteiros.
-- Hospedagem: valor MENSAL opcional (só quando o cliente não tem hospedagem própria),
+- Hospedagem: valor ANUAL opcional (só quando o cliente não tem hospedagem própria),
   separado do total do projeto, sem desconto e fora do cálculo do Pix.
 - Domínio: contratado pelo cliente, não aparece na proposta.
 - Manutenção: 60 dias grátis após a entrega (texto fixo); depois disso é avulsa.
@@ -130,17 +130,19 @@ O layout da página já existe com dados mock (ver "Estado atual").
 - Parcelado no cartão (número de parcelas a definir junto com o gateway)
 
 ## Modelo de dados
-- clients: id, tipo (PF | PJ), nome, email, telefone,
-  criado em, atualizado em
+- clients: id, tipo (PF | PJ, enum `client_type`), nome, email, telefone,
+  criado em, deleted_at (soft delete)
   (mínimo, só para vincular à proposta; sem CPF/CNPJ por enquanto)
 - proposal_template: id, textos das seções fixas, atualizado em
   (as seções fixas são: about, advantages, portfolio, process, payment, delivery e faq;
   tipo `FixedContent` em `lib/proposal-content.ts`)
 - proposals: id, public_token (aleatório, único), client_id, título,
-  about_project (texto; SEM USO na página atual, decidir se remove), bonus (texto, opcional), delivery_days (prazo),
-  discount_type (percentual | fixo | nulo), discount_value,
-  hosting_monthly (centavos, opcional), fixed_content (jsonb, cópia do modelo),
-  status, sent_at, approved_at, criado em, atualizado em
+  bonus (texto, opcional), delivery_days (prazo),
+  discount_type (percentage | fixed | nulo, enum `discount_type`), discount_value,
+  hosting_annual (centavos, opcional), fixed_content (jsonb, cópia do modelo),
+  status (enum `proposal_status`: draft | sent | approved), sent_at, approved_at,
+  criado em, atualizado em, deleted_at (soft delete)
+  (`about_project` NÃO foi criada: a seção deixou de existir; adicionar depois se mudar de ideia)
 - proposal_items: id, proposal_id, descrição, quantidade,
   unit_price (centavos), discount_type, discount_value, posição (ordem de exibição)
 - Tabelas de usuário e sessão: geradas pelo Better Auth.
@@ -183,12 +185,15 @@ rascunho → enviada → aprovada
 9. Deploy na Vercel.
 
 # Estado atual
-- Etapa atual: 2 (Schema), em andamento
+- Etapa atual: 2 (Schema), quase concluída: tabelas migradas no Neon; falta só o seed
 - Pronto (visual, fora do fluxo): modelo da página pública em `app/proposta/[token]/page.tsx`,
   componentes em `app/proposta/_components/`, textos fixos em `lib/proposal-content.ts`,
   cálculos em centavos em `lib/proposal-calc.ts` e dados falsos em `lib/proposal-mock.ts`.
   Ainda não ligada ao banco. Textos e elementos serão refinados depois, antes do seed.
-- Pronto na Etapa 2: tabela `clients` em `db/schema.ts` (id uuid, type, name, email, phoneNumber, createdAt).
+- Pronto na Etapa 2: schema completo em `db/schema.ts` (`clients`, `proposal_template`, `proposals`,
+  `proposal_items` + enums `client_type`, `proposal_status`, `discount_type`).
+  Primeira migration gerada (`drizzle/20261010022922_clever_zuras`) e aplicada no Neon (4 tabelas conferidas).
+  Drizzle 1.0.0-rc.4: casing via `snakeCase.table(...)` (colunas camelCase no TS, snake_case no banco).
 - Pronto: Etapa 1 (Setup).
   - Projeto Next sem `src/`: `app/` e `db/` ficam na raiz (alias `@/*` aponta para a raiz).
   - Neon conectado; `DATABASE_URL` em `.env.local` (não vai para o git).
@@ -206,15 +211,18 @@ rascunho → enviada → aprovada
   - Telefone guardado só com dígitos (55 + DDD + 9 dígitos = 13); formato validado pelo Zod.
   - `proposal_template.content` será uma coluna `jsonb` única (opção B), tipada com `.$type<...>()`;
     o tipo das seções fixas é definido fora da tabela para reutilizar em `proposals.fixedContent`.
+  - Enums reais do Postgres (`pgEnum`) para tipo de cliente, status da proposta e tipo de desconto.
+  - Soft delete: coluna `deleted_at` (nula = ativa) em `clients` e `proposals`; toda consulta
+    deve filtrar `deleted_at IS NULL`. `proposal_items` sem soft delete.
+  - FKs sem `onDelete` (padrão: bloqueia exclusão real), para manter o histórico.
+  - `public_token` gerado no código (não no banco), máx. 24 caracteres (`varchar(24)`), aleatório seguro.
+  - Hospedagem é valor ANUAL (`hosting_annual`).
 - Pendências:
-  - `type` (PF/PJ) usa `varchar` com enum só no TypeScript; considerar `pgEnum` nos status da proposta.
-  - Atualizar a seção "Modelo de dados" acima: remover `empresa` e `atualizado em` de `clients`.
-  - `updatedAt` com `$onUpdate` nas tabelas que o mantêm.
+  - Seed do `proposal_template`: refinar os textos de `lib/proposal-content.ts` antes.
+  - Zod: `discountType` e `discountValue` devem vir juntos ou nenhum (o banco não garante).
   - `eslint-config-next` aparece como `^14.2.35` no package.json, mas o `next` é 16.x: checar/corrigir.
   - Hot reload do Next pode criar vários pools em dev; tratar só se aparecer erro de excesso de conexões.
   - Repositório no GitHub ainda não criado (commits só locais).
-  - Passar o schema para `drizzle(...)` em `db/index.ts` quando existir.
-- Próximo passo: escrever a tabela `proposalTemplate` em `db/schema.ts` (id uuid, `content` jsonb tipado
-  com as 7 seções fixas, usando o tipo `FixedContent` de `lib/proposal-content.ts`,
-  e `updatedAt` com `$onUpdate`). Depois: `proposals`, `proposal_items`,
-  primeira migration e seed.
+  - Passar o schema para `drizzle(...)` em `db/index.ts` e declarar as `relations` (antes da Etapa 3).
+- Próximo passo: refinar os textos fixos em `lib/proposal-content.ts`, depois escrever o script de seed
+  do `proposal_template` (um único registro) e fechar a Etapa 2. Em seguida, Etapa 3 (listagem).
