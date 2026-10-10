@@ -15,7 +15,7 @@ export function ClientCard({ clientName }: { clientName: string }) {
       {/* halo dourado atrás do card */}
       <div
         aria-hidden
-        className="animate-glow-pulse absolute -inset-6 rounded-[3rem] bg-linear-to-br from-dourado to-bronze blur-3xl"
+        className="animate-glow-pulse absolute -inset-2 rounded-[3rem] bg-linear-to-br from-dourado to-bronze blur-2xl lg:-inset-6 lg:blur-3xl"
       />
       <div className="animate-float relative">
         {/* camadas atrás, para dar profundidade */}

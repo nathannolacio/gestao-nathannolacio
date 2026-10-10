@@ -13,7 +13,6 @@ import { getMockProposal } from "@/lib/proposal-mock";
 import { ApproveButton } from "../_components/approve-button";
 import { ClientCard } from "../_components/client-card";
 import { CoverGrid, Sunburst } from "../_components/cover-art";
-import { DevDataToggle } from "../_components/dev-data-toggle";
 import { Icon } from "../_components/icons";
 import { ProjectCard } from "../_components/project-card";
 import { Rich } from "../_components/rich";
@@ -23,6 +22,15 @@ export const metadata: Metadata = {
   title: "Proposta comercial",
   robots: { index: false, follow: false }, // link privado: fora do Google
 };
+
+// Foto da seção "Quem sou eu": o corpo se dissolve no fundo areia (esconde o corte dos braços).
+// A foto aparece inteira da metade para cima (cabeça e topo dos ombros) e, daí para baixo, só
+// dentro do disco dourado: o corpo termina exatamente na borda do disco (mesmo centro e raio).
+// O círculo é uma elipse de 48% da largura × 36,08% da altura (= 48% × 962/1280, foto 962×1280).
+const fadeToSand = [
+  "linear-gradient(to bottom, black 50%, transparent 50%)",
+  "radial-gradient(ellipse 48% 36.08% at 50% 50%, black 94%, transparent 100%)",
+].join(", ");
 
 // Pílula de valor usada no Investimento e no Pagamento.
 const pill = "rounded-full px-4 py-1.5 font-display font-semibold";
@@ -70,7 +78,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
         {/* grade + sol */}
         <div
           aria-hidden
-          className="absolute right-[6%] top-[14%] hidden aspect-square w-[min(44vw,560px)] lg:block"
+          className="absolute right-[6%] top-[14%] hidden aspect-square w-[min(56vw,720px)] lg:block"
           style={{
             maskImage:
               "radial-gradient(circle at center, black 35%, transparent 72%)",
@@ -92,24 +100,27 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
           </nav>
         </div>
 
-        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center gap-14 px-6 pt-16">
-          <div className="animate-fade-up relative -top-12">
-            <h1 className="font-display text-5xl uppercase leading-[1.05] tracking-tight sm:text-7xl">
-              Proposta
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-center gap-14 px-6 pb-20 pt-16 lg:grid-cols-2 lg:items-center lg:pb-0">
+          <div className="animate-fade-up relative">
+            <h1 className="font-display text-[2.5rem] uppercase leading-[1.05] tracking-tight sm:text-7xl">
+              Proposta comercial
               <br />
               de <span className="text-(--accent)">{p.title}</span>
             </h1>
+            <p className="mt-6 max-w-md text-pretty text-lg leading-8 text-cinza">
+              Escopo, prazo e investimento do seu projeto, reunidos em um só lugar.
+            </p>
           </div>
-          <div className="-mb-44">
+          <div className="lg:flex lg:justify-center">
             <ClientCard clientName={p.clientName} />
           </div>
         </div>
       </header>
 
       {/* 1. Quem sou eu */}
-      <Section id="sobre" overlap tone="sand" bare>
-        <div className="relative grid items-end gap-12 lg:grid-cols-2">
-          <div className="self-center pb-20">
+      <Section id="sobre" tone="sand" bare>
+        <div className="relative grid items-end gap-12 pb-4 lg:grid-cols-2 lg:pb-24">
+          <div className="self-center pb-8">
             <h2 className="font-display text-5xl tracking-tight lg:text-6xl">
               {c.about.name}
             </h2>
@@ -123,28 +134,29 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
             </div>
           </div>
 
-          {/* foto: PNG sem fundo, apoiada na base do arco */}
+          {/* foto: PNG sem fundo, apoiada na base da seção */}
           <div className="relative flex justify-center lg:justify-end">
-            <div
-              aria-hidden
-              className="absolute -right-10 bottom-0 h-3/4 w-3/4 rounded-full bg-linear-to-t from-dourado/50 to-transparent blur-3xl"
-            />
-            <span
-              aria-hidden
-              className="absolute -top-6 right-0 select-none font-display text-[22rem] leading-none text-grafite/5"
-            >
-              {c.about.name[0]}
-            </span>
-            <div className="relative h-120 w-full max-w-80 overflow-hidden rounded-t-[10rem] bg-linear-to-b from-dourado/30 to-bronze/50">
+            <div className="relative aspect-962/1280 w-full max-w-md">
+              {/* disco dourado atrás: dá uma forma para o corpo "sair de dentro" */}
+              <div
+                aria-hidden
+                className="absolute left-1/2 top-[14%] aspect-square w-[96%] -translate-x-1/2 rounded-full bg-linear-to-b from-dourado/45 to-bronze/15"
+              />
               <Image
-                src="/proposta/nathan.png"
+                src="/proposta/nathan-selfie.png"
                 alt={c.about.name}
                 fill
-                sizes="320px"
+                sizes="(min-width: 1024px) 448px, 100vw"
                 priority
-                className="origin-bottom scale-112 object-contain object-bottom"
-              />
-            </div>
+                className="object-contain object-bottom"
+                style={{
+                  maskImage: fadeToSand,
+                  WebkitMaskImage: fadeToSand,
+                  // sem isso, a máscara repete e deixa uma linha de 1px da foto na borda de baixo
+                  maskRepeat: "no-repeat",
+                  WebkitMaskRepeat: "no-repeat",
+                }}
+              />            </div>
           </div>
         </div>
       </Section>
@@ -243,10 +255,21 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
       </Section>
 
       {/* 4. Portfólio */}
-      <Section id="portfolio" tone="sand" title={c.portfolio.title}>
-        <div className="grid gap-5 sm:grid-cols-2">
+      <Section
+        id="portfolio"
+        tone="dark"
+        title={c.portfolio.title}
+        intro={c.portfolio.intro}
+      >
+        {/* mobile: carrossel com rolagem horizontal e encaixe (sem JS); a partir de sm: grade de 2 colunas */}
+        <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-2 scrollbar-none sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
           {c.portfolio.projects.map((proj) => (
-            <ProjectCard key={proj.name} project={proj} />
+            <div
+              key={proj.name}
+              className="flex w-[85%] shrink-0 snap-center scroll-mx-6 *:w-full sm:w-auto"
+            >
+              <ProjectCard project={proj} />
+            </div>
           ))}
         </div>
       </Section>
@@ -270,60 +293,142 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
             </h2>
 
             {/* serviços: uma lista só, com quantidade e desconto no detalhe */}
-            <ul className="mt-8 divide-y divide-(--line)">
-              {p.items.map((item) => (
-                <li
-                  key={item.description}
-                  className="flex flex-col gap-1 py-4 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between min-[420px]:gap-4"
-                >
-                  <div className="min-w-0">
-                    <p className="text-lg font-medium">{item.description}</p>
-                    {(item.quantity > 1 || item.discount) && (
-                      <p className="mt-0.5 text-base text-(--mute)">
-                        {item.quantity > 1 &&
-                          `${item.quantity} × ${formatBRL(item.unitPrice)}`}
-                        {item.quantity > 1 && item.discount && " · "}
-                        {item.discount &&
-                          (item.discount.type === "percent"
-                            ? `${item.discount.value}% de desconto`
-                            : `${formatBRL(item.discount.value)} de desconto`)}
-                      </p>
-                    )}
-                  </div>
-                  <span className="shrink-0 font-display text-xl font-semibold tabular-nums">
-                    {formatBRL(itemSubtotal(item))}
+            <ul className="mt-8 space-y-3">
+              {p.items.map((item) => {
+                const subtotal = itemSubtotal(item);
+                const hasDetail = item.quantity > 1 || Boolean(item.discount);
+                const price = (
+                  <span
+                    className={`${pill} shrink-0 text-lg tabular-nums max-[419px]:mx-auto min-[420px]:ml-auto ${
+                      subtotal === 0
+                        ? "bg-dourado/25 text-bronze"
+                        : "bg-dourado text-[#f3f3f3]" // = bg-grafite/5 sobre o card branco (fundo da pílula do serviço)
+                    }`}
+                  >
+                    {subtotal === 0 ? "Incluso" : formatBRL(subtotal)}
                   </span>
-                </li>
-              ))}
+                );
+
+                // Sem detalhe (qtd 1 e sem desconto no item): linha fixa. Com detalhe: abre ao clicar na seta.
+                return (
+                  <li key={item.description}>
+                    {hasDetail ? (
+                      <details className="group rounded-3xl bg-grafite/5">
+                        <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 rounded-3xl px-5 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bronze [&::-webkit-details-marker]:hidden">
+                          <svg
+                            aria-hidden
+                            viewBox="0 0 24 24"
+                            className="size-4 shrink-0 text-(--mute) transition group-open:rotate-90"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M9 6l6 6-6 6" />
+                          </svg>
+                          <span className="min-w-0 flex-1 basis-40 text-balance text-lg font-medium max-[419px]:text-center">
+                            {item.description}
+                          </span>
+                          {price}
+                        </summary>
+                        <p className="px-5 pb-4 pl-12 text-base text-(--mute)">
+                          {item.quantity > 1 &&
+                            `${item.quantity} × ${formatBRL(item.unitPrice)}`}
+                          {item.quantity > 1 && item.discount && " · "}
+                          {item.discount &&
+                            (item.discount.type === "percent"
+                              ? `${item.discount.value}% de desconto`
+                              : `${formatBRL(item.discount.value)} de desconto`)}
+                        </p>
+                      </details>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-3xl bg-grafite/5 px-5 py-3">
+                        <span className="min-w-0 flex-1 basis-40 text-balance text-lg font-medium max-[419px]:text-center">
+                          {item.description}
+                        </span>
+                        {price}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
 
-            {/* total em destaque */}
-            <div className="mt-2 rounded-3xl bg-linear-to-br from-dourado/25 to-dourado/10 px-6 py-5 text-center">
+            {/* total em destaque, com o desconto promocional (geral) numa pílula embaixo */}
+            <div className="mt-3 rounded-3xl bg-linear-to-br from-dourado/25 to-dourado/10 px-6 py-5 text-center">
               <p className="text-base font-medium text-bronze">Total do projeto</p>
               <p className="font-display text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
                 {formatBRL(total)}
               </p>
               {generalDiscount > 0 && (
-                <p className="mt-1 text-base text-(--mute)">
-                  já com {formatBRL(generalDiscount)} de desconto aplicado
-                </p>
+                // branca, para não se confundir com as pílulas douradas de preço
+                <span className="mt-3 inline-flex flex-wrap items-center justify-center gap-x-2 rounded-full bg-white px-4 py-1.5 text-base font-semibold text-bronze shadow-sm">
+                  Desconto promocional
+                  {p.discount?.type === "percent" && ` (${p.discount.value}%)`}
+                  <span className="font-display tabular-nums">
+                    − {formatBRL(generalDiscount)}
+                  </span>
+                </span>
               )}
             </div>
 
-            {/* hospedagem: fora do total, em linha própria para não passar batido */}
-            {p.hostingMonthly !== null && (
-              <p className="mt-5 flex items-baseline justify-between gap-4 text-base text-(--mute)">
-                <span>Hospedagem mensal, cobrada à parte</span>
-                <strong className="shrink-0 font-semibold tabular-nums text-grafite">
-                  {formatBRL(p.hostingMonthly)}/mês
-                </strong>
-              </p>
+            {/* hospedagem: fora do total, como uma mini-seção própria com o mesmo destaque dos serviços */}
+            {p.hostingAnnual !== null && (
+              <div className="mt-12">
+                <h3 className="text-balance text-center font-display text-2xl leading-tight sm:text-3xl">
+                  Cobrança <span className="text-(--accent)">anual</span>
+                </h3>
+                <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-3xl bg-grafite/5 px-5 py-3">
+                  <span className="min-w-0 flex-1 basis-40 text-balance text-lg font-medium max-[419px]:text-center">Hospedagem</span>
+                  <span
+                    className={`${pill} shrink-0 bg-dourado text-lg tabular-nums text-[#f3f3f3] max-[419px]:mx-auto min-[420px]:ml-auto`}
+                  >
+                    {formatBRL(p.hostingAnnual)}/ano
+                  </span>
+                </div>
+                <p className="mt-3 text-center text-base text-(--mute)">
+                  Pagamento anual, renovado todo ano. Pode ser parcelado. Cobrada à parte, fora
+                  do total do projeto.
+                </p>
+              </div>
             )}
 
-            {p.bonus && (
-              <p className="mt-5 rounded-2xl border border-dashed border-dourado/50 px-5 py-4 text-center text-base leading-7 text-(--mute)">
-                <strong className="text-bronze">Bônus:</strong> {p.bonus}
-              </p>
+            {/* bônus: mini-seção, um card por bônus */}
+            {p.bonuses.length > 0 && (
+              <div className="mt-12">
+                <h3 className="text-balance text-center font-display text-2xl leading-tight sm:text-3xl">
+                  Seus <span className="text-(--accent)">bônus</span>
+                </h3>
+                <ul className="mt-5 space-y-3">
+                  {p.bonuses.map((bonus) => (
+                    <li key={bonus.title}>
+                      <details className="group rounded-3xl bg-grafite/5">
+                        <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 rounded-3xl px-5 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bronze [&::-webkit-details-marker]:hidden">
+                          <svg
+                            aria-hidden
+                            viewBox="0 0 24 24"
+                            className="size-4 shrink-0 text-(--mute) transition group-open:rotate-90"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M9 6l6 6-6 6" />
+                          </svg>
+                          <span className="min-w-0 flex-1 text-lg font-medium">
+                            {bonus.title}
+                          </span>
+                        </summary>
+                        <p className="px-5 pb-4 pl-12 text-base leading-7 text-(--mute)">
+                          {bonus.description}
+                        </p>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             {/* formas de pagamento */}
@@ -385,25 +490,9 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
               )}
             </div>
 
-            {/* fechar: leva ao botão de aprovar no fim da página */}
-            <a
-              href="#aprovar"
-              className="mx-auto mt-8 flex w-fit items-center gap-3 rounded-full bg-dourado px-7 py-3.5 font-semibold text-grafite shadow-lg shadow-dourado/30 transition hover:bg-bronze hover:text-marfim focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-bronze active:scale-95"
-            >
-              Quero fechar o projeto agora
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                className="size-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </a>
+            <div className="mt-8 flex justify-center">
+              <ApproveButton />
+            </div>
           </div>
 
           <p className="relative mt-10 text-center font-display text-2xl font-bold tracking-tight">
@@ -413,7 +502,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
       </Section>
 
       {/* FAQ */}
-      <Section tone="sand" title={c.faq.title} split>
+      <Section tone="dark" title={c.faq.title} split>
         <div className="border-t border-(--line)">
           {c.faq.items.map((f, idx) => (
             <details
@@ -443,22 +532,14 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
         </div>
       </Section>
 
-      {/* Aprovar */}
-      <footer
-        id="aprovar"
-        className="bg-linear-to-br from-bronze to-[#8a6a3a] px-6 py-24 text-center text-marfim [--accent:#faf7f2] lg:py-32"
-      >
-        <div className="mx-auto max-w-3xl">
-          <h2 className="text-balance font-display text-4xl leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-            Tudo certo com a proposta?
-          </h2>
-          <p className="mx-auto mb-10 mt-6 max-w-xl text-pretty text-lg leading-8 text-marfim">
-            Ao aprovar, entro em contato para formalizarmos o contrato.
-          </p>
-          <ApproveButton />
+      <footer className="bg-grafite pb-10 text-marfim">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex flex-col items-center gap-2 border-t border-white/10 pt-8 text-center text-sm sm:flex-row sm:justify-between sm:text-left">
+            <p className="font-display text-base">{c.about.name}</p>
+            <p className="text-marfim/60">{c.about.role}</p>
+          </div>
         </div>
       </footer>
-      <DevDataToggle active={data ?? "demo"} />
     </main>
   );
 }

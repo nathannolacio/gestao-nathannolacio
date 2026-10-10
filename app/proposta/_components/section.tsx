@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import { Rich } from "./rich";
 
 type SectionProps = {
-  overlap?: boolean; // abre espaço no topo para um elemento da seção anterior que invade esta
   id?: string;
   tone?: "light" | "sand" | "dark";
   title?: string; // opcional quando bare
+  intro?: string; // texto de apoio embaixo do título
   bare?: boolean; // sem título padrão: o conteúdo monta o próprio layout
   split?: boolean; // título à esquerda, conteúdo à direita
   center?: boolean;
@@ -22,10 +22,10 @@ const tones = {
 
 export function Section({
   id,
-  overlap,
   bare,
   tone = "light",
   title,
+  intro,
   split,
   center,
   children,
@@ -36,9 +36,7 @@ export function Section({
         id={id}
         className={`animate-fade-up overflow-clip ${tones[tone]}`}
       >
-        <div
-          className={`mx-auto max-w-6xl px-6 ${overlap ? "pt-28 lg:pt-64" : "pt-24 lg:pt-32"}`}
-        >
+        <div className="mx-auto max-w-6xl px-6 pt-24 lg:pt-32">
           {children}
         </div>
       </section>
@@ -50,12 +48,19 @@ export function Section({
       <h2 className="text-balance font-display text-4xl leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
         <Rich text={title ?? ""} as="title" />
       </h2>
+      {intro && (
+        <p
+          className={`mt-5 max-w-xl text-pretty text-lg leading-8 text-(--mute) ${center ? "mx-auto" : ""}`}
+        >
+          {intro}
+        </p>
+      )}
     </div>
   );
 
   return (
     <section id={id} className={`animate-fade-up ${tones[tone]}`}>
-      <div className={`mx-auto max-w-6xl px-6 pb-24 lg:pb-32 ${overlap ? "pt-28 lg:pt-64" : "pt-24 lg:pt-32"}`}>
+      <div className="mx-auto max-w-6xl px-6 pb-24 pt-24 lg:pb-32 lg:pt-32">
         {split ? (
           <div className="grid gap-12 lg:grid-cols-2">
             {heading}

@@ -3,13 +3,18 @@ import type { Discount, ProposalItem } from "./proposal-calc";
 
 // Dados falsos só para desenhar a página. Substituído pela leitura do banco
 // quando a etapa 6 (página pública) for ligada ao Drizzle.
+export type Bonus = {
+  title: string;
+  description: string; // resumo que aparece ao abrir o card
+};
+
 export type ProposalView = {
   title: string;
   clientName: string;
   aboutProject: string;
-  bonus: string | null;
+  bonuses: Bonus[]; // um card por bônus; lista vazia = sem bônus
   deliveryDays: number;
-  hostingMonthly: number | null; // centavos
+  hostingAnnual: number | null; // centavos, cobrado uma vez por ano
   discount: Discount;
   items: ProposalItem[];
   fixedContent: FixedContent;
@@ -22,27 +27,31 @@ export const mockProposal: ProposalView = {
   clientName: "Empresa Exemplo Ltda",
   aboutProject:
     "Você precisa de um *site institucional moderno que apresente a empresa, seus serviços e facilite o contato de novos clientes*.\n\nSerá entregue um site responsivo com 5 páginas, formulário de contato integrado ao WhatsApp e otimização básica para o Google.",
-  bonus: "Configuração do Google Meu Negócio e 1 mês de acompanhamento de métricas.",
+  bonuses: [
+    {
+      title: "Configuração do Google Meu Negócio",
+      description:
+        "Configuro o perfil da sua empresa no Google para ela aparecer no Google Maps e nas pesquisas da sua região, com endereço, horário de atendimento, fotos e formas de contato.",
+    },
+    {
+      title: "1 mês de acompanhamento de métricas",
+      description:
+        "No primeiro mês depois da entrega, acompanho os acessos e as ações dos visitantes no site e te explico, de forma simples, o que os números mostram.",
+    },
+    {
+      title: "SEO básico",
+      description:
+        "Ajustes para o seu site ser encontrado no Google: títulos, descrições e estrutura das páginas pensados para as buscas.",
+    },
+  ],
   deliveryDays: 20,
-  hostingMonthly: 4900,
-  discount: { type: "fixed", value: 20000 },
+  hostingAnnual: 60000,
+  discount: { type: "fixed", value: 50000 },
   items: [
     {
       description: "Site institucional (5 páginas)",
       quantity: 1,
       unitPrice: 250000,
-      discount: null,
-    },
-    {
-      description: "Formulário de contato com WhatsApp",
-      quantity: 1,
-      unitPrice: 30000,
-      discount: { type: "percent", value: 10 },
-    },
-    {
-      description: "Otimização SEO básica",
-      quantity: 1,
-      unitPrice: 40000,
       discount: null,
     },
   ],
@@ -55,10 +64,29 @@ export const mockProposal: ProposalView = {
 // Escolhidos por `?data=worst|one|empty` na URL; em produção nada disso é usado.
 const worstProposal: ProposalView = {
   ...mockProposal,
-  bonus:
-    "Configuração do Google Meu Negócio, criação de 3 perfis em redes sociais com identidade visual padronizada, 1 mês de acompanhamento de métricas e uma sessão de treinamento gravada para a sua equipe sobre como atualizar o conteúdo do site sem ajuda.",
+  bonuses: [
+    {
+      title: "Configuração do Google Meu Negócio",
+      description: "Perfil da empresa no Google Maps e nas pesquisas da região.",
+    },
+    {
+      title: "Criação de 3 perfis em redes sociais com identidade visual padronizada",
+      description:
+        "Crio e configuro três perfis (por exemplo Instagram, Facebook e LinkedIn) com foto, capa e descrição no mesmo padrão visual da sua marca, para a empresa ter presença consistente em todos os canais onde os clientes procuram.",
+    },
+    {
+      title: "1 mês de acompanhamento de métricas",
+      description: "Acompanho os acessos do site no primeiro mês.",
+    },
+    {
+      title:
+        "Sessão de treinamento gravada para a sua equipe sobre como atualizar o conteúdo do site sem ajuda",
+      description:
+        "Gravo um passo a passo para a sua equipe atualizar textos e imagens do site sozinha.",
+    },
+  ],
   deliveryDays: 180,
-  hostingMonthly: 129900,
+  hostingAnnual: 1299000,
   discount: { type: "percent", value: 8 },
   items: [
     {
@@ -111,9 +139,9 @@ const worstProposal: ProposalView = {
 
 const oneProposal: ProposalView = {
   ...mockProposal,
-  bonus: null,
+  bonuses: [],
   deliveryDays: 1,
-  hostingMonthly: null,
+  hostingAnnual: null,
   discount: null,
   items: [
     { description: "Landing page", quantity: 1, unitPrice: 150000, discount: null },
@@ -122,8 +150,8 @@ const oneProposal: ProposalView = {
 
 const emptyProposal: ProposalView = {
   ...mockProposal,
-  bonus: null,
-  hostingMonthly: null,
+  bonuses: [],
+  hostingAnnual: null,
   discount: null,
   items: [],
 };

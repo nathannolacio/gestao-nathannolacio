@@ -21,8 +21,8 @@ export type FixedContent = {
     projects: {
       name: string;
       description: string;
-      url?: string;
-      image?: string;
+      image?: string; // capa: aparece enquanto o vídeo carrega
+      video?: string; // gravação da página rolando (mp4 em public/)
     }[];
   };
   process: {
@@ -41,7 +41,7 @@ export type FixedContent = {
 export const defaultFixedContent: FixedContent = {
   about: {
     title: "Mente por trás do projeto",
-    name: "Nathan Nolácio",
+    name: "Nathan Nolacio",
     role: "Desenvolvedor e prestador de serviços de tecnologia",
     paragraphs: [
       "Prazer, sou o Nathan. Crio sites institucionais, landing pages e sistemas sob medida para negócios que querem se posicionar melhor e *vender mais na internet*.",
@@ -83,15 +83,15 @@ export const defaultFixedContent: FixedContent = {
         name: "Método Florescer",
         description:
           "Landing page de venda de e-book de educação financeira para mães.",
-        url: "https://metodo-florescer.vercel.app/",
         image: "/proposta/projeto-florescer.jpg",
+        video: "/proposta/projeto-florescer.mp4",
       },
       {
         name: "Maria Reis · Terapia TRG",
         description:
           "Site institucional de terapeuta, com atendimento online e agendamento de sessão.",
-        url: "https://www.mariareisterapeuta.com/",
         image: "/proposta/projeto-maria-reis.jpg",
+        video: "/proposta/projeto-mariareis.mp4",
       },
     ],
   },
@@ -155,7 +155,7 @@ export const defaultFixedContent: FixedContent = {
       {
         question: "Está incluso o registro de domínio e a hospedagem?",
         answer:
-          "O domínio é contratado por você, e eu te oriento no passo a passo. A hospedagem pode ser contratada por você ou comigo, em valor mensal à parte (quando aparece na seção de investimento).",
+          "O domínio é contratado por você, e eu te oriento no passo a passo. A hospedagem pode ser contratada por você ou comigo, em valor anual à parte (quando aparece na seção de investimento).",
       },
       {
         question: "Posso pedir alterações no layout?",
