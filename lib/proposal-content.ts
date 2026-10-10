@@ -40,44 +40,44 @@ export type FixedContent = {
 
 export const defaultFixedContent: FixedContent = {
   about: {
-    title: "Mente por trás do projeto",
+    title: "Quem vai *cuidar do seu projeto*",
     name: "Nathan Nolacio",
     role: "Desenvolvedor e prestador de serviços de tecnologia",
     paragraphs: [
-      "Prazer, sou o Nathan. Crio sites institucionais, landing pages e sistemas sob medida para negócios que querem se posicionar melhor e *vender mais na internet*.",
-      "Trabalho de forma direta, sem intermediários: você fala comigo do primeiro contato até a entrega e o *suporte depois dela*.",
+      "Sou o Nathan. Desenvolvo sites, landing pages e sistemas sob medida para negócios que querem *ser encontrados, bem avaliados e escolhidos* na internet.",
+      "Aqui não tem intermediário. Você fala comigo do primeiro contato até a entrega, e *continua tendo suporte depois dela*.",
     ],
   },
   advantages: {
     title: "Por que *trabalhar comigo*",
     intro:
-      "Aqui você tem um projeto pensado *do começo ao fim* por quem vai colocar a mão na massa, com clareza, prazo e suporte depois da entrega.",
+      "Cada projeto é pensado *de ponta a ponta* por quem vai desenvolvê-lo, com clareza, prazo definido e suporte depois do lançamento.",
     items: [
       {
         icon: "chat",
         title: "Atendimento direto",
-        text: "Sem agência no meio. Você conversa com quem realmente desenvolve o projeto.",
+        text: "Sem agência no meio. Você conversa com quem realmente faz o projeto.",
       },
       {
         icon: "layout",
-        title: "Sob medida",
-        text: "Nada de template genérico: o projeto é pensado para o seu negócio e o seu público.",
+        title: "Feito sob medida",
+        text: "Nada de template genérico. O visual e a estrutura nascem do seu negócio e do seu público.",
       },
       {
         icon: "bolt",
-        title: "Rápido e performático",
-        text: "Sites leves, responsivos e otimizados para carregar rápido em qualquer dispositivo.",
+        title: "Rápido e leve",
+        text: "Páginas responsivas, que carregam depressa e funcionam bem no celular.",
       },
       {
         icon: "shield",
-        title: "Suporte pós-entrega",
-        text: "60 dias de manutenção gratuita após a entrega para ajustes e dúvidas.",
+        title: "Suporte depois da entrega",
+        text: "*60 dias de manutenção gratuita* para ajustes e dúvidas.",
       },
     ],
   },
   portfolio: {
-    title: "Veja na prática alguns *projetos recentes*",
-    intro: "Alguns projetos que desenvolvi recentemente.",
+    title: "Veja *como isso funciona na prática*",
+    intro: "Dois projetos recentes, no ar e em uso.",
     projects: [
       {
         name: "Método Florescer",
@@ -89,28 +89,28 @@ export const defaultFixedContent: FixedContent = {
       {
         name: "Maria Reis · Terapia TRG",
         description:
-          "Site institucional de terapeuta, com atendimento online e agendamento de sessão.",
+          "Site institucional com atendimento online e agendamento de sessão.",
         image: "/proposta/projeto-maria-reis.jpg",
         video: "/proposta/projeto-mariareis.mp4",
       },
     ],
   },
   process: {
-    title: "Entenda o processo de *desenvolvimento* do seu projeto",
+    title: "Do primeiro contato ao *projeto no ar*",
     steps: [
       {
         title: "Alinhamento",
-        text: "Entendo seu negócio, objetivos e referências para definir o escopo.",
-        note: "Aqui acontecem algumas reuniões",
+        text: "Entendo seu negócio, seus objetivos e suas referências para definir o escopo juntos.",
+        note: "Algumas conversas rápidas",
       },
       {
         title: "Design",
-        text: "Defino a identidade visual e a estrutura das páginas para sua aprovação.",
+        text: "Defino a identidade visual e a estrutura das páginas. Você aprova antes de eu construir.",
         note: "Primeiras impressões",
       },
       {
         title: "Desenvolvimento",
-        text: "Construo o projeto com acompanhamento, mostrando o progresso.",
+        text: "Construo o projeto e te mostro o andamento ao longo do caminho.",
       },
       {
         title: "Revisão",
@@ -118,18 +118,18 @@ export const defaultFixedContent: FixedContent = {
       },
       {
         title: "Entrega",
-        text: "Publico o projeto no ar e passo todas as orientações de uso.",
+        text: "Coloco o projeto no ar e explico como usar.",
       },
     ],
   },
   payment: {
     title: "Formas de *pagamento*",
-    intro: "Formas de pagamento disponíveis (informativo; combinamos juntos na aprovação).",
+    intro: "Opções para você investir da forma que ficar melhor.",
     methods: [
       {
         id: "pix",
         title: "Integral (à vista no Pix)",
-        text: "100% à vista no Pix, com 10% de desconto.",
+        text: "*10% de desconto* pagando 100% à vista no Pix.",
       },
       {
         id: "split",
@@ -139,38 +139,38 @@ export const defaultFixedContent: FixedContent = {
       {
         id: "card",
         title: "Cartão de crédito",
-        text: "Parcelado no cartão. Número de parcelas a definir.",
+        text: "Em até *10x sem juros* no cartão de crédito.",
       },
     ],
   },
   delivery: {
-    note: "A partir da entrega dos materiais.",
+    note: "Contado a partir do recebimento dos materiais.",
     maintenance:
-      "Após a entrega, você conta com 60 dias de manutenção gratuita. Depois desse período, ajustes e manutenções são contratados de forma avulsa.",
+      "Depois da entrega, você tem *60 dias de manutenção gratuita*. Passado esse período, ajustes e manutenções são contratados de forma avulsa.",
   },
 
   faq: {
     title: "Perguntas *frequentes*",
     items: [
       {
-        question: "Está incluso o registro de domínio e a hospedagem?",
+        question: "Domínio e hospedagem estão inclusos?",
         answer:
-          "O domínio é contratado por você, e eu te oriento no passo a passo. A hospedagem pode ser contratada por você ou comigo, em valor anual à parte (quando aparece na seção de investimento).",
+          "O domínio é contratado por você, e eu te guio no passo a passo. A hospedagem pode ser sua ou minha, em valor anual à parte, quando aparece no investimento.",
       },
       {
         question: "Posso pedir alterações no layout?",
         answer:
-          "Sim. Os ajustes combinados durante o processo fazem parte do projeto. Mudanças que exijam refazer o design depois de aprovado são orçadas à parte.",
+          "Pode. Os ajustes combinados no processo fazem parte do projeto. Refazer um design já aprovado é orçado à parte.",
       },
       {
-        question: "E se eu quiser adicionar novas páginas ou funcionalidades depois?",
+        question: "E se eu quiser novas páginas ou funcionalidades depois?",
         answer:
-          "Sem problemas. Novos serviços viram uma proposta nova, com escopo e valor próprios.",
+          "Sem problema. Cada novo serviço vira uma proposta própria, com escopo e valor claros.",
       },
       {
         question: "Como funciona o suporte depois da entrega?",
         answer:
-          "Você tem 60 dias de manutenção gratuita após a entrega. Depois disso, a manutenção é avulsa.",
+          "São 60 dias de manutenção gratuita. Depois, a manutenção é avulsa.",
       },
     ],
   },
