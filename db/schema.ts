@@ -1,5 +1,5 @@
 import { FixedContent } from "@/lib/proposal-content";
-import { integer, jsonb, pgEnum, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgEnum, smallint, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const clientType = pgEnum("client_type", ["PF", "PJ"]);
 
@@ -19,9 +19,17 @@ export const proposalTemplate = snakeCase.table("proposal_template", {
     updatedAt: timestamp({ withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 })
 
-export const proposalStatusEnum = pgEnum("proposal_status", ["draft", "sent","approved"]);
+export const proposalStatusEnum = pgEnum("proposal_status", [
+    "draft", "sent","approved"
+]);
 
-export const discountTypeEnum = pgEnum("discount_type", ["percentage", "fixed"]);
+export const discountTypeEnum = pgEnum("discount_type", [
+    "percentage", "fixed"
+]);
+
+export const paymentMethodEnum = pgEnum("payment_method", [
+    "pix", "split", "card"
+]);
 
 export const proposals = snakeCase.table("proposals", {
     id: uuid().defaultRandom().primaryKey(),
@@ -37,7 +45,9 @@ export const proposals = snakeCase.table("proposals", {
     fixedContent: jsonb().$type<FixedContent>().notNull(),
     status: proposalStatusEnum().default("draft").notNull(),
     sentAt: timestamp({ withTimezone: true }),
+    paymentMethod: paymentMethodEnum(),
     approvedAt: timestamp({ withTimezone: true }),
+    cardInstallments: smallint(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 })

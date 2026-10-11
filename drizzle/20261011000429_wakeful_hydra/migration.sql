@@ -1,0 +1,1 @@
+ALTER TABLE "proposals" ADD COLUMN "card_installments" smallint;
