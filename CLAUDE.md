@@ -224,6 +224,10 @@ rascunho → enviada → aprovada
     valida `DATABASE_URL` (lança erro se faltar), schema em `./db/schema.ts`, migrations em `./drizzle`.
   - `db/index.ts`: driver WebSocket (`drizzle-orm/neon-serverless` + `Pool` + `ws`), `export const db`.
     Conexão testada com `node --env-file=.env.local`.
+  - Preparação da Etapa 3 (concluída): `db/relations.ts` exporta `relations` via `defineRelations`
+    (Drizzle v1): `proposals.client` (one), `proposals.items` (many) e `proposalItems.proposal` (one).
+    `db/index.ts` passa `relations` (não `schema`) ao `drizzle({ client: pool, relations })`,
+    habilitando `db.query.<tabela>.findMany({ with: ... })`. Docs: orm.drizzle.team/docs/relations-v2.
 - Decisões tomadas:
   - Driver WebSocket (opção A), para ter transações interativas (`db.transaction`).
   - Sem pasta `src/`.
@@ -250,6 +254,6 @@ rascunho → enviada → aprovada
   - Opcional: `check` no banco para `card_installments` entre 1 e 10 (hoje só o Zod).
   - `eslint-config-next` aparece como `^14.2.35` no package.json, mas o `next` é 16.x: checar/corrigir.
   - Hot reload do Next pode criar vários pools em dev; tratar só se aparecer erro de excesso de conexões.
-  - Passar o schema para `drizzle(...)` em `db/index.ts` e declarar as `relations` (antes da Etapa 3).
-- Próximo passo: mesclar a branch do seed na `main` e começar a Etapa 3 (listagem): antes,
-  passar o schema para `drizzle(...)` em `db/index.ts` e declarar as `relations`.
+- Próximo passo: Etapa 3 (listagem): criar `app/propostas/page.tsx` (Server Component async)
+  com `db.query.proposals.findMany({ where: { deletedAt: { isNull: true } }, with: { client: true } })`.
+  Antes, mesclar a branch `feat/drizzle-relations` na `main` e abrir uma branch nova para a listagem.
