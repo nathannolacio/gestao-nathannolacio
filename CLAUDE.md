@@ -182,7 +182,7 @@ rascunho → enviada → aprovada
 1. Setup: criar projeto Next, conectar ao Neon, configurar Drizzle. (CONCLUÍDA)
 2. Schema: escrever as tabelas no Drizzle, rodar a primeira migration
    e criar o seed do modelo de textos.
-3. Listagem: página que lista propostas lendo do banco (Server Components).
+3. Listagem: página que lista propostas lendo do banco (Server Components). (CONCLUÍDA)
 4. Criar proposta: formulário + Server Action + validação com Zod
    (cliente, título, bônus, prazo, hospedagem; "sobre o projeto" só se mantivermos
    a coluna `about_project`).
@@ -197,7 +197,24 @@ rascunho → enviada → aprovada
 9. Deploy na Vercel.
 
 # Estado atual
-- Etapa atual: 3 (Listagem). Etapa 2 (Schema) concluída: tabelas migradas no Neon e seed rodado
+- Etapa atual: 4 (Criar proposta). Etapas 1, 2 (Schema) e 3 (Listagem) concluídas.
+- Pronto na Etapa 3 (branch `feat/listagem-propostas`):
+  - Listagem em `app/admin/propostas/page.tsx`: `page` é a casca (título + `<Suspense>`), e
+    `ListaPropostas` (async) faz a query (`where deletedAt isNull`, `with client`, `orderBy createdAt desc`).
+    Cache Components do Next 16 está ligado (padrão do create-next-app): acesso ao banco fora de
+    `<Suspense>` dá erro de prerender, então toda leitura de dados vai dentro de um componente
+    async envolvido por Suspense.
+  - Colunas: título, cliente, status (`_components/status-badge.tsx`, traduz draft/sent/approved),
+    data de criação. Estado vazio e esqueleto de carregamento prontos. Sem link por linha ainda.
+  - Layout do admin em `app/admin/layout.tsx` + `app/admin/_components/` (`sidebar`, `header`,
+    `nav-link`, `icons`): menu lateral (Propostas ativo; Clientes e Modelo de textos "em breve"; Sair
+    desabilitado até a Etapa 8) e header só com o usuário. Usuário e e-mail são constantes provisórias
+    no layout (virão da sessão do Better Auth na Etapa 8). Tokens `admin-*` e `.admin-shell` em
+    `app/globals.css`. No mobile o menu vira barra no topo só com ícones.
+  - Dados de teste: `db/seed-dev.ts` (1 cliente + 1 proposta; rodar UMA vez, `public_token` é único):
+    `node --env-file=.env.local db/seed-dev.ts`.
+  - `PRODUCT.md` na raiz (contexto do produto para a skill de design Impeccable).
+- Etapa 2 (Schema) concluída: tabelas migradas no Neon e seed rodado
 - Pronto (visual, fora do fluxo): modelo da página pública em `app/proposta/[token]/page.tsx`,
   componentes em `app/proposta/_components/`, textos fixos em `lib/proposal-content.ts`,
   cálculos em centavos em `lib/proposal-calc.ts` e dados falsos em `lib/proposal-mock.ts`.
@@ -221,6 +238,8 @@ rascunho → enviada → aprovada
   - Scripts soltos (fora do Next) rodam com `node --env-file=.env.local` (Node 24 executa `.ts`):
     usar imports RELATIVOS com extensão `.ts` (o alias `@/` não funciona) e `import type` para tipos.
     `allowImportingTsExtensions` ligado no `tsconfig.json`.
+    Vale para TODA a cadeia: `db/index.ts`, `db/relations.ts`, `db/schema.ts` e o que eles importam
+    também precisam de imports relativos com `.ts` (o Node puro não resolve sem extensão; o Next sim).
 - Pronto: Etapa 1 (Setup).
   - Projeto Next sem `src/`: `app/` e `db/` ficam na raiz (alias `@/*` aponta para a raiz).
   - Neon conectado; `DATABASE_URL` em `.env.local` (não vai para o git).
@@ -258,6 +277,14 @@ rascunho → enviada → aprovada
   - Opcional: `check` no banco para `card_installments` entre 1 e 10 (hoje só o Zod).
   - `eslint-config-next` aparece como `^14.2.35` no package.json, mas o `next` é 16.x: checar/corrigir.
   - Hot reload do Next pode criar vários pools em dev; tratar só se aparecer erro de excesso de conexões.
-- Próximo passo: Etapa 3 (listagem): criar `app/propostas/page.tsx` (Server Component async)
-  com `db.query.proposals.findMany({ where: { deletedAt: { isNull: true } }, with: { client: true } })`.
-  Antes, mesclar a branch `feat/drizzle-relations` na `main` e abrir uma branch nova para a listagem.
+  - `proposals.client` vem nulo no tipo (relação `one` é opcional por padrão no Drizzle v1), por isso
+    a tela usa `client?.name`. Se `clientId` é `notNull`, declarar a relação como obrigatória em
+    `db/relations.ts` (conferir `optional: false` na doc de relations v2).
+  - `.impeccable/review/` (capturas de tela da skill de design) provavelmente deve entrar no `.gitignore`.
+  - Itens "em breve" do menu (Clientes, Modelo de textos) e a listagem sem link por linha: ligar
+    quando as telas existirem.
+- Próximo passo: Etapa 4 (criar proposta). Antes, commitar o que falta em `feat/listagem-propostas`
+  (layout do admin e listagem), mesclar na `main` e abrir uma branch nova. Começar pelo schema Zod
+  (cliente, título, bônus, prazo, hospedagem), depois a Server Action (auth + Zod) e o formulário.
+  Decidir antes: como escolher/criar o cliente no formulário e a ação do botão "Nova proposta"
+  (não há botão no admin ainda).
