@@ -49,6 +49,10 @@ Eu quero escrever o código deste projeto. Você é meu par de programação e m
 - Identidade visual: cores do meu site institucional, aplicadas no sistema e na proposta
   (tokens em `app/globals.css`: grafite, marfim, cinza, dourado, bronze; fontes Inter e
   Space Grotesk). Preferência: visual leve e calmo, sem blocos pretos pesados.
+- Modo dark: a ÁREA ADMINISTRATIVA (`app/admin/`) é em modo dark, com visual minimalista,
+  profissional e pegada de gestão/dashboard. A página pública da proposta continua clara
+  (marfim). Rotas do admin ficam sob `/admin` (decisão da Etapa 3; facilita o middleware da Etapa 8)
+  e compartilham um `app/admin/layout.tsx` (menu lateral + header).
 
 # Regras do projeto
 - Valores em dinheiro SEMPRE como inteiro em centavos (R$ 1.500,00 = 150000).

@@ -8,6 +8,14 @@
   --color-bronze: #7c5a34;
   --font-sans: var(--font-inter);
   --font-display: var(--font-space-grotesk);
+
+  /* Área administrativa (dark): derivados do grafite e do marfim da marca */
+  --color-admin-ground: #16161c;
+  --color-admin-sidebar: #121217;
+  --color-admin-raised: #1f1f26;
+  --color-admin-line: #2a2a31;
+  --color-admin-text: #f1ede5;
+  --color-admin-muted: #a39f95;
 }
 
 html {
@@ -105,6 +113,18 @@ body {
   .glow-card::before {
     animation: none;
   }
+}
+
+/* Casca da área administrativa: tema dark, foco e seleção da paleta */
+.admin-shell {
+  color-scheme: dark;
+  scrollbar-color: #3a3a42 transparent;
+  --accent: var(--color-dourado);
+}
+
+.admin-shell ::selection {
+  background: rgb(180 145 90 / 0.35);
+  color: var(--color-marfim);
 }
 
 /* Card flutuante da capa */

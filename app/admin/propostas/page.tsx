@@ -13,6 +13,7 @@ export default function Propostas() {
         </>   
     );
 }
+
 async function ListaPropostas() {
     const propostas = await db.query.proposals.findMany({
         where: {
@@ -22,6 +23,9 @@ async function ListaPropostas() {
         },
         with: {
             client: true
+        },
+        orderBy: {
+            createdAt: "desc",
         }
     })
 
