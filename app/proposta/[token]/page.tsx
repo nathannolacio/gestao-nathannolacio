@@ -10,10 +10,10 @@ import {
   splitPayment,
 } from "@/lib/proposal-calc";
 import { getMockProposal } from "@/lib/proposal-mock";
-import { ApproveButton } from "../_components/approve-button";
 import { ClientCard } from "../_components/client-card";
 import { CoverGrid, Sunburst } from "../_components/cover-art";
 import { Icon } from "../_components/icons";
+import { PaymentChoice } from "../_components/payment-choice";
 import { ProjectCard } from "../_components/project-card";
 import { Rich } from "../_components/rich";
 import { Section } from "../_components/section";
@@ -439,60 +439,14 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
               {c.payment.intro}
             </p>
 
-            <div className="mt-6 space-y-3">
-              {c.payment.methods.map((m) =>
-                m.id === "pix" ? (
-                  <div
-                    key={m.id}
-                    className="rounded-3xl border border-dourado/40 bg-dourado/10 p-5"
-                  >
-                    <span className="rounded-full bg-dourado/25 px-3 py-1 text-sm font-semibold text-bronze">
-                      Melhor opção
-                    </span>
-                    <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-                      <div className="min-w-0">
-                        <p className="text-lg font-medium">{m.title}</p>
-                        <p className="text-base text-(--mute)">{m.text}</p>
-                      </div>
-                      <div className="shrink-0 sm:text-right">
-                        <p className="text-base text-(--mute) line-through tabular-nums">
-                          {formatBRL(total)}
-                        </p>
-                        <p className="font-display text-4xl font-bold tracking-tight tabular-nums text-bronze">
-                          {formatBRL(pixTotal(total))}
-                        </p>
-                        <p className="text-base font-medium text-bronze">
-                          Você economiza {formatBRL(pixSaving)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : m.id === "split" ? (
-                  <div key={m.id} className="rounded-3xl bg-grafite/5 px-5 py-4">
-                    <p className="text-lg font-medium">{m.title}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-base text-(--mute)">
-                      <span>50% na entrada</span>
-                      <span className={`${pill} bg-white text-grafite tabular-nums`}>
-                        {formatBRL(entry)}
-                      </span>
-                      <span>50% na entrega</span>
-                      <span className={`${pill} bg-white text-grafite tabular-nums`}>
-                        {formatBRL(onDelivery)}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div key={m.id} className="rounded-3xl bg-grafite/5 px-5 py-4">
-                    <p className="text-lg font-medium">{m.title}</p>
-                    <p className="text-base text-(--mute)">{m.text}</p>
-                  </div>
-                ),
-              )}
-            </div>
-
-            <div className="mt-8 flex justify-center">
-              <ApproveButton />
-            </div>
+            <PaymentChoice
+              methods={c.payment.methods}
+              total={total}
+              pixTotal={pixTotal(total)}
+              pixSaving={pixSaving}
+              entry={entry}
+              onDelivery={onDelivery}
+            />
           </div>
 
           <p className="relative mt-10 text-center font-display text-2xl font-bold tracking-tight">

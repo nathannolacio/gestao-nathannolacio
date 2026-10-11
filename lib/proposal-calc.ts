@@ -42,6 +42,11 @@ export function splitPayment(total: number): [number, number] {
   return [entry, total - entry];
 }
 
+// Valor de cada parcela no cartão (sem juros), arredondado para centavos.
+export function installmentAmount(total: number, installments: number): number {
+  return Math.round(total / installments);
+}
+
 export function formatBRL(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", {
     style: "currency",

@@ -71,7 +71,7 @@ export const defaultFixedContent: FixedContent = {
       {
         icon: "shield",
         title: "Suporte depois da entrega",
-        text: "*60 dias de manutenção gratuita* para ajustes e dúvidas.",
+        text: "60 dias de manutenção gratuita para ajustes e dúvidas.",
       },
     ],
   },
@@ -129,7 +129,7 @@ export const defaultFixedContent: FixedContent = {
       {
         id: "pix",
         title: "Integral (à vista no Pix)",
-        text: "*10% de desconto* pagando 100% à vista no Pix.",
+        text: "Pagamento de 100% à vista no Pix.",
       },
       {
         id: "split",
@@ -139,14 +139,14 @@ export const defaultFixedContent: FixedContent = {
       {
         id: "card",
         title: "Cartão de crédito",
-        text: "Em até *10x sem juros* no cartão de crédito.",
+        text: "Parcelamento no cartão de crédito.",
       },
     ],
   },
   delivery: {
     note: "Contado a partir do recebimento dos materiais.",
     maintenance:
-      "Depois da entrega, você tem *60 dias de manutenção gratuita*. Passado esse período, ajustes e manutenções são contratados de forma avulsa.",
+      "Depois da entrega, você tem 60 dias de manutenção gratuita. Passado esse período, ajustes e manutenções são contratados de forma avulsa.",
   },
 
   faq: {
