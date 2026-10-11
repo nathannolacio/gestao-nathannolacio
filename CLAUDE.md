@@ -63,7 +63,10 @@ Eu quero escrever o código deste projeto. Você é meu par de programação e m
   A proteção dela é o token público. Ela deve:
   1. Buscar a proposta pelo token (nunca pelo ID).
   2. Só aprovar se o status for "enviada".
-  3. Registrar a data/hora da aprovação.
+  3. Receber a forma de pagamento escolhida e validá-la com Zod: `paymentMethod` ∈
+     `pix | split | card`; `cardInstallments` (inteiro de 1 a 10) obrigatório se `card`
+     e proibido nos outros métodos.
+  4. Gravar `paymentMethod`, `cardInstallments` (se houver) e `approvedAt` no mesmo `update`.
 - Middleware pode proteger páginas, mas não substitui a verificação dentro da action.
 - Nunca confiar em dados vindos do navegador.
 - Nunca expor o ID do banco em URLs públicas.
@@ -75,7 +78,9 @@ Foco atual. Gestão completa de clientes, contratos, pagamentos e gateway ficam 
 - Eu crio a proposta no sistema a partir de um modelo com textos padrão.
 - O cliente recebe um link e vê a proposta como uma página web.
 - Na página há um botão "Aprovar proposta". Não há botão de recusar.
-- As formas de pagamento são apenas informativas (o cliente não escolhe no sistema).
+- O cliente ESCOLHE a forma de pagamento na própria página, junto com a aprovação (um
+  único passo): o botão "Aprovar proposta" só é liberado depois da escolha. Se escolher
+  cartão, escolhe também o número de parcelas (1 a 10).
 - Depois de enviada, a proposta NÃO pode mais ser editada.
 - Ajustes ou serviços futuros (ex.: manutenção) viram uma proposta nova.
 - Sem numeração própria, sem validade e sem expiração por enquanto.
@@ -91,7 +96,7 @@ Fixas = vêm do modelo, iguais para todos. Variáveis = preenchidas por proposta
 4. Portfólio / projetos (fixa, 2 projetos por enquanto)
 5. Investimento (um card único): serviços solicitados, itens, descontos, total,
    hospedagem (variáveis), bônus (variável, opcional) e formas de pagamento
-   (fixas; valores do Pix e das parcelas calculados na exibição)
+   (fixas; valores do Pix e das parcelas calculados na exibição; o cliente escolhe uma)
 6. FAQ / perguntas frequentes (fixa)
 7. Fechamento com o botão "Aprovar proposta"
 
@@ -124,10 +129,12 @@ O layout da página já existe com dados mock (ver "Estado atual").
 - Domínio: contratado pelo cliente, não aparece na proposta.
 - Manutenção: 60 dias grátis após a entrega (texto fixo); depois disso é avulsa.
 
-## Formas de pagamento (informativas)
-- 100% à vista no Pix, com 10% de desconto
-- 50% na entrada + 50% na entrega
-- Parcelado no cartão (número de parcelas a definir junto com o gateway)
+## Formas de pagamento (escolhidas pelo cliente ao aprovar)
+- `pix`: 100% à vista no Pix, com 10% de desconto
+- `split`: 50% na entrada + 50% na entrega
+- `card`: cartão de crédito em até 10x sem juros (parcela = total ÷ n, arredondada em
+  centavos, calculada na exibição)
+- Gateway: Asaas.
 
 ## Modelo de dados
 - clients: id, tipo (PF | PJ, enum `client_type`), nome, email, telefone,
@@ -141,6 +148,8 @@ O layout da página já existe com dados mock (ver "Estado atual").
   discount_type (percentage | fixed | nulo, enum `discount_type`), discount_value,
   hosting_annual (centavos, opcional), fixed_content (jsonb, cópia do modelo),
   status (enum `proposal_status`: draft | sent | approved), sent_at, approved_at,
+  payment_method (enum `payment_method`: pix | split | card; nulo até a aprovação),
+  card_installments (smallint, 1 a 10; nulo se o método não for `card`),
   criado em, atualizado em, deleted_at (soft delete)
   (`about_project` NÃO foi criada: a seção deixou de existir; adicionar depois se mudar de ideia)
 - proposal_items: id, proposal_id, descrição, quantidade,
@@ -153,7 +162,6 @@ rascunho → enviada → aprovada
 
 ## Decisões pendentes
 - Status para propostas não aprovadas: "arquivada", "recusada" ou nenhum.
-- Gateway de pagamento e número de parcelas no cartão.
 - Incluir ou não CPF/CNPJ do cliente na proposta.
 - Tela para editar os textos do modelo.
 - Portfólio: fixo no modelo ou escolher projetos por proposta.
@@ -189,10 +197,19 @@ rascunho → enviada → aprovada
 - Pronto (visual, fora do fluxo): modelo da página pública em `app/proposta/[token]/page.tsx`,
   componentes em `app/proposta/_components/`, textos fixos em `lib/proposal-content.ts`,
   cálculos em centavos em `lib/proposal-calc.ts` e dados falsos em `lib/proposal-mock.ts`.
-  Ainda não ligada ao banco. Textos e elementos serão refinados depois, antes do seed.
+  Ainda não ligada ao banco. A copy dos textos fixos está FINAL (revisada) e pronta para o seed.
+  - Seleção de pagamento: `app/proposta/_components/payment-choice.tsx` (Client Component:
+    escolha da forma + parcelas 1 a 10 no cartão; botão de aprovar travado até escolher).
+    Estado só na tela; a Server Action de aprovar (Etapa 7) ainda não existe.
+  - Selos "10% de desconto" (Pix) e "até 10x sem juros" (cartão) estão fixos no componente,
+    não no `FixedContent`. Se as regras mudarem, editar o código.
+  - Convenção `*destaque*` só funciona onde a página usa `<Rich>` (títulos, intros, parágrafos
+    do "sobre"); NÃO usar em campos impressos direto (items das vantagens, métodos de pagamento,
+    manutenção).
 - Pronto na Etapa 2: schema completo em `db/schema.ts` (`clients`, `proposal_template`, `proposals`,
-  `proposal_items` + enums `client_type`, `proposal_status`, `discount_type`).
+  `proposal_items` + enums `client_type`, `proposal_status`, `discount_type`, `payment_method`).
   Primeira migration gerada (`drizzle/20261010022922_clever_zuras`) e aplicada no Neon (4 tabelas conferidas).
+  Migrations seguintes (`payment_method` e `card_installments` em `proposals`) também aplicadas.
   Drizzle 1.0.0-rc.4: casing via `snakeCase.table(...)` (colunas camelCase no TS, snake_case no banco).
 - Pronto: Etapa 1 (Setup).
   - Projeto Next sem `src/`: `app/` e `db/` ficam na raiz (alias `@/*` aponta para a raiz).
@@ -218,11 +235,15 @@ rascunho → enviada → aprovada
   - `public_token` gerado no código (não no banco), máx. 24 caracteres (`varchar(24)`), aleatório seguro.
   - Hospedagem é valor ANUAL (`hosting_annual`).
 - Pendências:
-  - Seed do `proposal_template`: refinar os textos de `lib/proposal-content.ts` antes.
+  - Seed do `proposal_template`: decidir o comportamento ao rodar duas vezes (inserir,
+    ignorar ou atualizar), preservando a regra de um único registro.
   - Zod: `discountType` e `discountValue` devem vir juntos ou nenhum (o banco não garante).
+  - Zod: `paymentMethod` e `cardInstallments` (obrigatório se `card`, proibido nos outros,
+    1 a 10; o banco não garante). `paymentMethod` e `approvedAt` andam juntos.
+  - Opcional: `check` no banco para `card_installments` entre 1 e 10 (hoje só o Zod).
   - `eslint-config-next` aparece como `^14.2.35` no package.json, mas o `next` é 16.x: checar/corrigir.
   - Hot reload do Next pode criar vários pools em dev; tratar só se aparecer erro de excesso de conexões.
-  - Repositório no GitHub ainda não criado (commits só locais).
   - Passar o schema para `drizzle(...)` em `db/index.ts` e declarar as `relations` (antes da Etapa 3).
-- Próximo passo: refinar os textos fixos em `lib/proposal-content.ts`, depois escrever o script de seed
-  do `proposal_template` (um único registro) e fechar a Etapa 2. Em seguida, Etapa 3 (listagem).
+- Próximo passo: criar uma branch nova a partir da `main` e escrever o script de seed do
+  `proposal_template` (um único registro, a partir de `defaultFixedContent`), fechando a Etapa 2.
+  Em seguida, Etapa 3 (listagem).
