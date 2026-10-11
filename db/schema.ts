@@ -54,7 +54,7 @@ export const proposals = snakeCase.table("proposals", {
 
 export const proposalItems = snakeCase.table("proposal_items", {
     id: uuid().defaultRandom().primaryKey(),
-    proposalId: uuid().references(() => proposals.id).notNull(),
+    proposalId: uuid().notNull().references(() => proposals.id),
     description: varchar({ length:200 }).notNull(),
     quantity: integer().notNull(),
     unitPrice: integer().notNull(),
