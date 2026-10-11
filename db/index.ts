@@ -1,7 +1,7 @@
 import ws from "ws";
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
-import { relations } from "./relations"
+import { relations } from "./relations.ts"
 
 neonConfig.webSocketConstructor = ws;
 
