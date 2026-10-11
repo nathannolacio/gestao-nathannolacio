@@ -1,16 +1,21 @@
 import { db } from "@/db";
 import { Suspense } from "react";
+import { StatusBadge } from "./_components/status-badge";
 
 export default function Propostas() {
 
     return (
         <>
-            <h1>Propostas</h1>
+            <h1 className="font-display text-2xl font-medium tracking-tight">
+                Propostas
+            </h1>
 
-            <Suspense fallback={<p>Carregando...</p>}>
-                <ListaPropostas />
-            </Suspense>            
-        </>   
+            <div className="mt-6">
+                <Suspense fallback={<ListaSkeleton />}>
+                    <ListaPropostas />
+                </Suspense>
+            </div>
+        </>
     );
 }
 
@@ -29,17 +34,61 @@ async function ListaPropostas() {
         }
     })
 
-    return (
-        <ul>
-            {propostas.map((proposta) => (
-                <li key={proposta.id}>
-                    <h2>{proposta.title}</h2>
+    if (propostas.length === 0) {
+        return (
+            <div className="rounded-xl border border-admin-line px-6 py-12 text-center">
+                <p className="text-admin-text">Nenhuma proposta ainda.</p>
+                <p className="mt-1 text-sm text-admin-muted">
+                    As propostas criadas aparecem aqui.
+                </p>
+            </div>
+        );
+    }
 
-                    <p>
-                        {`Id: ${proposta.id} - Cliente: ${proposta.client?.name}`}
-                    </p>
-                </li>
+    return (
+        <div className="overflow-hidden rounded-xl border border-admin-line">
+            <table className="w-full text-left text-sm">
+                <thead>
+                    <tr className="border-b border-admin-line text-xs text-admin-muted">
+                        <th scope="col" className="px-4 py-3 font-medium">Proposta</th>
+                        <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Cliente</th>
+                        <th scope="col" className="px-4 py-3 font-medium">Status</th>
+                        <th scope="col" className="hidden px-4 py-3 text-right font-medium sm:table-cell">Criada em</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-admin-line">
+                    {propostas.map((proposta) => (
+                        <tr key={proposta.id} className="transition-colors duration-150 hover:bg-admin-raised/50">
+                            <td className="px-4 py-3.5">
+                                <p className="font-medium text-admin-text">{proposta.title}</p>
+                                <p className="mt-0.5 text-admin-muted md:hidden">{proposta.client?.name}</p>
+                            </td>
+                            <td className="hidden px-4 py-3.5 text-admin-muted md:table-cell">
+                                {proposta.client?.name}
+                            </td>
+                            <td className="px-4 py-3.5">
+                                <StatusBadge status={proposta.status} />
+                            </td>
+                            <td className="hidden px-4 py-3.5 text-right tabular-nums text-admin-muted sm:table-cell">
+                                {proposta.createdAt.toLocaleDateString("pt-BR")}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+function ListaSkeleton() {
+    return (
+        <div aria-hidden="true" className="divide-y divide-admin-line overflow-hidden rounded-xl border border-admin-line">
+            {[0, 1, 2].map((linha) => (
+                <div key={linha} className="flex items-center gap-4 px-4 py-4">
+                    <div className="h-3 w-48 animate-pulse rounded bg-admin-raised" />
+                    <div className="ml-auto h-3 w-20 animate-pulse rounded bg-admin-raised" />
+                </div>
             ))}
-        </ul>
+        </div>
     );
 }
