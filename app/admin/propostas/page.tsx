@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { Suspense } from "react";
 import { StatusBadge } from "./_components/status-badge";
+import { connection } from "next/server";
 
 export default function Propostas() {
 
@@ -20,6 +21,7 @@ export default function Propostas() {
 }
 
 async function ListaPropostas() {
+    await connection();
     const propostas = await db.query.proposals.findMany({
         where: {
             deletedAt: {
