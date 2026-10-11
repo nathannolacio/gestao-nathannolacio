@@ -1,4 +1,4 @@
-import { FixedContent } from "@/lib/proposal-content";
+import type { FixedContent } from "../lib/proposal-content.ts";
 import { integer, jsonb, pgEnum, smallint, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const clientType = pgEnum("client_type", ["PF", "PJ"]);
