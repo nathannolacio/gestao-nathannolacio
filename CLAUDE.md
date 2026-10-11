@@ -193,7 +193,7 @@ rascunho → enviada → aprovada
 9. Deploy na Vercel.
 
 # Estado atual
-- Etapa atual: 2 (Schema), quase concluída: tabelas migradas no Neon; falta só o seed
+- Etapa atual: 3 (Listagem). Etapa 2 (Schema) concluída: tabelas migradas no Neon e seed rodado
 - Pronto (visual, fora do fluxo): modelo da página pública em `app/proposta/[token]/page.tsx`,
   componentes em `app/proposta/_components/`, textos fixos em `lib/proposal-content.ts`,
   cálculos em centavos em `lib/proposal-calc.ts` e dados falsos em `lib/proposal-mock.ts`.
@@ -211,6 +211,12 @@ rascunho → enviada → aprovada
   Primeira migration gerada (`drizzle/20261010022922_clever_zuras`) e aplicada no Neon (4 tabelas conferidas).
   Migrations seguintes (`payment_method` e `card_installments` em `proposals`) também aplicadas.
   Drizzle 1.0.0-rc.4: casing via `snakeCase.table(...)` (colunas camelCase no TS, snake_case no banco).
+  Seed do modelo em `db/seed.ts` (`npm run db:seed`): busca o primeiro registro de `proposal_template`;
+  se existe, atualiza `content` com `defaultFixedContent`; senão, insere. Idempotente, com `.catch`
+  que encerra com `process.exit(1)`. Rodado e conferido no banco.
+  - Scripts soltos (fora do Next) rodam com `node --env-file=.env.local` (Node 24 executa `.ts`):
+    usar imports RELATIVOS com extensão `.ts` (o alias `@/` não funciona) e `import type` para tipos.
+    `allowImportingTsExtensions` ligado no `tsconfig.json`.
 - Pronto: Etapa 1 (Setup).
   - Projeto Next sem `src/`: `app/` e `db/` ficam na raiz (alias `@/*` aponta para a raiz).
   - Neon conectado; `DATABASE_URL` em `.env.local` (não vai para o git).
@@ -235,8 +241,9 @@ rascunho → enviada → aprovada
   - `public_token` gerado no código (não no banco), máx. 24 caracteres (`varchar(24)`), aleatório seguro.
   - Hospedagem é valor ANUAL (`hosting_annual`).
 - Pendências:
-  - Seed do `proposal_template`: decidir o comportamento ao rodar duas vezes (inserir,
-    ignorar ou atualizar), preservando a regra de um único registro.
+  - Aviso `MODULE_TYPELESS_PACKAGE_JSON` ao rodar o seed (inofensivo): resolver com `"type": "module"`
+    no `package.json` só se incomodar, checando antes se não afeta o Next/Drizzle Kit.
+  - `@types/node` está em `^20`, mas o Node é 24: alinhar.
   - Zod: `discountType` e `discountValue` devem vir juntos ou nenhum (o banco não garante).
   - Zod: `paymentMethod` e `cardInstallments` (obrigatório se `card`, proibido nos outros,
     1 a 10; o banco não garante). `paymentMethod` e `approvedAt` andam juntos.
@@ -244,6 +251,5 @@ rascunho → enviada → aprovada
   - `eslint-config-next` aparece como `^14.2.35` no package.json, mas o `next` é 16.x: checar/corrigir.
   - Hot reload do Next pode criar vários pools em dev; tratar só se aparecer erro de excesso de conexões.
   - Passar o schema para `drizzle(...)` em `db/index.ts` e declarar as `relations` (antes da Etapa 3).
-- Próximo passo: criar uma branch nova a partir da `main` e escrever o script de seed do
-  `proposal_template` (um único registro, a partir de `defaultFixedContent`), fechando a Etapa 2.
-  Em seguida, Etapa 3 (listagem).
+- Próximo passo: mesclar a branch do seed na `main` e começar a Etapa 3 (listagem): antes,
+  passar o schema para `drizzle(...)` em `db/index.ts` e declarar as `relations`.
