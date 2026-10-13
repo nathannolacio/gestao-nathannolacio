@@ -1,5 +1,6 @@
+import type { ProposalBonus } from "../lib/proposal-bonuses.ts";
 import type { FixedContent } from "../lib/proposal-content.ts";
-import { integer, jsonb, pgEnum, smallint, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgEnum, smallint, snakeCase, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const clientType = pgEnum("client_type", ["PF", "PJ"]);
 
@@ -37,7 +38,7 @@ export const proposals = snakeCase.table("proposals", {
     clientId: uuid().notNull().references(() => clients.id),
     title: varchar({ length:100 }).notNull(),
     deletedAt: timestamp({ withTimezone: true }),
-    bonus: text(),
+    bonuses: jsonb().$type<ProposalBonus[]>().notNull().default([]),
     deliveryDays: integer().notNull(),
     discountType: discountTypeEnum(),
     discountValue: integer(),

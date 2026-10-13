@@ -1,0 +1,43 @@
+// Catálogo de bônus: fonte da verdade dos bônus que posso oferecer.
+// Na proposta, o navegador manda só os ids marcados; título e descrição são
+// copiados daqui pelo servidor para proposals.bonuses (a "foto" da proposta).
+// Os ids são estáveis: nunca renomear um id já usado em propostas salvas.
+// `value` (centavos) é o valor agregado exibido riscado, com o selo "Grátis".
+// É só referência de percepção: o bônus não é cobrado e nunca entra no total.
+
+export const bonusCatalog = [
+  {
+    id: "google-meu-negocio",
+    title: "Configuração do Google Meu Negócio",
+    value: 15000,
+    description:
+      "Criação e configuração do perfil da sua empresa no Google. Assim, quando alguém pesquisar pelo seu nome ou pelo seu serviço na região, sua empresa aparece no Google e no Google Maps, com endereço, telefone, horário de funcionamento, fotos e o link para o seu site.",
+  },
+  {
+    id: "painel-metricas",
+    title: "Painel de métricas",
+    value: 20000,
+    description:
+      "Painel simples, acessível pelo celular ou computador, para você acompanhar o desempenho do seu site: quantas pessoas visitaram, de onde vieram, quais páginas mais acessaram e quantas clicaram para entrar em contato.",
+  },
+  {
+    id: "manutencao-60-dias",
+    title: "60 dias de hospedagem e manutenção",
+    value: 6000,
+    description:
+      "Hospedagem e acompanhamento do site durante os dois primeiros meses após a publicação: site no ar com segurança, monitoramento do funcionamento, correção de qualquer problema e até 5 ajustes de conteúdo por mês, como troca de textos, fotos, telefone ou endereço.",
+  },
+] as const;
+
+export type BonusId = (typeof bonusCatalog)[number]["id"];
+
+// Formato salvo na proposta (cópia do catálogo no momento da criação).
+export type ProposalBonus = {
+  id: BonusId;
+  title: string;
+  description: string;
+  value: number; // centavos
+};
+
+// Tupla com os ids, pronta para z.enum([...]) na validação.
+export const bonusIds = bonusCatalog.map((b) => b.id) as [BonusId, ...BonusId[]];
