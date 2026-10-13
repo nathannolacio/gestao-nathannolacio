@@ -99,7 +99,8 @@ Fixas = vêm do modelo, iguais para todos. Variáveis = preenchidas por proposta
    (prazo variável) e o texto de manutenção (fixo) junto da última etapa
 4. Portfólio / projetos (fixa, 2 projetos por enquanto)
 5. Investimento (um card único): serviços solicitados, itens, descontos, total,
-   hospedagem (variáveis), bônus (variável, opcional) e formas de pagamento
+   hospedagem (variáveis), bônus (catálogo fixo; escolho quais valem em cada proposta; cada
+   card mostra o valor agregado RISCADO com o selo "Grátis") e formas de pagamento
    (fixas; valores do Pix e das parcelas calculados na exibição; o cliente escolhe uma)
 6. FAQ / perguntas frequentes (fixa)
 7. Fechamento com o botão "Aprovar proposta"
@@ -131,7 +132,14 @@ O layout da página já existe com dados mock (ver "Estado atual").
 - Hospedagem: valor ANUAL opcional (só quando o cliente não tem hospedagem própria),
   separado do total do projeto, sem desconto e fora do cálculo do Pix.
 - Domínio: contratado pelo cliente, não aparece na proposta.
-- Manutenção: 60 dias grátis após a entrega (texto fixo); depois disso é avulsa.
+- Manutenção: 60 dias grátis após a entrega. Agora é um BÔNUS do catálogo ("60 dias de
+  hospedagem e manutenção", inclui a hospedagem); depois disso é avulsa.
+- Bônus (decisão): catálogo FIXO em `lib/proposal-bonuses.ts` (Google Meu Negócio, Painel de
+  métricas, 60 dias de hospedagem e manutenção), pensado para site institucional. Em cada proposta
+  só escolho quais valem (o motivo de tirar um: o cliente já tem ou não quer). O navegador manda só
+  os IDS; o servidor copia título, descrição e valor do catálogo para `proposals.bonuses` (a "foto").
+  O `value` (centavos) é só referência exibida riscada; bônus não é cobrado e nunca entra no total.
+  Id de bônus repetido é BARRADO (refine), não corrigido.
 
 ## Formas de pagamento (escolhidas pelo cliente ao aprovar)
 - `pix`: 100% à vista no Pix, com 10% de desconto
@@ -148,7 +156,8 @@ O layout da página já existe com dados mock (ver "Estado atual").
   (as seções fixas são: about, advantages, portfolio, process, payment, delivery e faq;
   tipo `FixedContent` em `lib/proposal-content.ts`)
 - proposals: id, public_token (aleatório, único), client_id, título,
-  bonus (texto, opcional), delivery_days (prazo),
+  bonuses (jsonb, array de `ProposalBonus` {id, title, description, value em centavos};
+  notNull, default `[]`), delivery_days (prazo),
   discount_type (percentage | fixed | nulo, enum `discount_type`), discount_value,
   hosting_annual (centavos, opcional), fixed_content (jsonb, cópia do modelo),
   status (enum `proposal_status`: draft | sent | approved), sent_at, approved_at,
@@ -177,6 +186,10 @@ rascunho → enviada → aprovada
   ex.: Vercel Blob) ou só iniciais/nome? Hoje é um placeholder com as iniciais.
 - Texto do botão final da página ("formalizarmos o contrato"): ajustar, já que não há
   mais seção de contrato.
+- Copy dos textos fixos (`lib/proposal-content.ts`): três trechos afirmam "60 dias de manutenção
+  gratuita" para TODOS (item "Suporte depois da entrega" das vantagens, `delivery.maintenance` e
+  resposta do FAQ), mas agora isso é um bônus opcional. Ajustar, e revisar o FAQ/linha de
+  hospedagem para deixar claro que o valor anual vale DEPOIS dos 60 dias de hospedagem grátis.
 
 ## Etapas
 1. Setup: criar projeto Next, conectar ao Neon, configurar Drizzle. (CONCLUÍDA)
@@ -184,8 +197,8 @@ rascunho → enviada → aprovada
    e criar o seed do modelo de textos.
 3. Listagem: página que lista propostas lendo do banco (Server Components). (CONCLUÍDA)
 4. Criar proposta: formulário + Server Action + validação com Zod
-   (cliente, título, bônus, prazo, hospedagem; "sobre o projeto" só se mantivermos
-   a coluna `about_project`).
+   (cliente novo ou existente, título, bônus, prazo, hospedagem, desconto). Schemas Zod prontos;
+   faltam a Server Action e o formulário (ver "Estado atual").
 5. Itens e valores: adicionar/remover itens, descontos e cálculo dos totais
    (Client Components, estado).
 6. Página pública: rota com token mostrando a proposta completa com a identidade visual.
@@ -198,6 +211,31 @@ rascunho → enviada → aprovada
 
 # Estado atual
 - Etapa atual: 4 (Criar proposta). Etapas 1, 2 (Schema) e 3 (Listagem) concluídas.
+- Pronto na Etapa 4 até agora (branch `feat/criar-proposta`; validação e catálogo prontos,
+  faltam Server Action, formulário e botão "Nova proposta"):
+  - `lib/proposal-bonuses.ts`: `bonusCatalog` (ids `google-meu-negocio`, `painel-metricas`,
+    `manutencao-60-dias`; o último ainda tem esse id mesmo com o título "60 dias de hospedagem e
+    manutenção": renomear ANTES de salvar propostas reais), `value` em centavos (15000, 20000, 6000),
+    tipos `BonusId` e `ProposalBonus` e a tupla `bonusIds` para `z.enum`.
+  - `db/schema.ts`: `proposals.bonus` (text) trocado por `bonuses` (jsonb, notNull, default `[]`).
+    Migration `drizzle/20261013182456_misty_black_widow` aplicada no Neon (o texto de teste do
+    `seed-dev` foi perdido, sem problema). Comandos: `npx drizzle-kit generate` e `migrate`
+    (não há scripts no package.json). Ao gerar, escolher "create column" (não rename) quando
+    o tipo da coluna muda.
+  - `lib/money.ts`: `parseReaisToCents(texto)` converte "1.500,00" / "R$ 19,99" em centavos sem
+    float; devolve `null` se inválido ou acima do limite do integer.
+  - `lib/schemas/client.ts`: `clientSchema` = `z.discriminatedUnion("clientMode", [new, existing])`.
+    `new`: nome (3 a 100), e-mail (até 256), telefone (limpa símbolos e exige 13 dígitos), tipo PF/PJ.
+    `existing`: `clientId` UUID.
+  - `lib/schemas/proposal.ts`: `proposalSchema` e `ProposalInput`. `client` aninhado; `title` (5 a 100,
+    trim); `deliveryDays` (inteiro > 0); `bonuses` (ids do catálogo, sem repetição, default `[]`);
+    `hostingAnnual` e `discountValue` recebem TEXTO em reais ("600,00") e entregam CENTAVOS (a
+    conversão é feita no schema, não no formulário); `discountType` + `discountValue` vêm juntos ou
+    nenhum; `percentage` = inteiro 1 a 100; `fixed` = reais convertidos. Campo vazio vira ausente
+    (`emptyToUndefined`), nunca 0. O input do formulário deve ser texto (`inputMode="decimal"`),
+    não `type="number"`: "1.50" é recusado (ponto é milhar em pt-BR).
+  - Limitação conhecida: erros do desconto só aparecem depois de corrigidos os outros campos
+    (a regra roda num `transform` no fim do schema).
 - Pronto na Etapa 3 (branch `feat/listagem-propostas`):
   - Listagem em `app/admin/propostas/page.tsx`: `page` é a casca (título + `<Suspense>`), e
     `ListaPropostas` (async) faz a query (`where deletedAt isNull`, `with client`, `orderBy createdAt desc`).
@@ -271,7 +309,10 @@ rascunho → enviada → aprovada
   - Aviso `MODULE_TYPELESS_PACKAGE_JSON` ao rodar o seed (inofensivo): resolver com `"type": "module"`
     no `package.json` só se incomodar, checando antes se não afeta o Next/Drizzle Kit.
   - `@types/node` está em `^20`, mas o Node é 24: alinhar.
-  - Zod: `discountType` e `discountValue` devem vir juntos ou nenhum (o banco não garante).
+  - Desconto fixo maior que o subtotal: só dá para validar com os itens (Etapa 5).
+  - Página pública: o tipo `Bonus` do mock (`lib/proposal-mock.ts`) ainda não tem `value`; ao ligar
+    a página ao banco, mostrar o valor riscado + selo "Grátis" (parte visual, pode delegar).
+  - Apagar `zod-teste.ts` da raiz (arquivo de estudo, não deve ir para o git).
   - Zod: `paymentMethod` e `cardInstallments` (obrigatório se `card`, proibido nos outros,
     1 a 10; o banco não garante). `paymentMethod` e `approvedAt` andam juntos.
   - Opcional: `check` no banco para `card_installments` entre 1 e 10 (hoje só o Zod).
@@ -283,8 +324,16 @@ rascunho → enviada → aprovada
   - `.impeccable/review/` (capturas de tela da skill de design) provavelmente deve entrar no `.gitignore`.
   - Itens "em breve" do menu (Clientes, Modelo de textos) e a listagem sem link por linha: ligar
     quando as telas existirem.
-- Próximo passo: Etapa 4 (criar proposta). Antes, commitar o que falta em `feat/listagem-propostas`
-  (layout do admin e listagem), mesclar na `main` e abrir uma branch nova. Começar pelo schema Zod
-  (cliente, título, bônus, prazo, hospedagem), depois a Server Action (auth + Zod) e o formulário.
-  Decidir antes: como escolher/criar o cliente no formulário e a ação do botão "Nova proposta"
-  (não há botão no admin ainda).
+- Decisões da Etapa 4:
+  - Formulário com seletor "Cliente existente" / "Cliente novo" (opção C): existente = só selecionar;
+    novo = campos de cadastro.
+  - Bônus: catálogo no código + cópia (jsonb) na proposta (opção A).
+  - Autenticação da action enquanto o login não existe (opção A): função `requireUser()`
+    provisória, chamada em toda action, com `TODO` claro; a Etapa 8 troca só o corpo dela.
+- Próximo passo: Server Action `createProposal`, em modo mentor. Ordem: (1) `requireUser()`;
+  (2) `safeParse` com `proposalSchema`; (3) resolver o cliente (existente: conferir que existe e
+  `deletedAt` é nulo; novo: inserir); (4) copiar `proposal_template.content` para `fixedContent`;
+  (5) montar a foto dos bônus a partir de `bonusCatalog` usando só os ids validados; (6) gerar
+  `public_token` aleatório (até 24 caracteres); (7) inserir tudo numa `db.transaction`.
+  Depois: formulário (UI, pode delegar) e o botão "Nova proposta" na listagem.
+  Antes de começar, commitar o trabalho da Etapa 4 que ainda não foi commitado.
