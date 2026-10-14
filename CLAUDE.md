@@ -209,6 +209,22 @@ rascunho → enviada → aprovada
 
 # Estado atual
 - Etapa atual: 9 (Deploy). Etapas 1 a 8 concluídas (8 = Login, ver "Pronto na Etapa 8").
+- Branches e ambientes (decisão de 14/10/2026, Etapa 9):
+  - Fluxo Git: `feat/*` → `dev` (branch de integração) → `main` (produção, Production Branch da Vercel).
+  - Neon conectado à Vercel (integração com preview branching): cada branch Git com deploy de preview ganha
+    uma branch do Neon `preview/<branch>`, copiada da `production` NA CRIAÇÃO (não sincroniza depois e
+    NÃO recebe migrations sozinha). Tudo feito até a Etapa 8 foi aplicado na branch `production`.
+  - Desenvolvimento local: `.env.local` aponta para `preview/dev` (cópia da `production`), não mais para a
+    `production`. Não deletar a branch Git `dev` (a integração apaga a branch do Neon junto).
+  - Duas URLs de conexão: `DATABASE_URL` (pooled; usada pelo app em `db/index.ts`) e `DATABASE_URL_UNPOOLED`
+    (direta; usada pelo `drizzle-kit` quando existe, com fallback para `DATABASE_URL`).
+  - Migrations: `npm run db:generate` e `npm run db:migrate` (atingem o banco do `.env.local`, hoje o de dev).
+    Gerar na `feat/*`, aplicar na `preview/dev`; ao promover `dev` → `main`, aplicar na `production` ANTES do
+    deploy do código que depende dela (apontar a variável para a produção de propósito). NÃO colocar
+    `migrate` dentro do `build` por ora.
+  - Antes do lançamento: limpar da `production` os dados de teste (proposta do `seed-dev` e testes).
+  - Preview e login: `BETTER_AUTH_URL` é fixa e cada preview tem outro domínio; para Preview não definir a
+    variável (o Better Auth infere da requisição) ou derivar de `VERCEL_URL`. Confirmar na doc ao configurar.
 - Pronto na Etapa 8 (Login, Better Auth 1.7):
   - `lib/better-auth.ts`: `betterAuth` com adaptador Drizzle, e-mail e senha, `disableSignUp: true` (sem cadastro
     pela rede) e `nextCookies()` por último. `db/auth-schema.ts`: `user`, `session`, `account`, `verification`
@@ -276,8 +292,8 @@ rascunho → enviada → aprovada
     tipos `BonusId` e `ProposalBonus` e a tupla `bonusIds` para `z.enum`.
   - `db/schema.ts`: `proposals.bonus` (text) trocado por `bonuses` (jsonb, notNull, default `[]`).
     Migration `drizzle/20261013182456_misty_black_widow` aplicada no Neon (o texto de teste do
-    `seed-dev` foi perdido, sem problema). Comandos: `npx drizzle-kit generate` e `migrate`
-    (não há scripts no package.json). Ao gerar, escolher "create column" (não rename) quando
+    `seed-dev` foi perdido, sem problema). Comandos: `npm run db:generate` e `db:migrate`
+    (scripts do package.json, ver "Branches e ambientes"). Ao gerar, escolher "create column" (não rename) quando
     o tipo da coluna muda.
   - `lib/money.ts`: `parseReaisToCents(texto)` converte "1.500,00" / "R$ 19,99" em centavos sem
     float; devolve `null` se inválido ou acima do limite do integer.
@@ -390,9 +406,13 @@ rascunho → enviada → aprovada
     (`client.*`, lista de bônus) e com o formulário interativo.
   - Cliente novo é inserido DENTRO da mesma `db.transaction` da proposta (atomicidade: sem cliente órfão).
     Dentro do callback, sempre `tx`, nunca `db`.
-- Próximo passo: Etapa 9 (Deploy na Vercel). Variáveis de ambiente (`DATABASE_URL`, `BETTER_AUTH_SECRET`,
-  `BETTER_AUTH_URL`), migrations no banco de produção, criar o usuário lá e conferir que `revertToDraft`
-  recusa em produção. Rodar `npm audit` (5 vulnerabilidades "high" apareceram ao instalar o better-auth).
+- Próximo passo: Etapa 9 (Deploy na Vercel). Já feito: `dev` criada e com a Etapa 8, `preview/dev` no Neon
+  e `.env.local` apontando para ela. Falta: conferir em Vercel → Environment Variables o `DATABASE_URL` de
+  Production e cadastrar `BETTER_AUTH_SECRET` (valor novo, só para produção) e `BETTER_AUTH_URL`; tratar o
+  `BETTER_AUTH_URL` nos previews; limpar dados de teste da `production`; criar o usuário real na `production`
+  (script `db/create-user.ts` apontando para ela) e conferir que `revertToDraft` recusa em produção;
+  PR `dev` → `main`.
+- `npm audit`: 5 "high" na cadeia `braces` → `eslint-config-next` (só lint). Não rodar `audit fix --force`.
 - Pronto na Etapa 7 (branch `feat/enviar-aprovar`):
   - `sendProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE único
     `status = 'sent'`, `sentAt`, com `WHERE id AND status = 'draft' AND deletedAt IS NULL` (atômico). NÃO trava

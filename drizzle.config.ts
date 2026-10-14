@@ -3,10 +3,12 @@ import { defineConfig } from 'drizzle-kit';
 
 config({ path: '.env.local' });
 
-const databaseUrl = process.env.DATABASE_URL;
+// Migrations usam a conexão DIRETA (sem pooler) quando existir; o app em runtime
+// continua com DATABASE_URL (pooled) em db/index.ts.
+const databaseUrl = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-    throw new Error("A variável 'DATABASE_URL' não foi definida");
+    throw new Error("Nenhuma variável 'DATABASE_URL_UNPOOLED' ou 'DATABASE_URL' foi definida");
 }
 
 export default defineConfig({
