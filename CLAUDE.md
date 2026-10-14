@@ -197,8 +197,7 @@ rascunho → enviada → aprovada
    e criar o seed do modelo de textos.
 3. Listagem: página que lista propostas lendo do banco (Server Components). (CONCLUÍDA)
 4. Criar proposta: formulário + Server Action + validação com Zod
-   (cliente novo ou existente, título, bônus, prazo, hospedagem, desconto). Schemas Zod prontos;
-   faltam a Server Action e o formulário (ver "Estado atual").
+   (cliente novo ou existente, título, bônus, prazo, hospedagem, desconto). (CONCLUÍDA)
 5. Itens e valores: adicionar/remover itens, descontos e cálculo dos totais
    (Client Components, estado).
 6. Página pública: rota com token mostrando a proposta completa com a identidade visual.
@@ -210,9 +209,27 @@ rascunho → enviada → aprovada
 9. Deploy na Vercel.
 
 # Estado atual
-- Etapa atual: 4 (Criar proposta). Etapas 1, 2 (Schema) e 3 (Listagem) concluídas.
-- Pronto na Etapa 4 até agora (branch `feat/criar-proposta`; validação e catálogo prontos,
-  faltam Server Action, formulário e botão "Nova proposta"):
+- Etapa atual: 5 (Itens e valores). Etapas 1, 2 (Schema), 3 (Listagem) e 4 (Criar proposta) concluídas.
+- Pronto na Etapa 4 (branch `feat/criar-proposta`):
+  - `lib/auth.ts`: `requireUser()` PROVISÓRIA (async, devolve `{ id: "dev-user", name, email }` fixos),
+    com `TODO` da Etapa 8 (trocar pela sessão do Better Auth e lançar erro sem usuário; não deployar assim).
+  - `app/admin/propostas/actions.ts`: `createProposal(input: unknown)`. Fluxo: `requireUser()` →
+    `proposalSchema.safeParse` → foto dos bônus (`bonusCatalog.filter` pelos ids validados) →
+    `public_token` (`randomBytes(18).toString("base64url")` = 24 caracteres) → `db.transaction`
+    (cliente existente: confere existência e `deletedAt` nulo; novo: insere com `.returning`;
+    copia `proposal_template.content` para `fixedContent`; insere a proposta). Retorno: `{ ok: true }`
+    ou `{ ok: false, fieldErrors, formError }` (`as const`). `ClientNotFoundError` aborta a transação e
+    vira `formError` fora dela; "template não encontrado" continua sendo `throw` (erro de configuração).
+    Testada manualmente (cliente novo, dados inválidos, cliente inexistente com rollback).
+  - `app/admin/propostas/nova/page.tsx`: casca + `<Suspense>`; `FormularioComClientes` (async,
+    `connection()`) lê `id` e `name` dos clientes ativos e passa por prop ao formulário.
+  - `app/admin/propostas/nova/_components/proposal-form.tsx`: Client Component (estado + `onSubmit`
+    chamando a action com objeto, opção A). Envia só TEXTO; a conversão para centavos é do Zod.
+    Em sucesso, `router.push("/admin/propostas")`. Erros do cliente aparecem em lista única (o
+    `z.flattenError` só agrupa pela chave de topo `client`); para erro por campo, usar `z.treeifyError`.
+  - Botão "Nova proposta" na listagem (`app/admin/propostas/page.tsx`).
+  - Itens, valores e total NÃO existem ainda: propostas criadas saem sem itens (Etapa 5).
+- Base da Etapa 4 (validação e catálogo):
   - `lib/proposal-bonuses.ts`: `bonusCatalog` (ids `google-meu-negocio`, `painel-metricas`,
     `manutencao-60-dias`; o último ainda tem esse id mesmo com o título "60 dias de hospedagem e
     manutenção": renomear ANTES de salvar propostas reais), `value` em centavos (15000, 20000, 6000),
@@ -330,10 +347,12 @@ rascunho → enviada → aprovada
   - Bônus: catálogo no código + cópia (jsonb) na proposta (opção A).
   - Autenticação da action enquanto o login não existe (opção A): função `requireUser()`
     provisória, chamada em toda action, com `TODO` claro; a Etapa 8 troca só o corpo dela.
-- Próximo passo: Server Action `createProposal`, em modo mentor. Ordem: (1) `requireUser()`;
-  (2) `safeParse` com `proposalSchema`; (3) resolver o cliente (existente: conferir que existe e
-  `deletedAt` é nulo; novo: inserir); (4) copiar `proposal_template.content` para `fixedContent`;
-  (5) montar a foto dos bônus a partir de `bonusCatalog` usando só os ids validados; (6) gerar
-  `public_token` aleatório (até 24 caracteres); (7) inserir tudo numa `db.transaction`.
-  Depois: formulário (UI, pode delegar) e o botão "Nova proposta" na listagem.
-  Antes de começar, commitar o trabalho da Etapa 4 que ainda não foi commitado.
+  - Server Action chamada por objeto, não por `FormData` (opção A): combina com o payload aninhado
+    (`client.*`, lista de bônus) e com o formulário interativo.
+  - Cliente novo é inserido DENTRO da mesma `db.transaction` da proposta (atomicidade: sem cliente órfão).
+    Dentro do callback, sempre `tx`, nunca `db`.
+- Próximo passo: Etapa 5 (itens e valores), em modo mentor. Antes de começar, decidir onde os itens
+  entram: no mesmo formulário de criação (itens no payload, `proposal_items` inseridos na mesma
+  transação) ou numa tela de edição do rascunho. Lembrar: `lib/proposal-calc.ts` já tem os cálculos em
+  centavos; não salvar subtotais/total; desconto fixo maior que o subtotal só se valida com os itens;
+  proposta enviada não pode mais ser editada.
