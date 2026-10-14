@@ -3,6 +3,12 @@ import { db } from "@/db";
 import { Suspense } from "react";
 import { StatusBadge } from "./_components/status-badge";
 import { connection } from "next/server";
+import {
+    formatBRL,
+    projectTotal,
+    toDiscount,
+    type DiscountType,
+} from "@/lib/proposal-calc";
 
 export default function Propostas() {
 
@@ -38,7 +44,8 @@ async function ListaPropostas() {
             }
         },
         with: {
-            client: true
+            client: true,
+            items: true,
         },
         orderBy: {
             createdAt: "desc",
@@ -63,6 +70,7 @@ async function ListaPropostas() {
                     <tr className="border-b border-admin-line text-xs text-admin-muted">
                         <th scope="col" className="px-4 py-3 font-medium">Proposta</th>
                         <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Cliente</th>
+                        <th scope="col" className="px-4 py-3 text-right font-medium">Total</th>
                         <th scope="col" className="px-4 py-3 font-medium">Status</th>
                         <th scope="col" className="hidden px-4 py-3 text-right font-medium sm:table-cell">Criada em</th>
                     </tr>
@@ -77,6 +85,9 @@ async function ListaPropostas() {
                             <td className="hidden px-4 py-3.5 text-admin-muted md:table-cell">
                                 {proposta.client?.name}
                             </td>
+                            <td className="px-4 py-3.5 text-right tabular-nums text-admin-text">
+                                {formatBRL(totalDaProposta(proposta))}
+                            </td>
                             <td className="px-4 py-3.5">
                                 <StatusBadge status={proposta.status} />
                             </td>
@@ -88,6 +99,31 @@ async function ListaPropostas() {
                 </tbody>
             </table>
         </div>
+    );
+}
+
+// Total calculado na hora a partir dos itens e do desconto geral (nada disso é salvo).
+function totalDaProposta(proposta: {
+    discountType: DiscountType | null;
+    discountValue: number | null;
+    items: {
+        description: string;
+        quantity: number;
+        unitPrice: number;
+        discountType: DiscountType | null;
+        discountValue: number | null;
+    }[];
+}) {
+    const items = proposta.items.map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: toDiscount(item.discountType, item.discountValue),
+    }));
+
+    return projectTotal(
+        items,
+        toDiscount(proposta.discountType, proposta.discountValue),
     );
 }
 

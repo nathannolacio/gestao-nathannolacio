@@ -18,12 +18,55 @@ const pillClass =
     "transition-colors duration-150 has-checked:border-dourado has-checked:text-admin-text " +
     "has-focus-visible:outline-2 has-focus-visible:outline-dourado";
 
+// Item em edição: tudo texto, o servidor valida e converte. `key` é só da tela (chave do React).
+type ItemDraft = {
+    key: string;
+    description: string;
+    quantity: string;
+    unitPrice: string;
+    discountType: "" | "percentage" | "fixed";
+    discountValue: string;
+};
+
+const MAX_ITEMS = 50;
+
+function newItem(): ItemDraft {
+    return {
+        key: crypto.randomUUID(),
+        description: "",
+        quantity: "1",
+        unitPrice: "",
+        discountType: "",
+        discountValue: "",
+    };
+}
+
 // Só para exibição: o valor do bônus vem em centavos.
 function formatCents(cents: number) {
     return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// Com cacheComponents o Next mantém a página anterior montada (e o estado dela).
+// Trocar a `key` recria o formulário do zero, então o próximo "Nova proposta" nasce vazio.
 export function ProposalForm({ clients }: { clients: ClientOption[] }) {
+    const [formKey, setFormKey] = useState(0);
+
+    return (
+        <ProposalFormFields
+            key={formKey}
+            clients={clients}
+            onCreated={() => setFormKey((current) => current + 1)}
+        />
+    );
+}
+
+function ProposalFormFields({
+    clients,
+    onCreated,
+}: {
+    clients: ClientOption[];
+    onCreated: () => void;
+}) {
     const router = useRouter();
 
     const [clientMode, setClientMode] = useState<"existing" | "new">(
@@ -42,6 +85,8 @@ export function ProposalForm({ clients }: { clients: ClientOption[] }) {
     const [discountValue, setDiscountValue] = useState("");
     const [bonuses, setBonuses] = useState<string[]>(bonusCatalog.map((b) => b.id));
 
+    const [items, setItems] = useState<ItemDraft[]>(() => [newItem()]);
+
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
     const [formError, setFormError] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
@@ -50,6 +95,16 @@ export function ProposalForm({ clients }: { clients: ClientOption[] }) {
         setBonuses((current) =>
             current.includes(id) ? current.filter((b) => b !== id) : [...current, id],
         );
+    }
+
+    function updateItem(key: string, changes: Partial<ItemDraft>) {
+        setItems((current) =>
+            current.map((item) => (item.key === key ? { ...item, ...changes } : item)),
+        );
+    }
+
+    function removeItem(key: string) {
+        setItems((current) => current.filter((item) => item.key !== key));
     }
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -67,6 +122,7 @@ export function ProposalForm({ clients }: { clients: ClientOption[] }) {
             title,
             deliveryDays,
             bonuses,
+            items: items.map(({ key: _key, ...item }) => item),
             hostingAnnual,
             discountType,
             discountValue,
@@ -77,6 +133,7 @@ export function ProposalForm({ clients }: { clients: ClientOption[] }) {
 
             if (res.ok) {
                 router.push("/admin/propostas");
+                onCreated();
                 return;
             }
 
@@ -91,12 +148,6 @@ export function ProposalForm({ clients }: { clients: ClientOption[] }) {
 
     return (
         <form onSubmit={handleSubmit} noValidate className="max-w-2xl space-y-10">
-            {formError && (
-                <p role="alert" className="rounded-lg border border-red-400/40 px-4 py-3 text-sm text-red-300">
-                    {formError}
-                </p>
-            )}
-
             {/* Cliente */}
             <section aria-labelledby="secao-cliente" className="space-y-4">
                 <h2 id="secao-cliente" className="font-display text-lg font-medium">
@@ -264,6 +315,134 @@ export function ProposalForm({ clients }: { clients: ClientOption[] }) {
                 </div>
             </section>
 
+            {/* Itens */}
+            <section aria-labelledby="secao-itens" className="space-y-4">
+                <h2 id="secao-itens" className="font-display text-lg font-medium">
+                    Serviços e itens
+                </h2>
+
+                {fieldErrors.items && (
+                    <ul role="alert" className="space-y-1 text-sm text-red-300">
+                        {[...new Set(fieldErrors.items)].map((message) => (
+                            <li key={message}>{message}</li>
+                        ))}
+                    </ul>
+                )}
+
+                <ul className="space-y-3">
+                    {items.map((item, index) => (
+                        <li
+                            key={item.key}
+                            className="space-y-3 rounded-lg border border-admin-line px-4 py-4"
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-admin-text">
+                                    Item {index + 1}
+                                </span>
+                                {items.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => removeItem(item.key)}
+                                        className="text-sm text-admin-muted transition-colors duration-150 hover:text-red-300 focus-visible:outline-2 focus-visible:outline-dourado"
+                                    >
+                                        Remover
+                                    </button>
+                                )}
+                            </div>
+
+                            <Field label="Descrição" htmlFor={`item-${item.key}-description`}>
+                                <input
+                                    id={`item-${item.key}-description`}
+                                    value={item.description}
+                                    onChange={(e) => updateItem(item.key, { description: e.target.value })}
+                                    autoComplete="off"
+                                    className={inputClass}
+                                />
+                            </Field>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <Field label="Quantidade" htmlFor={`item-${item.key}-quantity`}>
+                                    <input
+                                        id={`item-${item.key}-quantity`}
+                                        inputMode="numeric"
+                                        value={item.quantity}
+                                        onChange={(e) => updateItem(item.key, { quantity: e.target.value })}
+                                        autoComplete="off"
+                                        className={inputClass}
+                                    />
+                                </Field>
+                                <Field label="Valor unitário (R$)" htmlFor={`item-${item.key}-price`}>
+                                    <input
+                                        id={`item-${item.key}-price`}
+                                        inputMode="decimal"
+                                        placeholder="1.500,00"
+                                        value={item.unitPrice}
+                                        onChange={(e) => updateItem(item.key, { unitPrice: e.target.value })}
+                                        autoComplete="off"
+                                        className={inputClass}
+                                    />
+                                </Field>
+                            </div>
+
+                            <fieldset className="flex flex-wrap gap-2">
+                                <legend className="sr-only">Desconto do item {index + 1}</legend>
+                                {(
+                                    [
+                                        ["", "Sem desconto"],
+                                        ["percentage", "Percentual (%)"],
+                                        ["fixed", "Valor fixo (R$)"],
+                                    ] as const
+                                ).map(([value, label]) => (
+                                    <label key={value} className={pillClass}>
+                                        <input
+                                            type="radio"
+                                            name={`item-${item.key}-discountType`}
+                                            value={value}
+                                            checked={item.discountType === value}
+                                            onChange={() =>
+                                                updateItem(item.key, { discountType: value, discountValue: "" })
+                                            }
+                                            className="sr-only"
+                                        />
+                                        {label}
+                                    </label>
+                                ))}
+                            </fieldset>
+
+                            {item.discountType !== "" && (
+                                <Field
+                                    label={
+                                        item.discountType === "percentage"
+                                            ? "Desconto do item (%)"
+                                            : "Desconto do item (R$)"
+                                    }
+                                    htmlFor={`item-${item.key}-discountValue`}
+                                >
+                                    <input
+                                        id={`item-${item.key}-discountValue`}
+                                        inputMode="decimal"
+                                        placeholder={item.discountType === "percentage" ? "10" : "50,00"}
+                                        value={item.discountValue}
+                                        onChange={(e) => updateItem(item.key, { discountValue: e.target.value })}
+                                        autoComplete="off"
+                                        className={`${inputClass} max-w-48`}
+                                    />
+                                </Field>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+
+                <button
+                    type="button"
+                    onClick={() => setItems((current) => [...current, newItem()])}
+                    disabled={items.length >= MAX_ITEMS}
+                    className="rounded-lg border border-admin-line px-4 py-2 text-sm text-admin-text transition-colors duration-150 hover:border-dourado disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-dourado"
+                >
+                    Adicionar item
+                </button>
+            </section>
+
             {/* Desconto */}
             <section aria-labelledby="secao-desconto" className="space-y-4">
                 <h2 id="secao-desconto" className="font-display text-lg font-medium">
@@ -361,7 +540,17 @@ export function ProposalForm({ clients }: { clients: ClientOption[] }) {
                 </ul>
             </section>
 
-            <div className="flex items-center gap-4">
+            <div className="space-y-3">
+                {/* O erro fica junto do botão: é onde o olhar está depois de clicar. */}
+                {(formError || Object.keys(fieldErrors).length > 0) && (
+                    <p
+                        role="alert"
+                        className="rounded-lg border border-red-400/40 px-4 py-3 text-sm text-red-300"
+                    >
+                        {formError ?? "Há campos com erro. Revise o formulário e tente novamente."}
+                    </p>
+                )}
+
                 <button
                     type="submit"
                     disabled={pending}
@@ -369,7 +558,6 @@ export function ProposalForm({ clients }: { clients: ClientOption[] }) {
                 >
                     {pending ? "Criando..." : "Criar proposta"}
                 </button>
-                <p className="text-sm text-admin-muted">Os itens e valores entram na próxima etapa.</p>
             </div>
         </form>
     );

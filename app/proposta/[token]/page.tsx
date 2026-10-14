@@ -337,7 +337,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                             `${item.quantity} × ${formatBRL(item.unitPrice)}`}
                           {item.quantity > 1 && item.discount && " · "}
                           {item.discount &&
-                            (item.discount.type === "percent"
+                            (item.discount.type === "percentage"
                               ? `${item.discount.value}% de desconto`
                               : `${formatBRL(item.discount.value)} de desconto`)}
                         </p>
@@ -365,7 +365,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                 // branca, para não se confundir com as pílulas douradas de preço
                 <span className="mt-3 inline-flex flex-wrap items-center justify-center gap-x-2 rounded-full bg-white px-4 py-1.5 text-base font-semibold text-bronze shadow-sm">
                   Desconto promocional
-                  {p.discount?.type === "percent" && ` (${p.discount.value}%)`}
+                  {p.discount?.type === "percentage" && ` (${p.discount.value}%)`}
                   <span className="font-display tabular-nums">
                     − {formatBRL(generalDiscount)}
                   </span>

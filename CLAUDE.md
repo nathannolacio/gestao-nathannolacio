@@ -199,7 +199,7 @@ rascunho → enviada → aprovada
 4. Criar proposta: formulário + Server Action + validação com Zod
    (cliente novo ou existente, título, bônus, prazo, hospedagem, desconto). (CONCLUÍDA)
 5. Itens e valores: adicionar/remover itens, descontos e cálculo dos totais
-   (Client Components, estado).
+   (Client Components, estado). (CONCLUÍDA)
 6. Página pública: rota com token mostrando a proposta completa com a identidade visual.
    (Layout pronto com dados mock; falta buscar a proposta no banco pelo token.)
 7. Enviar e aprovar: travar a proposta ao enviar, gerar o link,
@@ -209,7 +209,30 @@ rascunho → enviada → aprovada
 9. Deploy na Vercel.
 
 # Estado atual
-- Etapa atual: 5 (Itens e valores). Etapas 1, 2 (Schema), 3 (Listagem) e 4 (Criar proposta) concluídas.
+- Etapa atual: 6 (Página pública). Etapas 1, 2 (Schema), 3 (Listagem), 4 (Criar proposta) e 5 (Itens e valores)
+  concluídas.
+- Pronto na Etapa 5 (itens entram no MESMO formulário de criação, opção A; editar rascunho fica para depois):
+  - `lib/schemas/discount.ts`: `emptyToUndefined`, `discountFields` e `resolveDiscount` (regra do desconto:
+    tipo + valor juntos ou nenhum; percentage = inteiro 1 a 100; fixed = reais → centavos), usados pelo item.
+    `lib/schemas/proposal.ts` ainda tem a mesma lógica inline (refatorar para usar o helper é opcional).
+  - `lib/schemas/proposal-item.ts`: `proposalItemSchema` (descrição 3 a 200, quantidade inteira 1 a 1000,
+    `unitPrice` texto em reais → centavos, desconto opcional). Desconto fixo maior que quantidade × preço é
+    recusado (`superRefine`, erro em `discountValue` do item).
+  - `proposalSchema.items`: `.min(1)` e `.max(50)`.
+  - `createProposal`: recusa desconto geral FIXO maior que o subtotal (`projectSubtotal`, antes da transação,
+    volta como `formError`); insere `proposal_items` na MESMA transação da proposta (`.returning({ id })`,
+    `position` = índice do array).
+  - `lib/proposal-calc.ts`: tipo de desconto renomeado de `"percent"` para `"percentage"` (igual ao enum do
+    banco e ao Zod; mock e página pública ajustados). Nova `toDiscount(type, value)` converte as duas colunas
+    do banco em `{ type, value } | null` e LANÇA erro se só uma vier preenchida.
+  - Formulário (`proposal-form.tsx`): seção "Serviços e itens" (1 a 50 linhas, estado em texto com `key` só
+    da tela). Com `cacheComponents` o Next mantém a página anterior montada (e o estado): `ProposalForm` é
+    uma casca com `key` que muda no sucesso, recriando o formulário vazio. O erro (`formError` ou "há campos
+    com erro") aparece junto ao botão, não no topo.
+  - Listagem: coluna "Total" calculada na leitura (`items` + desconto geral → `projectTotal`).
+    Propostas antigas sem itens mostram R$ 0,00.
+  - Limitações conhecidas: erros dos itens aparecem numa lista única acima das linhas (sem apontar o item;
+    para isso, `z.treeifyError`); com erro de campo o formulário não rola nem foca o campo.
 - Pronto na Etapa 4 (branch `feat/criar-proposta`):
   - `lib/auth.ts`: `requireUser()` PROVISÓRIA (async, devolve `{ id: "dev-user", name, email }` fixos),
     com `TODO` da Etapa 8 (trocar pela sessão do Better Auth e lançar erro sem usuário; não deployar assim).
@@ -228,7 +251,7 @@ rascunho → enviada → aprovada
     Em sucesso, `router.push("/admin/propostas")`. Erros do cliente aparecem em lista única (o
     `z.flattenError` só agrupa pela chave de topo `client`); para erro por campo, usar `z.treeifyError`.
   - Botão "Nova proposta" na listagem (`app/admin/propostas/page.tsx`).
-  - Itens, valores e total NÃO existem ainda: propostas criadas saem sem itens (Etapa 5).
+  - Itens e total entraram na Etapa 5 (ver acima).
 - Base da Etapa 4 (validação e catálogo):
   - `lib/proposal-bonuses.ts`: `bonusCatalog` (ids `google-meu-negocio`, `painel-metricas`,
     `manutencao-60-dias`; o último ainda tem esse id mesmo com o título "60 dias de hospedagem e
@@ -326,7 +349,6 @@ rascunho → enviada → aprovada
   - Aviso `MODULE_TYPELESS_PACKAGE_JSON` ao rodar o seed (inofensivo): resolver com `"type": "module"`
     no `package.json` só se incomodar, checando antes se não afeta o Next/Drizzle Kit.
   - `@types/node` está em `^20`, mas o Node é 24: alinhar.
-  - Desconto fixo maior que o subtotal: só dá para validar com os itens (Etapa 5).
   - Página pública: o tipo `Bonus` do mock (`lib/proposal-mock.ts`) ainda não tem `value`; ao ligar
     a página ao banco, mostrar o valor riscado + selo "Grátis" (parte visual, pode delegar).
   - Apagar `zod-teste.ts` da raiz (arquivo de estudo, não deve ir para o git).
@@ -351,8 +373,15 @@ rascunho → enviada → aprovada
     (`client.*`, lista de bônus) e com o formulário interativo.
   - Cliente novo é inserido DENTRO da mesma `db.transaction` da proposta (atomicidade: sem cliente órfão).
     Dentro do callback, sempre `tx`, nunca `db`.
-- Próximo passo: Etapa 5 (itens e valores), em modo mentor. Antes de começar, decidir onde os itens
-  entram: no mesmo formulário de criação (itens no payload, `proposal_items` inseridos na mesma
-  transação) ou numa tela de edição do rascunho. Lembrar: `lib/proposal-calc.ts` já tem os cálculos em
-  centavos; não salvar subtotais/total; desconto fixo maior que o subtotal só se valida com os itens;
-  proposta enviada não pode mais ser editada.
+- Próximo passo: Etapa 6 (página pública), em modo mentor para a parte de dados. Buscar a proposta pelo
+  `public_token` (nunca pelo ID), com `client`, `items` e `bonuses`; montar os dados no formato que
+  `app/proposta/[token]/page.tsx` espera (hoje mock) usando `toDiscount` e `lib/proposal-calc.ts`; não expor
+  o ID do banco. Lembrar: a leitura vai dentro de componente async com `<Suspense>` (Cache Components) e
+  `connection()`; propostas `draft` provavelmente não devem abrir na página pública (decidir). Parte visual
+  (mostrar bônus riscado + selo "Grátis") pode delegar.
+- Decisões da Etapa 5:
+  - Itens no mesmo formulário de criação (opção A), em vez de tela de edição do rascunho. O CLAUDE.md diz
+    que proposta enviada trava; editar rascunho provavelmente vira necessário depois.
+  - Desconto do item validado no Zod (conhece quantidade e preço); desconto geral validado na action
+    (precisa do subtotal de todos os itens).
+  - `toDiscount` lança erro em estado inconsistente em vez de devolver `null` (não cobrar errado em silêncio).

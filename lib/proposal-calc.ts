@@ -1,4 +1,4 @@
-export type DiscountType = "percent" | "fixed";
+export type DiscountType = "percentage" | "fixed";
 
 export type Discount = { type: DiscountType; value: number } | null;
 
@@ -9,11 +9,25 @@ export type ProposalItem = {
   discount: Discount;
 };
 
+// Converte as duas colunas do banco (discountType + discountValue) no formato do
+// cálculo. Ambas nulas = sem desconto. Só uma preenchida é dado corrompido: lança
+// erro em vez de cobrar um valor errado em silêncio.
+export function toDiscount(
+  type: DiscountType | null,
+  value: number | null,
+): Discount {
+  if (type === null && value === null) return null;
+  if (type === null || value === null) {
+    throw new Error("Desconto inconsistente: tipo e valor devem vir juntos.");
+  }
+  return { type, value };
+}
+
 // Percentual: inteiro (10 = 10%). Fixo: centavos.
 function applyDiscount(amount: number, discount: Discount): number {
   if (!discount) return amount;
   const off =
-    discount.type === "percent"
+    discount.type === "percentage"
       ? Math.round((amount * discount.value) / 100)
       : discount.value;
   return Math.max(amount - off, 0);

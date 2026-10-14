@@ -87,7 +87,7 @@ const worstProposal: ProposalView = {
   ],
   deliveryDays: 180,
   hostingAnnual: 1299000,
-  discount: { type: "percent", value: 8 },
+  discount: { type: "percentage", value: 8 },
   items: [
     {
       description:
@@ -107,13 +107,13 @@ const worstProposal: ProposalView = {
       description: "Landing page de campanha",
       quantity: 12,
       unitPrice: 89000,
-      discount: { type: "percent", value: 15 },
+      discount: { type: "percentage", value: 15 },
     },
     {
       description: "Integração com WhatsApp Business API",
       quantity: 1,
       unitPrice: 150000,
-      discount: { type: "percent", value: 100 },
+      discount: { type: "percentage", value: 100 },
     },
     {
       description:

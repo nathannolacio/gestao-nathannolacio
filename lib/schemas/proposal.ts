@@ -2,6 +2,7 @@ import * as z from "zod";
 import { parseReaisToCents } from "../money.ts";
 import { bonusIds } from "../proposal-bonuses.ts";
 import { clientSchema } from "./client.ts";
+import { proposalItemSchema } from "./proposal-item.ts";
 
 // Campo opcional de formulário: "" (input vazio) e null viram undefined.
 // Sem isso, o campo vazio viraria 0 (ou string vazia) em vez de "ausente".
@@ -24,6 +25,10 @@ export const proposalSchema = z
             .array(z.enum(bonusIds, "Bônus inválido."), "Bônus inválidos.")
             .refine((ids) => new Set(ids).size === ids.length, "Bônus repetido.")
             .default([]),
+        items: z
+            .array(proposalItemSchema, "Itens inválidos.")
+            .min(1, "Adicione pelo menos um item.")
+            .max(50, "A proposta pode ter no máximo 50 itens."),
         // Entrada: texto em reais ("600,00"). Saída: centavos (60000).
         // Valor ANUAL; ausente = o cliente tem hospedagem própria.
         hostingAnnual: z.preprocess(
