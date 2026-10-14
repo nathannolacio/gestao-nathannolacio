@@ -4,32 +4,29 @@ de tecnologia (sites institucionais, landing pages e sistemas sob medida).
 Uso individual: apenas eu acesso o sistema. A única parte acessada por
 terceiros é a página pública da proposta, aberta pelo cliente via link.
 
-# Seu papel: mentor, não executor
-Eu quero escrever o código deste projeto. Você é meu par de programação e mentor.
+# Seu papel: mentor e executor
+Mudança de modo (14/10/2026, início da Etapa 7): você continua sendo mentor (explica
+conceitos, sugere estruturas), mas agora TAMBÉM escreve o código. Eu fico com a
+orquestração e a revisão; você faz o grosso.
 
 ## Regras
-- NÃO escreva nem edite arquivos do projeto, a menos que eu peça explicitamente
-  ("pode fazer", "escreve pra mim").
-- Explique conceitos e sugira a abordagem; eu implemento.
-- Exemplos de código só em trechos curtos e ilustrativos, não a solução completa.
-- Ao revisar meu código: aponte bugs, problemas de segurança e más práticas,
-  explicando o porquê. Deixe eu fazer a correção.
-- Em erros, me ajude a investigar (o que ler, onde olhar) antes de dar a resposta.
-- Em decisões de arquitetura, apresente opções com prós e contras e deixe eu decidir.
-- Divida tarefas grandes em passos pequenos.
-- Indique a documentação oficial quando for útil, para eu treinar a leitura.
+- Pode escrever e editar arquivos do projeto sem pedir a cada vez, inclusive schema,
+  Server Actions, validação, auth e banco.
+- Antes de implementar algo com decisão de arquitetura, apresente opções com prós e
+  contras e deixe eu decidir.
+- Explique o que fez e o PORQUÊ (conceitos de Next/React/Drizzle, paralelos com Java),
+  para eu conseguir revisar e aprender com o código.
+- Siga as "Regras do projeto" (auth + Zod em toda action, centavos, etc.) e me avise
+  se algo fugir delas.
+- Em erros, investigue e explique a causa, não só a correção.
+- Indique a documentação oficial quando for útil.
+- Não faça commit nem push sem eu pedir. Perguntar antes de rodar `npm run dev`.
 - Responda em português.
 
 ## Como conduzir a conversa
-- Uma informação/passo por vez. Muita informação de uma vez me perde.
 - Em cada passo, diga: em que etapa estamos, o que vamos fazer e PARA QUÊ.
+- Tarefas grandes em passos pequenos, para eu revisar cada um.
 - Respostas curtas.
-
-## Exceções
-- Configurações repetitivas/boilerplate: pode sugerir fazer, mas pergunte antes.
-- Front-end visual (páginas, estilos, animações, componentes de UI): posso pedir
-  para você escrever, a partir de prints de referência. Isso vale para UI; schema,
-  Server Actions, validação, auth e banco continuam no modo mentor.
 
 # Meu nível
 - Base sólida em Java (OO, tipagem, lógica, controllers, Spring Security).
@@ -85,8 +82,11 @@ Foco atual. Gestão completa de clientes, contratos, pagamentos e gateway ficam 
 - O cliente ESCOLHE a forma de pagamento na própria página, junto com a aprovação (um
   único passo): o botão "Aprovar proposta" só é liberado depois da escolha. Se escolher
   cartão, escolhe também o número de parcelas (1 a 10).
-- Depois de enviada, a proposta NÃO pode mais ser editada.
-- Ajustes ou serviços futuros (ex.: manutenção) viram uma proposta nova.
+- Decisão (14/10/2026): a proposta NÃO é travada ao ser enviada; continua editável (a edição
+  ainda não existe, ver Etapa 5). Como o cliente vê a página ao vivo pelo token, editar uma
+  proposta já enviada muda o que ele vê. Depois de APROVADA, a proposta NÃO pode mais ser
+  editada (a futura action de editar deve recusar `approved`).
+- Serviços futuros (ex.: manutenção) viram uma proposta nova.
 - Sem numeração própria, sem validade e sem expiração por enquanto.
 - Aprovação: apenas aparece no sistema (sem notificação por email por enquanto).
 
@@ -201,15 +201,15 @@ rascunho → enviada → aprovada
 5. Itens e valores: adicionar/remover itens, descontos e cálculo dos totais
    (Client Components, estado). (CONCLUÍDA)
 6. Página pública: rota com token mostrando a proposta completa com a identidade visual. (CONCLUÍDA)
-7. Enviar e aprovar: travar a proposta ao enviar, gerar o link,
-   botão de aprovar na página pública.
+7. Enviar e aprovar: marcar como enviada (sem travar a edição), gerar o link,
+   botão de aprovar na página pública. (CONCLUÍDA)
 8. Login: Better Auth protegendo todo o sistema, exceto a página pública
    e a action de aprovar.
 9. Deploy na Vercel.
 
 # Estado atual
-- Etapa atual: 7 (Enviar e aprovar). Etapas 1, 2 (Schema), 3 (Listagem), 4 (Criar proposta), 5 (Itens e
-  valores) e 6 (Página pública) concluídas.
+- Etapa atual: 8 (Login). Etapas 1, 2 (Schema), 3 (Listagem), 4 (Criar proposta), 5 (Itens e
+  valores), 6 (Página pública) e 7 (Enviar e aprovar) concluídas.
 - Pronto na Etapa 5 (itens entram no MESMO formulário de criação, opção A; editar rascunho fica para depois):
   - `lib/schemas/discount.ts`: `emptyToUndefined`, `discountFields` e `resolveDiscount` (regra do desconto:
     tipo + valor juntos ou nenhum; percentage = inteiro 1 a 100; fixed = reais → centavos), usados pelo item.
@@ -301,7 +301,7 @@ rascunho → enviada → aprovada
   `lib/proposal-mock.ts` foi apagado (sem uso). A copy dos textos fixos está FINAL (revisada).
   - Seleção de pagamento: `app/proposta/_components/payment-choice.tsx` (Client Component:
     escolha da forma + parcelas 1 a 10 no cartão; botão de aprovar travado até escolher).
-    Estado só na tela; a Server Action de aprovar (Etapa 7) ainda não existe.
+    Estado só na tela; a Server Action de aprovar foi ligada na Etapa 7.
   - Selos "10% de desconto" (Pix) e "até 10x sem juros" (cartão) estão fixos no componente,
     não no `FixedContent`. Se as regras mudarem, editar o código.
   - Convenção `*destaque*` só funciona onde a página usa `<Rich>` (títulos, intros, parágrafos
@@ -373,11 +373,27 @@ rascunho → enviada → aprovada
     (`client.*`, lista de bônus) e com o formulário interativo.
   - Cliente novo é inserido DENTRO da mesma `db.transaction` da proposta (atomicidade: sem cliente órfão).
     Dentro do callback, sempre `tx`, nunca `db`.
-- Próximo passo: Etapa 7 (Enviar e aprovar), em modo mentor. Duas partes: (a) action `sendProposal`
-  (draft → sent, grava `sentAt`, trava a edição) com `requireUser()` + Zod; (b) action pública de aprovar
-  (regras na seção "Regras do projeto"). Já combinado: "Enviar" real na listagem, mais um botão de voltar
-  a `draft` visível só em dev (`NODE_ENV !== "production"`) para testar (opção C). A página pública ainda
-  não mostra estado "aprovada" nem liga o botão à action.
+- Próximo passo: Etapa 8 (Login com Better Auth). Trocar `requireUser()` e `getOptionalUser()` em
+  `lib/auth.ts` pela sessão real, proteger `/admin` com middleware (sem substituir a checagem nas actions) e
+  ligar "Sair" e o usuário do header. `approveProposal` e a página pública continuam abertos. Antes do deploy,
+  `revertToDraft` já recusa em produção, mas conferir.
+- Pronto na Etapa 7 (branch `feat/enviar-aprovar`):
+  - `sendProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE único
+    `status = 'sent'`, `sentAt`, com `WHERE id AND status = 'draft' AND deletedAt IS NULL` (atômico). NÃO trava
+    edição (decisão: só a proposta APROVADA fica travada; a futura action de editar deve recusar `approved`).
+  - `revertToDraft(input)`: só dev (`throw` em produção); volta a `draft` e limpa `sentAt`, `approvedAt`,
+    `paymentMethod`, `cardInstallments`.
+  - `app/admin/propostas/_components/proposal-actions.tsx`: botão "Enviar" (rascunho) e "Voltar a rascunho"
+    (só dev, por prop `showDevRevert` decidida no servidor), `useTransition` + erro inline.
+  - `approveProposal(input)` em `app/proposta/actions.ts` (pública, sem `requireUser()`): schema
+    `lib/schemas/approve-proposal.ts` (`discriminatedUnion("paymentMethod")` com `strictObject`; `cardInstallments`
+    1 a 10 só em `card`, proibido nos outros; `token` regex de 24 caracteres base64url). UPDATE único
+    `WHERE publicToken AND status = 'sent' AND deletedAt IS NULL`, gravando `status`, `paymentMethod`,
+    `cardInstallments` (null se não for cartão) e `approvedAt` juntos. Falha devolve mensagem genérica.
+  - Página pública: `PaymentChoice` recebe `token`, `approved`, `approvedMethod` e `approvedInstallments`;
+    chama a action, mostra confirmação e, ao abrir uma proposta aprovada, vem com a forma (e parcelas)
+    pré-selecionada e travada. Testada manualmente.
+  - Pendente: `createdAt` da listagem não mostra data de envio/aprovação; sem tela de editar proposta.
 - Decisões da Etapa 6:
   - Rascunho na página pública: com usuário logado abre (preview do dono); sem login, 404. `sent` e
     `approved` abrem para qualquer um com o token. "Não existe", `deletedAt` preenchido e "rascunho sem
@@ -388,8 +404,8 @@ rascunho → enviada → aprovada
     percentual/valor do desconto NÃO aparece em texto (decisão: informação demais). O detalhe expansível
     do item só existe com quantidade > 1 ("N × valor").
 - Decisões da Etapa 5:
-  - Itens no mesmo formulário de criação (opção A), em vez de tela de edição do rascunho. O CLAUDE.md diz
-    que proposta enviada trava; editar rascunho provavelmente vira necessário depois.
+  - Itens no mesmo formulário de criação (opção A), em vez de tela de edição do rascunho. Editar proposta
+    (rascunho ou enviada, já que não trava ao enviar) provavelmente vira necessário depois.
   - Desconto do item validado no Zod (conhece quantidade e preço); desconto geral validado na action
     (precisa do subtotal de todos os itens).
   - `toDiscount` lança erro em estado inconsistente em vez de devolver `null` (não cobrar errado em silêncio).

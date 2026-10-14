@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/db";
 import { Suspense } from "react";
 import { StatusBadge } from "./_components/status-badge";
+import { ProposalActions } from "./_components/proposal-actions";
 import { connection } from "next/server";
 import {
     formatBRL,
@@ -97,15 +98,22 @@ async function ListaPropostas() {
                             <td className="hidden px-4 py-3.5 text-right tabular-nums text-admin-muted sm:table-cell">
                                 {proposta.createdAt.toLocaleDateString("pt-BR")}
                             </td>
-                            <td className="px-4 py-3.5 text-right">
-                                <Link
-                                    href={`/proposta/${proposta.publicToken}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="rounded-lg border border-admin-line px-3 py-1.5 text-xs font-medium text-admin-text transition-colors duration-150 hover:bg-admin-raised"
-                                >
-                                    Ver página
-                                </Link>
+                            <td className="px-4 py-3.5">
+                                <div className="flex items-start justify-end gap-2">
+                                    <ProposalActions
+                                        id={proposta.id}
+                                        status={proposta.status}
+                                        showDevRevert={process.env.NODE_ENV !== "production"}
+                                    />
+                                    <Link
+                                        href={`/proposta/${proposta.publicToken}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="rounded-lg border border-admin-line px-3 py-1.5 text-xs font-medium text-admin-text transition-colors duration-150 hover:bg-admin-raised"
+                                    >
+                                        Ver página
+                                    </Link>
+                                </div>
                             </td>
                         </tr>
                     ))}

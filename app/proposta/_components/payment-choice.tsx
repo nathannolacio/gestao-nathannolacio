@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { FixedContent } from "@/lib/proposal-content";
 import { formatBRL, installmentAmount } from "@/lib/proposal-calc";
+import { approveProposal } from "../actions";
 import { ApproveButton } from "./approve-button";
 
 type Method = FixedContent["payment"]["methods"][number];
@@ -16,6 +17,12 @@ type PaymentChoiceProps = {
   pixSaving: number;
   entry: number;
   onDelivery: number;
+  // Token público da proposta (a action busca por ele) e se ela já foi aprovada.
+  token: string;
+  approved: boolean;
+  // Escolha gravada na aprovação (null enquanto não aprovada): vem pré-selecionada.
+  approvedMethod: MethodId | null;
+  approvedInstallments: number | null;
 };
 
 const pill = "rounded-full px-4 py-1.5 font-display font-semibold";
@@ -30,12 +37,41 @@ export function PaymentChoice({
   pixSaving,
   entry,
   onDelivery,
+  token,
+  approved,
+  approvedMethod,
+  approvedInstallments,
 }: PaymentChoiceProps) {
-  // Só visual por enquanto. Na etapa 7 este valor segue para a Server Action
-  // de aprovar, que deve validá-lo com Zod (nunca confiar no navegador).
-  const [selected, setSelected] = useState<MethodId | null>(null);
+  // Estado só da tela: a Server Action revalida tudo com Zod (nunca confiar no navegador).
+  const [selected, setSelected] = useState<MethodId | null>(approvedMethod);
   // Só vale quando o método é "card"; começa no máximo (menor parcela).
-  const [installments, setInstallments] = useState(MAX_INSTALLMENTS);
+  const [installments, setInstallments] = useState(
+    approvedInstallments ?? MAX_INSTALLMENTS,
+  );
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [justApproved, setJustApproved] = useState(false);
+
+  const locked = approved || justApproved;
+
+  function handleApprove() {
+    if (selected === null) return;
+    setError(null);
+
+    startTransition(async () => {
+      const result = await approveProposal(
+        selected === "card"
+          ? { token, paymentMethod: "card", cardInstallments: installments }
+          : { token, paymentMethod: selected },
+      );
+
+      if (result.ok) {
+        setJustApproved(true);
+      } else {
+        setError(result.formError);
+      }
+    });
+  }
 
   return (
     <>
@@ -60,6 +96,7 @@ export function PaymentChoice({
                 name="payment-method"
                 value={m.id}
                 checked={active}
+                disabled={locked}
                 onChange={() => setSelected(m.id)}
                 className="sr-only"
               />
@@ -134,6 +171,7 @@ export function PaymentChoice({
                       <select
                         aria-label="Número de parcelas"
                         value={installments}
+                        disabled={locked}
                         onChange={(e) => setInstallments(Number(e.target.value))}
                         className="cursor-pointer rounded-full border border-dourado/40 bg-white px-4 py-1.5 font-display font-semibold text-grafite focus-visible:outline-2 focus-visible:outline-bronze"
                       >
@@ -156,10 +194,23 @@ export function PaymentChoice({
       </div>
 
       <div className="mt-8 flex flex-col items-center gap-3">
-        <ApproveButton disabled={selected === null} />
-        <p aria-live="polite" className="h-5 text-sm text-(--mute)">
-          {selected === null && "Escolha uma forma de pagamento para aprovar."}
-        </p>
+        {locked ? (
+          <p role="status" className="text-center text-lg font-medium text-bronze">
+            Proposta aprovada. Obrigado! Entrarei em contato para os próximos passos.
+          </p>
+        ) : (
+          <>
+            <ApproveButton
+              disabled={selected === null}
+              pending={isPending}
+              onClick={handleApprove}
+            />
+            <p aria-live="polite" className="min-h-5 text-center text-sm text-(--mute)">
+              {error ??
+                (selected === null && "Escolha uma forma de pagamento para aprovar.")}
+            </p>
+          </>
+        )}
       </div>
     </>
   );

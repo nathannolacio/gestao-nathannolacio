@@ -487,6 +487,10 @@ async function Proposal({ params }: ProposalPageProps) {
               pixSaving={pixSaving}
               entry={entry}
               onDelivery={onDelivery}
+              token={token}
+              approved={row.status === "approved"}
+              approvedMethod={row.paymentMethod}
+              approvedInstallments={row.cardInstallments}
             />
           </div>
 
