@@ -1,9 +1,17 @@
-import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
+import { Suspense, type ReactNode } from "react";
+import { getOptionalUser } from "@/lib/auth";
 import { Header } from "./_components/header";
 import { Sidebar } from "./_components/sidebar";
 
-// Provisório: na Etapa 8 estes dados vêm da sessão do Better Auth.
-const user = { name: "Nathan Nolácio", email: "nathannolacio04@gmail.com" };
+// Lê a sessão (dado de requisição, dinâmico), por isso fica dentro de <Suspense>.
+// Além de mostrar o usuário, é a validação REAL da sessão: o proxy só confere se
+// o cookie existe; aqui um cookie forjado ou expirado manda para o login.
+async function SessionHeader() {
+  const user = await getOptionalUser();
+  if (!user) redirect("/login");
+  return <Header userName={user.name} userEmail={user.email} />;
+}
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
@@ -11,7 +19,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header userName={user.name} userEmail={user.email} />
+        <Suspense fallback={<div className="h-14 shrink-0 border-b border-admin-line" />}>
+          <SessionHeader />
+        </Suspense>
         <main className="flex-1 p-6 md:p-8">{children}</main>
       </div>
     </div>

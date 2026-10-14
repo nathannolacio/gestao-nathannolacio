@@ -204,12 +204,31 @@ rascunho → enviada → aprovada
 7. Enviar e aprovar: marcar como enviada (sem travar a edição), gerar o link,
    botão de aprovar na página pública. (CONCLUÍDA)
 8. Login: Better Auth protegendo todo o sistema, exceto a página pública
-   e a action de aprovar.
+   e a action de aprovar. (CONCLUÍDA)
 9. Deploy na Vercel.
 
 # Estado atual
-- Etapa atual: 8 (Login). Etapas 1, 2 (Schema), 3 (Listagem), 4 (Criar proposta), 5 (Itens e
-  valores), 6 (Página pública) e 7 (Enviar e aprovar) concluídas.
+- Etapa atual: 9 (Deploy). Etapas 1 a 8 concluídas (8 = Login, ver "Pronto na Etapa 8").
+- Pronto na Etapa 8 (Login, Better Auth 1.7):
+  - `lib/better-auth.ts`: `betterAuth` com adaptador Drizzle, e-mail e senha, `disableSignUp: true` (sem cadastro
+    pela rede) e `nextCookies()` por último. `db/auth-schema.ts`: `user`, `session`, `account`, `verification`
+    (escrito à mão no padrão `snakeCase.table`; as chaves TS são o contrato com o adaptador, não renomear).
+    `drizzle.config.ts` lista os dois arquivos de schema. Migration `20261014173020_better_auth` aplicada.
+  - `lib/auth.ts`: `getOptionalUser()` (sessão via `auth.api.getSession({ headers })`, ou `null`) e
+    `requireUser()` (lança erro sem sessão). Assinaturas inalteradas.
+  - `proxy.ts` (nome do middleware no Next 16): `/admin/*` sem cookie de sessão vai para `/login?next=...`.
+    Só confere se o cookie EXISTE; a validação real é `requireUser()` nas actions e `SessionHeader` no
+    `app/admin/layout.tsx` (redireciona para `/login` se a sessão for inválida). `/proposta` e `/api/auth` ficam fora.
+  - `app/api/auth/[...all]/route.ts`: handler do Better Auth.
+  - Login: `app/login/` (página, `LoginForm`, actions `login` e `logout`). `lib/schemas/login.ts` tem `loginSchema` e
+    `safeNext` (anti open redirect: só `/admin...`, recusa `//`). Erro de login é sempre genérico.
+  - Usuário criado por script: `db/create-user.ts` (ADMIN_EMAIL, ADMIN_NAME, ADMIN_PASSWORD em variáveis de
+    ambiente; senha mínima 12; usa `auth.$context.internalAdapter` porque `signUpEmail` respeita `disableSignUp`).
+    Rodar com `node --env-file=.env.local db/create-user.ts` (no Git Bash: `VAR=... node ...`).
+  - Env novas: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. Na Vercel usar outro secret e a URL real; criar o
+    usuário também no banco de produção.
+  - Limitações: o layout não re-renderiza em navegação client-side (sessão expirada com a aba aberta só é
+    barrada na próxima ação/recarga); o rate limit do Better Auth só vale em produção por padrão.
 - Pronto na Etapa 5 (itens entram no MESMO formulário de criação, opção A; editar rascunho fica para depois):
   - `lib/schemas/discount.ts`: `emptyToUndefined`, `discountFields` e `resolveDiscount` (regra do desconto:
     tipo + valor juntos ou nenhum; percentage = inteiro 1 a 100; fixed = reais → centavos), usados pelo item.
@@ -233,8 +252,7 @@ rascunho → enviada → aprovada
   - Limitações conhecidas: erros dos itens aparecem numa lista única acima das linhas (sem apontar o item;
     para isso, `z.treeifyError`); com erro de campo o formulário não rola nem foca o campo.
 - Pronto na Etapa 4 (branch `feat/criar-proposta`):
-  - `lib/auth.ts`: `requireUser()` PROVISÓRIA (async, devolve `{ id: "dev-user", name, email }` fixos),
-    com `TODO` da Etapa 8 (trocar pela sessão do Better Auth e lançar erro sem usuário; não deployar assim).
+  - `lib/auth.ts`: `requireUser()` (provisória na Etapa 4; agora usa a sessão real, ver Etapa 8).
   - `app/admin/propostas/actions.ts`: `createProposal(input: unknown)`. Fluxo: `requireUser()` →
     `proposalSchema.safeParse` → foto dos bônus (`bonusCatalog.filter` pelos ids validados) →
     `public_token` (`randomBytes(18).toString("base64url")` = 24 caracteres) → `db.transaction`
@@ -350,12 +368,11 @@ rascunho → enviada → aprovada
 - Pendências:
   - Aviso `MODULE_TYPELESS_PACKAGE_JSON` ao rodar o seed (inofensivo): resolver com `"type": "module"`
     no `package.json` só se incomodar, checando antes se não afeta o Next/Drizzle Kit.
-  - `@types/node` está em `^20`, mas o Node é 24: alinhar.
-  - Apagar `zod-teste.ts` da raiz (arquivo de estudo, não deve ir para o git).
   - Zod: `paymentMethod` e `cardInstallments` (obrigatório se `card`, proibido nos outros,
     1 a 10; o banco não garante). `paymentMethod` e `approvedAt` andam juntos.
   - Opcional: `check` no banco para `card_installments` entre 1 e 10 (hoje só o Zod).
-  - `eslint-config-next` aparece como `^14.2.35` no package.json, mas o `next` é 16.x: checar/corrigir.
+  - `npm audit` aponta 5 "high" na cadeia `braces` → `eslint-config-next` (só lint, devDependency). NÃO rodar
+    `npm audit fix --force` (faria downgrade do `eslint-config-next` para 14, incompatível com o Next 16).
   - Hot reload do Next pode criar vários pools em dev; tratar só se aparecer erro de excesso de conexões.
   - `proposals.client` vem nulo no tipo (relação `one` é opcional por padrão no Drizzle v1), por isso
     a tela usa `client?.name`. Se `clientId` é `notNull`, declarar a relação como obrigatória em
@@ -373,10 +390,9 @@ rascunho → enviada → aprovada
     (`client.*`, lista de bônus) e com o formulário interativo.
   - Cliente novo é inserido DENTRO da mesma `db.transaction` da proposta (atomicidade: sem cliente órfão).
     Dentro do callback, sempre `tx`, nunca `db`.
-- Próximo passo: Etapa 8 (Login com Better Auth). Trocar `requireUser()` e `getOptionalUser()` em
-  `lib/auth.ts` pela sessão real, proteger `/admin` com middleware (sem substituir a checagem nas actions) e
-  ligar "Sair" e o usuário do header. `approveProposal` e a página pública continuam abertos. Antes do deploy,
-  `revertToDraft` já recusa em produção, mas conferir.
+- Próximo passo: Etapa 9 (Deploy na Vercel). Variáveis de ambiente (`DATABASE_URL`, `BETTER_AUTH_SECRET`,
+  `BETTER_AUTH_URL`), migrations no banco de produção, criar o usuário lá e conferir que `revertToDraft`
+  recusa em produção. Rodar `npm audit` (5 vulnerabilidades "high" apareceram ao instalar o better-auth).
 - Pronto na Etapa 7 (branch `feat/enviar-aprovar`):
   - `sendProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE único
     `status = 'sent'`, `sentAt`, com `WHERE id AND status = 'draft' AND deletedAt IS NULL` (atômico). NÃO trava
@@ -398,8 +414,7 @@ rascunho → enviada → aprovada
   - Rascunho na página pública: com usuário logado abre (preview do dono); sem login, 404. `sent` e
     `approved` abrem para qualquer um com o token. "Não existe", `deletedAt` preenchido e "rascunho sem
     login" respondem igual (`notFound()`), para não revelar que o token existe.
-  - `getOptionalUser()` em `lib/auth.ts` (devolve `null` sem usuário; hoje sempre `null`, então rascunho dá
-    404 para todos). A Etapa 8 troca o corpo pela sessão do Better Auth.
+  - `getOptionalUser()` em `lib/auth.ts` (devolve `null` sem usuário; desde a Etapa 8 lê a sessão real).
   - Item com desconto mostra o valor original riscado ao lado do valor final (igual aos bônus); o
     percentual/valor do desconto NÃO aparece em texto (decisão: informação demais). O detalhe expansível
     do item só existe com quantidade > 1 ("N × valor").

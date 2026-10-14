@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { logout } from "@/app/login/actions";
 import { ClientsIcon, LogoutIcon, ProposalsIcon, TemplateIcon } from "./icons";
 import { NavLink } from "./nav-link";
 
@@ -34,16 +35,15 @@ export function Sidebar() {
         </span>
       </nav>
 
-      {/* O logout será ligado ao Better Auth na Etapa 8 */}
-      <button
-        type="button"
-        disabled
-        title="Disponível depois do login (Etapa 8)"
-        className="flex shrink-0 cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-admin-muted/60"
-      >
-        <LogoutIcon />
-        <span className="max-md:sr-only">Sair</span>
-      </button>
+      <form action={logout} className="shrink-0">
+        <button
+          type="submit"
+          className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-admin-muted transition-colors hover:bg-admin-raised hover:text-admin-text"
+        >
+          <LogoutIcon />
+          <span className="max-md:sr-only">Sair</span>
+        </button>
+      </form>
     </aside>
   );
 }

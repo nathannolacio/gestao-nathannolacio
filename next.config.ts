@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
     agentFeedback: true,
   },
   cacheComponents: true,
+  // O `next dev` loga nome e ARGUMENTOS de cada Server Function; no login isso
+  // imprimiria a senha no terminal.
+  logging: {
+    serverFunctions: false,
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {

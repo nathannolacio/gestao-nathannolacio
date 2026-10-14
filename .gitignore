@@ -42,3 +42,6 @@ next-env.d.ts
 
 # playwright mcp
 .playwright-mcp/
+
+# capturas da skill de design (Impeccable)
+.impeccable/review/
