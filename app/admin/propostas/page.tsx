@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { db } from "@/db";
 import { Suspense } from "react";
 import { StatusBadge } from "./_components/status-badge";
@@ -7,9 +8,17 @@ export default function Propostas() {
 
     return (
         <>
-            <h1 className="font-display text-2xl font-medium tracking-tight">
-                Propostas
-            </h1>
+            <div className="flex items-center justify-between gap-4">
+                <h1 className="font-display text-2xl font-medium tracking-tight">
+                    Propostas
+                </h1>
+                <Link
+                    href="/admin/propostas/nova"
+                    className="rounded-lg bg-dourado px-4 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
+                >
+                    Nova proposta
+                </Link>
+            </div>
 
             <div className="mt-6">
                 <Suspense fallback={<ListaSkeleton />}>
