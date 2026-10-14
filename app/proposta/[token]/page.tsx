@@ -8,8 +8,12 @@ import {
   projectSubtotal,
   projectTotal,
   splitPayment,
+  toDiscount,
 } from "@/lib/proposal-calc";
-import { getMockProposal } from "@/lib/proposal-mock";
+import { db } from "@/db";
+import { getOptionalUser } from "@/lib/auth";
+import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { ClientCard } from "../_components/client-card";
 import { CoverGrid, Sunburst } from "../_components/cover-art";
 import { Icon } from "../_components/icons";
@@ -37,12 +41,11 @@ const pill = "rounded-full px-4 py-1.5 font-display font-semibold";
 
 type ProposalPageProps = {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ data?: string }>; // só dev: ?data=worst|one|empty
 };
 
 // A página em si não espera `params`: só repassa a promessa. O `await` fica
 // em <Proposal>, dentro do Suspense (exigência do cacheComponents).
-export default function ProposalPage({ params, searchParams }: ProposalPageProps) {
+export default function ProposalPage({ params }: ProposalPageProps) {
   return (
     <Suspense
       fallback={
@@ -51,17 +54,43 @@ export default function ProposalPage({ params, searchParams }: ProposalPageProps
         </div>
       }
     >
-      <Proposal params={params} searchParams={searchParams} />
+      <Proposal params={params} />
     </Suspense>
   );
 }
 
-async function Proposal({ params, searchParams }: ProposalPageProps) {
-  // TODO (etapa 6): buscar a proposta no banco pelo token.
+async function Proposal({ params }: ProposalPageProps) {
+  await connection();
   const { token } = await params;
-  void token;
-  const { data } = await searchParams;
-  const p = getMockProposal(data);
+
+  // Sempre pelo token, nunca pelo ID. Soft delete filtrado na query.
+  const row = await db.query.proposals.findFirst({
+    where: { publicToken: token, deletedAt: { isNull: true } },
+    with: {
+      client: true,
+      items: { orderBy: { position: "asc" } },
+    },
+  });
+
+  // "Não existe" e "é rascunho sem login" respondem igual (404): não revela o token.
+  if (!row || !row.client) notFound();
+  if (row.status === "draft" && !(await getOptionalUser())) notFound();
+
+  const p = {
+    title: row.title,
+    clientName: row.client.name,
+    bonuses: row.bonuses,
+    deliveryDays: row.deliveryDays,
+    hostingAnnual: row.hostingAnnual,
+    discount: toDiscount(row.discountType, row.discountValue),
+    items: row.items.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discount: toDiscount(item.discountType, item.discountValue),
+    })),
+    fixedContent: row.fixedContent,
+  };
   const c = p.fixedContent;
 
   const subtotal = projectSubtotal(p.items);
@@ -296,20 +325,28 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
             <ul className="mt-8 space-y-3">
               {p.items.map((item) => {
                 const subtotal = itemSubtotal(item);
-                const hasDetail = item.quantity > 1 || Boolean(item.discount);
+                const hasDetail = item.quantity > 1;
+                const original = item.quantity * item.unitPrice;
                 const price = (
-                  <span
-                    className={`${pill} shrink-0 text-lg tabular-nums max-[419px]:mx-auto min-[420px]:ml-auto ${
-                      subtotal === 0
-                        ? "bg-dourado/25 text-bronze"
-                        : "bg-dourado text-[#f3f3f3]" // = bg-grafite/5 sobre o card branco (fundo da pílula do serviço)
-                    }`}
-                  >
-                    {subtotal === 0 ? "Incluso" : formatBRL(subtotal)}
+                  <span className="flex shrink-0 items-center gap-3 max-[419px]:mx-auto min-[420px]:ml-auto">
+                    {item.discount && original > subtotal && (
+                      <span className="text-base tabular-nums text-(--mute) line-through">
+                        {formatBRL(original)}
+                      </span>
+                    )}
+                    <span
+                      className={`${pill} text-lg tabular-nums ${
+                        subtotal === 0
+                          ? "bg-dourado/25 text-bronze"
+                          : "bg-dourado text-[#f3f3f3]" // = bg-grafite/5 sobre o card branco (fundo da pílula do serviço)
+                      }`}
+                    >
+                      {subtotal === 0 ? "Incluso" : formatBRL(subtotal)}
+                    </span>
                   </span>
                 );
 
-                // Sem detalhe (qtd 1 e sem desconto no item): linha fixa. Com detalhe: abre ao clicar na seta.
+                // Sem detalhe (qtd 1): linha fixa. Com detalhe (qtd > 1): abre ao clicar na seta.
                 return (
                   <li key={item.description}>
                     {hasDetail ? (
@@ -333,13 +370,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                           {price}
                         </summary>
                         <p className="px-5 pb-4 pl-12 text-base text-(--mute)">
-                          {item.quantity > 1 &&
-                            `${item.quantity} × ${formatBRL(item.unitPrice)}`}
-                          {item.quantity > 1 && item.discount && " · "}
-                          {item.discount &&
-                            (item.discount.type === "percentage"
-                              ? `${item.discount.value}% de desconto`
-                              : `${formatBRL(item.discount.value)} de desconto`)}
+                          {`${item.quantity} × ${formatBRL(item.unitPrice)}`}
                         </p>
                       </details>
                     ) : (
@@ -417,8 +448,18 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                           >
                             <path d="M9 6l6 6-6 6" />
                           </svg>
-                          <span className="min-w-0 flex-1 text-lg font-medium">
+                          <span className="min-w-0 flex-1 basis-40 text-balance text-lg font-medium">
                             {bonus.title}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-3 max-[419px]:mx-auto min-[420px]:ml-auto">
+                            <span className="text-base tabular-nums text-(--mute) line-through">
+                              {formatBRL(bonus.value)}
+                            </span>
+                            <span
+                              className={`${pill} bg-dourado/25 text-lg text-bronze`}
+                            >
+                              Grátis
+                            </span>
                           </span>
                         </summary>
                         <p className="px-5 pb-4 pl-12 text-base leading-7 text-(--mute)">

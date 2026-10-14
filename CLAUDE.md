@@ -107,7 +107,7 @@ Fixas = vêm do modelo, iguais para todos. Variáveis = preenchidas por proposta
 
 Removidas do plano original: "Sobre o seu projeto" (o que será entregue vai nos serviços
 do Investimento), "Contrato" e "Prazo e entrega" como seção própria (fundida no processo).
-O layout da página já existe com dados mock (ver "Estado atual").
+A página já lê a proposta do banco pelo token (ver "Estado atual").
 
 ## Textos padrão e "foto" da proposta
 - Os textos fixos ficam numa tabela de modelo (proposal_template), com um único
@@ -200,8 +200,7 @@ rascunho → enviada → aprovada
    (cliente novo ou existente, título, bônus, prazo, hospedagem, desconto). (CONCLUÍDA)
 5. Itens e valores: adicionar/remover itens, descontos e cálculo dos totais
    (Client Components, estado). (CONCLUÍDA)
-6. Página pública: rota com token mostrando a proposta completa com a identidade visual.
-   (Layout pronto com dados mock; falta buscar a proposta no banco pelo token.)
+6. Página pública: rota com token mostrando a proposta completa com a identidade visual. (CONCLUÍDA)
 7. Enviar e aprovar: travar a proposta ao enviar, gerar o link,
    botão de aprovar na página pública.
 8. Login: Better Auth protegendo todo o sistema, exceto a página pública
@@ -209,8 +208,8 @@ rascunho → enviada → aprovada
 9. Deploy na Vercel.
 
 # Estado atual
-- Etapa atual: 6 (Página pública). Etapas 1, 2 (Schema), 3 (Listagem), 4 (Criar proposta) e 5 (Itens e valores)
-  concluídas.
+- Etapa atual: 7 (Enviar e aprovar). Etapas 1, 2 (Schema), 3 (Listagem), 4 (Criar proposta), 5 (Itens e
+  valores) e 6 (Página pública) concluídas.
 - Pronto na Etapa 5 (itens entram no MESMO formulário de criação, opção A; editar rascunho fica para depois):
   - `lib/schemas/discount.ts`: `emptyToUndefined`, `discountFields` e `resolveDiscount` (regra do desconto:
     tipo + valor juntos ou nenhum; percentage = inteiro 1 a 100; fixed = reais → centavos), usados pelo item.
@@ -293,10 +292,13 @@ rascunho → enviada → aprovada
     `node --env-file=.env.local db/seed-dev.ts`.
   - `PRODUCT.md` na raiz (contexto do produto para a skill de design Impeccable).
 - Etapa 2 (Schema) concluída: tabelas migradas no Neon e seed rodado
-- Pronto (visual, fora do fluxo): modelo da página pública em `app/proposta/[token]/page.tsx`,
-  componentes em `app/proposta/_components/`, textos fixos em `lib/proposal-content.ts`,
-  cálculos em centavos em `lib/proposal-calc.ts` e dados falsos em `lib/proposal-mock.ts`.
-  Ainda não ligada ao banco. A copy dos textos fixos está FINAL (revisada) e pronta para o seed.
+- Pronto na Etapa 6: página pública em `app/proposta/[token]/page.tsx` lendo do banco pelo `public_token`
+  (`db.query.proposals.findFirst` com `client` e `items` ordenados por `position`, dentro de componente
+  async com `<Suspense>` e `connection()`), componentes em `app/proposta/_components/`, textos fixos em
+  `lib/proposal-content.ts` (copiados para `fixedContent` na criação) e cálculos em centavos em
+  `lib/proposal-calc.ts`. Bônus aparecem com valor riscado + selo "Grátis". Na listagem do admin, botão
+  "Ver página" por linha (abre a página pública em nova aba). Testada manualmente no navegador.
+  `lib/proposal-mock.ts` foi apagado (sem uso). A copy dos textos fixos está FINAL (revisada).
   - Seleção de pagamento: `app/proposta/_components/payment-choice.tsx` (Client Component:
     escolha da forma + parcelas 1 a 10 no cartão; botão de aprovar travado até escolher).
     Estado só na tela; a Server Action de aprovar (Etapa 7) ainda não existe.
@@ -349,8 +351,6 @@ rascunho → enviada → aprovada
   - Aviso `MODULE_TYPELESS_PACKAGE_JSON` ao rodar o seed (inofensivo): resolver com `"type": "module"`
     no `package.json` só se incomodar, checando antes se não afeta o Next/Drizzle Kit.
   - `@types/node` está em `^20`, mas o Node é 24: alinhar.
-  - Página pública: o tipo `Bonus` do mock (`lib/proposal-mock.ts`) ainda não tem `value`; ao ligar
-    a página ao banco, mostrar o valor riscado + selo "Grátis" (parte visual, pode delegar).
   - Apagar `zod-teste.ts` da raiz (arquivo de estudo, não deve ir para o git).
   - Zod: `paymentMethod` e `cardInstallments` (obrigatório se `card`, proibido nos outros,
     1 a 10; o banco não garante). `paymentMethod` e `approvedAt` andam juntos.
@@ -373,12 +373,20 @@ rascunho → enviada → aprovada
     (`client.*`, lista de bônus) e com o formulário interativo.
   - Cliente novo é inserido DENTRO da mesma `db.transaction` da proposta (atomicidade: sem cliente órfão).
     Dentro do callback, sempre `tx`, nunca `db`.
-- Próximo passo: Etapa 6 (página pública), em modo mentor para a parte de dados. Buscar a proposta pelo
-  `public_token` (nunca pelo ID), com `client`, `items` e `bonuses`; montar os dados no formato que
-  `app/proposta/[token]/page.tsx` espera (hoje mock) usando `toDiscount` e `lib/proposal-calc.ts`; não expor
-  o ID do banco. Lembrar: a leitura vai dentro de componente async com `<Suspense>` (Cache Components) e
-  `connection()`; propostas `draft` provavelmente não devem abrir na página pública (decidir). Parte visual
-  (mostrar bônus riscado + selo "Grátis") pode delegar.
+- Próximo passo: Etapa 7 (Enviar e aprovar), em modo mentor. Duas partes: (a) action `sendProposal`
+  (draft → sent, grava `sentAt`, trava a edição) com `requireUser()` + Zod; (b) action pública de aprovar
+  (regras na seção "Regras do projeto"). Já combinado: "Enviar" real na listagem, mais um botão de voltar
+  a `draft` visível só em dev (`NODE_ENV !== "production"`) para testar (opção C). A página pública ainda
+  não mostra estado "aprovada" nem liga o botão à action.
+- Decisões da Etapa 6:
+  - Rascunho na página pública: com usuário logado abre (preview do dono); sem login, 404. `sent` e
+    `approved` abrem para qualquer um com o token. "Não existe", `deletedAt` preenchido e "rascunho sem
+    login" respondem igual (`notFound()`), para não revelar que o token existe.
+  - `getOptionalUser()` em `lib/auth.ts` (devolve `null` sem usuário; hoje sempre `null`, então rascunho dá
+    404 para todos). A Etapa 8 troca o corpo pela sessão do Better Auth.
+  - Item com desconto mostra o valor original riscado ao lado do valor final (igual aos bônus); o
+    percentual/valor do desconto NÃO aparece em texto (decisão: informação demais). O detalhe expansível
+    do item só existe com quantidade > 1 ("N × valor").
 - Decisões da Etapa 5:
   - Itens no mesmo formulário de criação (opção A), em vez de tela de edição do rascunho. O CLAUDE.md diz
     que proposta enviada trava; editar rascunho provavelmente vira necessário depois.

@@ -73,6 +73,9 @@ async function ListaPropostas() {
                         <th scope="col" className="px-4 py-3 text-right font-medium">Total</th>
                         <th scope="col" className="px-4 py-3 font-medium">Status</th>
                         <th scope="col" className="hidden px-4 py-3 text-right font-medium sm:table-cell">Criada em</th>
+                        <th scope="col" className="px-4 py-3 text-right font-medium">
+                            <span className="sr-only">Ações</span>
+                        </th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-admin-line">
@@ -93,6 +96,16 @@ async function ListaPropostas() {
                             </td>
                             <td className="hidden px-4 py-3.5 text-right tabular-nums text-admin-muted sm:table-cell">
                                 {proposta.createdAt.toLocaleDateString("pt-BR")}
+                            </td>
+                            <td className="px-4 py-3.5 text-right">
+                                <Link
+                                    href={`/proposta/${proposta.publicToken}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="rounded-lg border border-admin-line px-3 py-1.5 text-xs font-medium text-admin-text transition-colors duration-150 hover:bg-admin-raised"
+                                >
+                                    Ver página
+                                </Link>
                             </td>
                         </tr>
                     ))}
