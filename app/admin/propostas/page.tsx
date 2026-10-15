@@ -105,6 +105,14 @@ async function ListaPropostas() {
                                         status={proposta.status}
                                         showDevRevert={process.env.NODE_ENV !== "production"}
                                     />
+                                    {proposta.status !== "approved" && (
+                                        <Link
+                                            href={`/admin/propostas/${proposta.id}/editar`}
+                                            className="rounded-lg border border-admin-line px-3 py-1.5 text-xs font-medium text-admin-text transition-colors duration-150 hover:bg-admin-raised"
+                                        >
+                                            Editar
+                                        </Link>
+                                    )}
                                     <Link
                                         href={`/proposta/${proposta.publicToken}`}
                                         target="_blank"

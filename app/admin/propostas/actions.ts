@@ -1,19 +1,54 @@
 "use server"
 
 import { requireUser } from "@/lib/auth"
-import { proposalSchema } from "@/lib/schemas/proposal";
+import { proposalSchema, updateProposalSchema } from "@/lib/schemas/proposal";
 import * as z from "zod";
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { clients, proposalItems, proposals } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
 import { projectSubtotal, toDiscount } from "@/lib/proposal-calc";
 
 // Erro esperado (não é falha do sistema): serve para abortar a transação (rollback)
 // e ser convertido em retorno amigável fora dela.
 class ClientNotFoundError extends Error {}
+
+const DISCOUNT_TOO_BIG = "O desconto geral não pode ser maior que o subtotal dos itens.";
+
+// Desconto fixo geral não pode passar do subtotal (soma dos itens já com desconto).
+// Só dá para conferir depois do Zod, com todos os itens validados.
+function fixedDiscountExceedsSubtotal(data: {
+    discountType?: "percentage" | "fixed";
+    discountValue?: number;
+    items: {
+        description: string;
+        quantity: number;
+        unitPrice: number;
+        discountType?: "percentage" | "fixed";
+        discountValue?: number;
+    }[];
+}) {
+    if (data.discountType !== "fixed" || data.discountValue === undefined) return false;
+
+    const subtotal = projectSubtotal(
+        data.items.map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: toDiscount(item.discountType ?? null, item.discountValue ?? null),
+        })),
+    );
+
+    return data.discountValue > subtotal;
+}
+
+// A "foto" dos bônus vem do catálogo do servidor (o navegador manda só os ids).
+// Os obrigatórios entram sempre.
+function snapshotBonuses(ids: string[]) {
+    return bonusCatalog.filter((b) => isRequiredBonus(b.id) || ids.includes(b.id));
+}
 
 export async function createProposal(input: unknown) {
     await requireUser();
@@ -26,31 +61,15 @@ export async function createProposal(input: unknown) {
         return { ok: false as const, fieldErrors, formError: null };
     }
 
-    // Desconto fixo geral não pode passar do subtotal (soma dos itens já com desconto).
-    // Só dá para conferir aqui, com todos os itens validados.
-    if (result.data.discountType === "fixed") {
-        const subtotal = projectSubtotal(
-            result.data.items.map((item) => ({
-                description: item.description,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                discount: toDiscount(item.discountType ?? null, item.discountValue ?? null),
-            })),
-        );
-
-        if (result.data.discountValue > subtotal) {
-            return {
-                ok: false as const,
-                fieldErrors: {},
-                formError: "O desconto geral não pode ser maior que o subtotal dos itens.",
-            };
-        }
+    if (fixedDiscountExceedsSubtotal(result.data)) {
+        return {
+            ok: false as const,
+            fieldErrors: {},
+            formError: DISCOUNT_TOO_BIG,
+        };
     }
 
-    // Os obrigatórios entram sempre (não dependem do que o navegador mandou).
-    const bonuses = bonusCatalog.filter(
-        (b) => isRequiredBonus(b.id) || result.data.bonuses.includes(b.id),
-    );
+    const bonuses = snapshotBonuses(result.data.bonuses);
 
     const publicToken = randomBytes(18).toString("base64url");
 
@@ -135,6 +154,82 @@ export async function createProposal(input: unknown) {
 
         throw error;
     }
+
+    return { ok: true as const };
+}
+
+// Edita rascunho ou enviada (enviada: o cliente vê a mudança ao vivo pelo token).
+// Aprovada NÃO edita, e o cliente da proposta nunca muda por aqui.
+export async function updateProposal(input: unknown) {
+    await requireUser();
+
+    const result = updateProposalSchema.safeParse(input);
+
+    if (!result.success) {
+        const { fieldErrors } = z.flattenError(result.error);
+
+        return { ok: false as const, fieldErrors, formError: null };
+    }
+
+    const data = result.data;
+
+    if (fixedDiscountExceedsSubtotal(data)) {
+        return { ok: false as const, fieldErrors: {}, formError: DISCOUNT_TOO_BIG };
+    }
+
+    const bonuses = snapshotBonuses(data.bonuses);
+
+    const updated = await db.transaction(async (tx) => {
+        // Status e exclusão conferidos no próprio UPDATE (atômico). Sem linha = não existe,
+        // foi removida ou já está aprovada. `null` explícito limpa a coluna (undefined seria ignorado).
+        const rows = await tx
+            .update(proposals)
+            .set({
+                title: data.title,
+                deliveryDays: data.deliveryDays,
+                bonuses,
+                hostingAnnual: data.hostingAnnual ?? null,
+                discountType: data.discountType ?? null,
+                discountValue: data.discountValue ?? null,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(proposals.id, data.id),
+                    inArray(proposals.status, ["draft", "sent"]),
+                    isNull(proposals.deletedAt),
+                ),
+            )
+            .returning({ id: proposals.id });
+
+        if (rows.length === 0) return false;
+
+        // Troca a lista inteira (mais simples que diff; `proposal_items` não tem soft delete).
+        await tx.delete(proposalItems).where(eq(proposalItems.proposalId, data.id));
+        await tx.insert(proposalItems).values(
+            data.items.map((item, index) => ({
+                proposalId: data.id,
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discountType: item.discountType,
+                discountValue: item.discountValue,
+                position: index,
+            })),
+        );
+
+        return true;
+    });
+
+    if (!updated) {
+        return {
+            ok: false as const,
+            fieldErrors: {},
+            formError: "Proposta não encontrada ou já aprovada (não pode mais ser editada).",
+        };
+    }
+
+    revalidatePath("/admin/propostas");
 
     return { ok: true as const };
 }

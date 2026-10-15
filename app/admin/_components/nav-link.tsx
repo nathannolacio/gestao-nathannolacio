@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 type NavLinkProps = {
   href: string;
@@ -10,11 +10,26 @@ type NavLinkProps = {
   children: ReactNode;
 };
 
-// Client Component só por causa do usePathname (marcar o item ativo).
-export function NavLink({ href, icon, children }: NavLinkProps) {
-  const pathname = usePathname();
-  const active = pathname === href || pathname.startsWith(`${href}/`);
+// O pathname só é conhecido em tempo de requisição nas rotas com segmento dinâmico
+// (ex.: /admin/propostas/[id]/editar), então `usePathname` precisa ficar dentro de <Suspense>.
+// O fallback é o mesmo link sem destaque: o menu já vem na casca estática e o item ativo
+// entra por streaming.
+export function NavLink(props: NavLinkProps) {
+  return (
+    <Suspense fallback={<NavLinkView {...props} active={false} />}>
+      <ActiveNavLink {...props} />
+    </Suspense>
+  );
+}
 
+function ActiveNavLink(props: NavLinkProps) {
+  const pathname = usePathname();
+  const active = pathname === props.href || pathname.startsWith(`${props.href}/`);
+
+  return <NavLinkView {...props} active={active} />;
+}
+
+function NavLinkView({ href, icon, children, active }: NavLinkProps & { active: boolean }) {
   return (
     <Link
       href={href}

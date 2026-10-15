@@ -82,10 +82,10 @@ Foco atual. Gestão completa de clientes, contratos, pagamentos e gateway ficam 
 - O cliente ESCOLHE a forma de pagamento na própria página, junto com a aprovação (um
   único passo): o botão "Aprovar proposta" só é liberado depois da escolha. Se escolher
   cartão, escolhe também o número de parcelas (1 a 10).
-- Decisão (14/10/2026): a proposta NÃO é travada ao ser enviada; continua editável (a edição
-  ainda não existe, ver Etapa 5). Como o cliente vê a página ao vivo pelo token, editar uma
-  proposta já enviada muda o que ele vê. Depois de APROVADA, a proposta NÃO pode mais ser
-  editada (a futura action de editar deve recusar `approved`).
+- Decisão (14/10/2026): a proposta NÃO é travada ao ser enviada; continua editável (edição
+  pronta desde 15/10/2026, ver "Pronto: edição de proposta"). Como o cliente vê a página ao vivo
+  pelo token, editar uma proposta já enviada muda o que ele vê. Depois de APROVADA, a proposta
+  NÃO pode mais ser editada (`updateProposal` recusa `approved`).
 - Serviços futuros (ex.: manutenção) viram uma proposta nova.
 - Sem numeração própria, sem validade e sem expiração por enquanto.
 - Aprovação: apenas aparece no sistema (sem notificação por email por enquanto).
@@ -255,7 +255,7 @@ rascunho → enviada → aprovada
     usuário também no banco de produção.
   - Limitações: o layout não re-renderiza em navegação client-side (sessão expirada com a aba aberta só é
     barrada na próxima ação/recarga); o rate limit do Better Auth só vale em produção por padrão.
-- Pronto na Etapa 5 (itens entram no MESMO formulário de criação, opção A; editar rascunho fica para depois):
+- Pronto na Etapa 5 (itens entram no MESMO formulário de criação, opção A; a edição veio depois, ver "Pronto: edição de proposta"):
   - `lib/schemas/discount.ts`: `emptyToUndefined`, `discountFields` e `resolveDiscount` (regra do desconto:
     tipo + valor juntos ou nenhum; percentage = inteiro 1 a 100; fixed = reais → centavos), usados pelo item.
     `lib/schemas/proposal.ts` ainda tem a mesma lógica inline (refatorar para usar o helper é opcional).
@@ -424,15 +424,34 @@ rascunho → enviada → aprovada
   produção aprovado (proteção do admin, login, criar/enviar/aprovar, "Sair"). No deploy (`NODE_ENV=production`,
   inclusive em preview) o botão "Voltar a rascunho" some e `revertToDraft` recusa; para tê-lo em preview
   seria preciso trocar `NODE_ENV` por `VERCEL_ENV` (decisão adiada).
-- Próximo passo: MVP no ar. Candidatos (decidir): editar proposta (rascunho/enviada; recusar `approved`),
-  tela de Clientes (inclui trocar a logo de cliente existente), tela do modelo de textos, data de
-  envio/aprovação na listagem, testes automatizados do cálculo (`lib/proposal-calc.ts`) e
-  do `approveProposal`.
+- Próximo passo: MVP no ar e edição de proposta pronta. Candidatos (decidir): testes automatizados do
+  cálculo (`lib/proposal-calc.ts`) e do `approveProposal`/`updateProposal`, tela de Clientes (inclui
+  trocar a logo de cliente existente), data de envio/aprovação na listagem, tela do modelo de textos.
+- Pronto: edição de proposta (15/10/2026; testada manualmente: rascunho, enviada, aprovada e URL inválida;
+  ainda NÃO está na `main`/produção, só na branch de trabalho; não há migration):
+  - `updateProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → `updateProposalSchema`
+    (`id` UUID + campos da proposta, SEM `client`: o cliente não troca na edição) → checagem do desconto
+    fixo → transação: UPDATE com `WHERE id AND status IN ('draft','sent') AND deletedAt IS NULL` (atômico;
+    sem linha = inexistente, removida ou aprovada) + DELETE e reinsert de `proposal_items` (`position` =
+    índice). Escreve `title`, `deliveryDays`, `bonuses` (foto do catálogo), `hostingAnnual`, desconto e
+    `updatedAt`; NÃO toca em `publicToken`, `fixedContent`, `status`, `sentAt` nem no cliente. Opcionais
+    vazios gravam `null` explícito (`undefined` no `.set` do Drizzle é ignorado).
+  - `lib/schemas/proposal.ts`: `proposalFields` (comuns) + `resolveGeneralDiscount`, usados por
+    `proposalSchema` (com `client`) e `updateProposalSchema`. Helpers `fixedDiscountExceedsSubtotal` e
+    `snapshotBonuses` na `actions.ts`, compartilhados com `createProposal`.
+  - `lib/money.ts`: `formatCentsAsReais` (centavos → "1.500,00", só aritmética inteira) para preencher a edição.
+  - Formulário único e bimodal em `app/admin/propostas/_components/proposal-form.tsx` (props em união
+    discriminada `mode: "create" | "edit"`); no modo edit o cliente é só leitura e, se `sent`, há aviso de que
+    o cliente vê a mudança ao vivo. Sem reset por `key` na edição.
+  - Rota `app/admin/propostas/[id]/editar/page.tsx`: valida o `id` com `z.uuid()` (senão o cast do Postgres
+    quebra), `notFound()` para inexistente/deletada/`approved`. Botão "Editar" na listagem (oculto em `approved`).
+  - `NavLink` (`app/admin/_components/nav-link.tsx`): `usePathname()` dentro de `<Suspense>` (com fallback
+    sem destaque), pois em rotas com segmento dinâmico o pathname é dado de runtime e bloqueava o prerender.
 - `npm audit`: 5 "high" na cadeia `braces` → `eslint-config-next` (só lint). Não rodar `audit fix --force`.
 - Pronto na Etapa 7 (branch `feat/enviar-aprovar`):
   - `sendProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE único
     `status = 'sent'`, `sentAt`, com `WHERE id AND status = 'draft' AND deletedAt IS NULL` (atômico). NÃO trava
-    edição (decisão: só a proposta APROVADA fica travada; a futura action de editar deve recusar `approved`).
+    edição (decisão: só a proposta APROVADA fica travada; `updateProposal` recusa `approved`).
   - `revertToDraft(input)`: só dev (`throw` em produção); volta a `draft` e limpa `sentAt`, `approvedAt`,
     `paymentMethod`, `cardInstallments`.
   - `app/admin/propostas/_components/proposal-actions.tsx`: botão "Enviar" (rascunho) e "Voltar a rascunho"
@@ -445,7 +464,7 @@ rascunho → enviada → aprovada
   - Página pública: `PaymentChoice` recebe `token`, `approved`, `approvedMethod` e `approvedInstallments`;
     chama a action, mostra confirmação e, ao abrir uma proposta aprovada, vem com a forma (e parcelas)
     pré-selecionada e travada. Testada manualmente.
-  - Pendente: `createdAt` da listagem não mostra data de envio/aprovação; sem tela de editar proposta.
+  - Pendente: `createdAt` da listagem não mostra data de envio/aprovação.
 - Decisões da Etapa 6:
   - Rascunho na página pública: com usuário logado abre (preview do dono); sem login, 404. `sent` e
     `approved` abrem para qualquer um com o token. "Não existe", `deletedAt` preenchido e "rascunho sem

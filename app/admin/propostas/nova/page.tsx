@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { db } from "@/db";
-import { ProposalForm } from "./_components/proposal-form";
+import { ProposalForm } from "../_components/proposal-form";
 
 export default function NovaProposta() {
     return (
@@ -36,7 +36,7 @@ async function FormularioComClientes() {
         },
     });
 
-    return <ProposalForm clients={clientes} />;
+    return <ProposalForm mode="create" clients={clientes} />;
 }
 
 function FormSkeleton() {

@@ -2,7 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { createProposal } from "@/app/admin/propostas/actions";
+import { createProposal, updateProposal } from "@/app/admin/propostas/actions";
 import { uploadClientLogo } from "@/app/admin/clientes/actions";
 import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
 
@@ -47,28 +47,49 @@ function formatCents(cents: number) {
     return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// Valores iniciais da edição: tudo TEXTO, no mesmo formato dos inputs ("1.500,00").
+// Quem monta (a página de editar) converte centavos → texto com `formatCentsAsReais`.
+export type ProposalFormValues = {
+    title: string;
+    deliveryDays: string;
+    hostingAnnual: string;
+    discountType: "" | "percentage" | "fixed";
+    discountValue: string;
+    bonuses: string[];
+    items: Omit<ItemDraft, "key">[];
+};
+
+// Criar: escolhe/cadastra o cliente. Editar: o cliente é o já gravado (só leitura).
+type ProposalFormProps =
+    | { mode: "create"; clients: ClientOption[] }
+    | {
+          mode: "edit";
+          proposalId: string;
+          clientName: string;
+          status: "draft" | "sent";
+          initialValues: ProposalFormValues;
+      };
+
 // Com cacheComponents o Next mantém a página anterior montada (e o estado dela).
 // Trocar a `key` recria o formulário do zero, então o próximo "Nova proposta" nasce vazio.
-export function ProposalForm({ clients }: { clients: ClientOption[] }) {
+// Na edição não há reset: recriar voltaria aos `initialValues` antigos.
+export function ProposalForm(props: ProposalFormProps) {
     const [formKey, setFormKey] = useState(0);
 
     return (
         <ProposalFormFields
             key={formKey}
-            clients={clients}
+            {...props}
             onCreated={() => setFormKey((current) => current + 1)}
         />
     );
 }
 
-function ProposalFormFields({
-    clients,
-    onCreated,
-}: {
-    clients: ClientOption[];
-    onCreated: () => void;
-}) {
+function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }) {
     const router = useRouter();
+    const isEdit = props.mode === "edit";
+    const clients = props.mode === "create" ? props.clients : [];
+    const initial = props.mode === "edit" ? props.initialValues : null;
 
     const [clientMode, setClientMode] = useState<"existing" | "new">(
         clients.length > 0 ? "existing" : "new",
@@ -83,14 +104,22 @@ function ProposalFormFields({
     const [logoError, setLogoError] = useState<string | null>(null);
     const [uploadingLogo, setUploadingLogo] = useState(false);
 
-    const [title, setTitle] = useState("");
-    const [deliveryDays, setDeliveryDays] = useState("");
-    const [hostingAnnual, setHostingAnnual] = useState("");
-    const [discountType, setDiscountType] = useState<"" | "percentage" | "fixed">("");
-    const [discountValue, setDiscountValue] = useState("");
-    const [bonuses, setBonuses] = useState<string[]>(bonusCatalog.map((b) => b.id));
+    const [title, setTitle] = useState(initial?.title ?? "");
+    const [deliveryDays, setDeliveryDays] = useState(initial?.deliveryDays ?? "");
+    const [hostingAnnual, setHostingAnnual] = useState(initial?.hostingAnnual ?? "");
+    const [discountType, setDiscountType] = useState<"" | "percentage" | "fixed">(
+        initial?.discountType ?? "",
+    );
+    const [discountValue, setDiscountValue] = useState(initial?.discountValue ?? "");
+    const [bonuses, setBonuses] = useState<string[]>(
+        initial?.bonuses ?? bonusCatalog.map((b) => b.id),
+    );
 
-    const [items, setItems] = useState<ItemDraft[]>(() => [newItem()]);
+    const [items, setItems] = useState<ItemDraft[]>(() =>
+        initial
+            ? initial.items.map((item) => ({ ...item, key: crypto.randomUUID() }))
+            : [newItem()],
+    );
 
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
     const [formError, setFormError] = useState<string | null>(null);
@@ -145,11 +174,7 @@ function ProposalFormFields({
         setFormError(null);
 
         // O servidor valida e converte tudo (reais → centavos); aqui só enviamos o texto.
-        const payload = {
-            client:
-                clientMode === "existing"
-                    ? { clientMode, clientId }
-                    : { clientMode, name, email, phone, type, logoUrl: logoUrl ?? undefined },
+        const fields = {
             title,
             deliveryDays,
             bonuses,
@@ -160,18 +185,38 @@ function ProposalFormFields({
         };
 
         try {
-            const res = await createProposal(payload);
+            const res =
+                props.mode === "edit"
+                    ? await updateProposal({ id: props.proposalId, ...fields })
+                    : await createProposal({
+                          client:
+                              clientMode === "existing"
+                                  ? { clientMode, clientId }
+                                  : {
+                                        clientMode,
+                                        name,
+                                        email,
+                                        phone,
+                                        type,
+                                        logoUrl: logoUrl ?? undefined,
+                                    },
+                          ...fields,
+                      });
 
             if (res.ok) {
                 router.push("/admin/propostas");
-                onCreated();
+                if (props.mode === "create") props.onCreated();
                 return;
             }
 
             setFieldErrors(res.fieldErrors);
             setFormError(res.formError);
         } catch {
-            setFormError("Não foi possível criar a proposta. Tente novamente.");
+            setFormError(
+                isEdit
+                    ? "Não foi possível salvar a proposta. Tente novamente."
+                    : "Não foi possível criar a proposta. Tente novamente.",
+            );
         } finally {
             setPending(false);
         }
@@ -179,7 +224,25 @@ function ProposalFormFields({
 
     return (
         <form onSubmit={handleSubmit} noValidate className="max-w-2xl space-y-10">
+            {props.mode === "edit" && props.status === "sent" && (
+                <p className="rounded-lg border border-dourado/40 px-4 py-3 text-sm text-admin-text">
+                    Esta proposta já foi enviada: as alterações aparecem para o cliente assim que
+                    você salvar.
+                </p>
+            )}
+
             {/* Cliente */}
+            {props.mode === "edit" ? (
+            <section aria-labelledby="secao-cliente" className="space-y-2">
+                <h2 id="secao-cliente" className="font-display text-lg font-medium">
+                    Cliente
+                </h2>
+                <p className="text-sm text-admin-text">{props.clientName}</p>
+                <p className="text-xs text-admin-muted">
+                    O cliente de uma proposta não é alterado na edição.
+                </p>
+            </section>
+            ) : (
             <section aria-labelledby="secao-cliente" className="space-y-4">
                 <h2 id="secao-cliente" className="font-display text-lg font-medium">
                     Cliente
@@ -332,6 +395,7 @@ function ProposalFormFields({
                     </div>
                 )}
             </section>
+            )}
 
             {/* Proposta */}
             <section aria-labelledby="secao-proposta" className="space-y-4">
@@ -630,7 +694,13 @@ function ProposalFormFields({
                     disabled={pending}
                     className="rounded-lg bg-dourado px-5 py-2.5 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {pending ? "Criando..." : "Criar proposta"}
+                    {isEdit
+                        ? pending
+                            ? "Salvando..."
+                            : "Salvar alterações"
+                        : pending
+                          ? "Criando..."
+                          : "Criar proposta"}
                 </button>
             </div>
         </form>

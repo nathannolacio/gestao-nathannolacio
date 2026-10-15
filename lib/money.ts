@@ -17,3 +17,12 @@ export function parseReaisToCents(input: string): number | null {
 
   return total <= MAX_CENTS ? total : null;
 }
+
+// Caminho inverso de parseReaisToCents: centavos → texto de formulário ("1.500,00").
+// Só aritmética inteira (sem float) e sem "R$", para preencher inputs na edição.
+export function formatCentsAsReais(cents: number): string {
+  const reais = Math.floor(cents / 100);
+  const rest = String(cents % 100).padStart(2, "0");
+
+  return `${String(reais).replace(/\B(?=(\d{3})+(?!\d))/g, ".")},${rest}`;
+}
