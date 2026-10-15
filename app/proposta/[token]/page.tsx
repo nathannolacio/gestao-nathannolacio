@@ -79,6 +79,7 @@ async function Proposal({ params }: ProposalPageProps) {
   const p = {
     title: row.title,
     clientName: row.client.name,
+    clientLogoUrl: row.client.logoUrl,
     bonuses: row.bonuses,
     deliveryDays: row.deliveryDays,
     hostingAnnual: row.hostingAnnual,
@@ -141,7 +142,7 @@ async function Proposal({ params }: ProposalPageProps) {
             </p>
           </div>
           <div className="lg:flex lg:justify-center">
-            <ClientCard clientName={p.clientName} />
+            <ClientCard clientName={p.clientName} logoUrl={p.clientLogoUrl} />
           </div>
         </div>
       </header>

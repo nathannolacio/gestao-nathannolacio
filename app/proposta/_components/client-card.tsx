@@ -1,7 +1,12 @@
-// Card flutuante da capa com a marca do cliente.
-// TODO: quando houver logo do cliente (campo no banco), trocar o placeholder
-// por <Image src={logoUrl} />.
-export function ClientCard({ clientName }: { clientName: string }) {
+// Card flutuante da capa com a marca do cliente. Sem logo (clients.logo_url nulo),
+// mostra as iniciais.
+export function ClientCard({
+  clientName,
+  logoUrl,
+}: {
+  clientName: string;
+  logoUrl: string | null;
+}) {
   const initials = clientName
     .split(" ")
     .filter((w) => w.length > 2)
@@ -31,11 +36,26 @@ export function ClientCard({ clientName }: { clientName: string }) {
           <p className="mb-4 text-xs uppercase tracking-widest text-cinza">
             Preparada para
           </p>
-          <div className="flex aspect-4/3 items-center justify-center rounded-2xl border border-dashed border-dourado/60 bg-marfim">
-            <span className="font-display text-6xl font-bold text-bronze">
-              {initials}
-            </span>
-          </div>
+          {logoUrl ? (
+            // Com logo: a imagem PREENCHE a moldura 4:3 (object-cover, cantos arredondados).
+            // Se a proporção da imagem for outra, as bordas são cortadas; por isso o ideal
+            // é enviar a logo já em 4:3 (ex.: 800 × 600 px).
+            <div className="aspect-4/3 overflow-hidden rounded-2xl border border-dashed border-dourado/60 bg-marfim p-2">
+              {/* <img> simples: a URL já é de CDN (Vercel Blob). */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoUrl}
+                alt={`Logo de ${clientName}`}
+                className="size-full rounded-xl object-cover"
+              />
+            </div>
+          ) : (
+            <div className="flex aspect-4/3 items-center justify-center rounded-2xl border border-dashed border-dourado/60 bg-marfim">
+              <span className="font-display text-6xl font-bold text-bronze">
+                {initials}
+              </span>
+            </div>
+          )}
           <p className="mt-5 text-center font-display text-lg">{clientName}</p>
         </div>
       </div>

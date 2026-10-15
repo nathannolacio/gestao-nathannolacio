@@ -10,6 +10,8 @@ export const clients = snakeCase.table("clients", {
     name: varchar({ length:100 }).notNull(),
     email: varchar({ length:256 }).notNull(),
     phoneNumber: varchar({ length:13 }).notNull(),
+    // URL pública da logo (Vercel Blob). Nula = a capa mostra as iniciais.
+    logoUrl: varchar({ length: 500 }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     deletedAt: timestamp({ withTimezone: true }),
 })

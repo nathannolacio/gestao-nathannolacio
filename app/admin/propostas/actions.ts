@@ -78,12 +78,14 @@ export async function createProposal(input: unknown) {
                 const email = result.data.client.email;
                 const phone = result.data.client.phone;
                 const type = result.data.client.type;
+                const logoUrl = result.data.client.logoUrl;
 
-                const queryResult = await tx.insert(clients).values({ 
+                const queryResult = await tx.insert(clients).values({
                     name,
                     email,
                     phoneNumber: phone,
                     type,
+                    logoUrl,
                 }).returning({ insertedId: clients.id })
 
                 clientId = queryResult[0].insertedId;

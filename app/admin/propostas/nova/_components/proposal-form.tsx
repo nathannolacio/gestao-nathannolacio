@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createProposal } from "@/app/admin/propostas/actions";
+import { uploadClientLogo } from "@/app/admin/clientes/actions";
 import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
 
 type ClientOption = { id: string; name: string };
@@ -77,6 +78,10 @@ function ProposalFormFields({
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [type, setType] = useState<"PF" | "PJ">("PF");
+    // URL devolvida pelo upload (a logo já está no Blob; a proposta só guarda o link).
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [logoError, setLogoError] = useState<string | null>(null);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
 
     const [title, setTitle] = useState("");
     const [deliveryDays, setDeliveryDays] = useState("");
@@ -96,6 +101,31 @@ function ProposalFormFields({
         setBonuses((current) =>
             current.includes(id) ? current.filter((b) => b !== id) : [...current, id],
         );
+    }
+
+    async function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
+        const input = event.currentTarget;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        setLogoError(null);
+        setUploadingLogo(true);
+        try {
+            const formData = new FormData();
+            formData.append("logo", file);
+            const res = await uploadClientLogo(formData);
+
+            if (res.ok) {
+                setLogoUrl(res.url);
+            } else {
+                setLogoError(res.error);
+            }
+        } catch {
+            setLogoError("Não foi possível enviar a logo. Tente novamente.");
+        } finally {
+            setUploadingLogo(false);
+            input.value = ""; // permite escolher o mesmo arquivo de novo
+        }
     }
 
     function updateItem(key: string, changes: Partial<ItemDraft>) {
@@ -119,7 +149,7 @@ function ProposalFormFields({
             client:
                 clientMode === "existing"
                     ? { clientMode, clientId }
-                    : { clientMode, name, email, phone, type },
+                    : { clientMode, name, email, phone, type, logoUrl: logoUrl ?? undefined },
             title,
             deliveryDays,
             bonuses,
@@ -259,6 +289,46 @@ function ProposalFormFields({
                                 />
                             </Field>
                         </div>
+
+                        <Field
+                            label="Logo (opcional)"
+                            htmlFor="logo"
+                            hint="PNG, JPG ou WebP, até 2 MB. Sem logo, a capa mostra as iniciais."
+                        >
+                            <div className="flex items-center gap-4">
+                                {logoUrl && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={logoUrl}
+                                        alt="Logo do cliente"
+                                        className="size-16 rounded-lg border border-admin-line bg-admin-raised object-contain p-1"
+                                    />
+                                )}
+                                <input
+                                    id="logo"
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={handleLogoChange}
+                                    disabled={uploadingLogo}
+                                    className="text-sm text-admin-muted file:mr-3 file:cursor-pointer file:rounded-lg file:border file:border-admin-line file:bg-admin-raised file:px-3 file:py-2 file:text-sm file:text-admin-text"
+                                />
+                                {logoUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setLogoUrl(null)}
+                                        className="text-sm text-admin-muted underline underline-offset-2 hover:text-admin-text"
+                                    >
+                                        Remover
+                                    </button>
+                                )}
+                            </div>
+                            {uploadingLogo && <p className="mt-2 text-sm text-admin-muted">Enviando…</p>}
+                            {logoError && (
+                                <p role="alert" className="mt-2 text-sm text-red-300">
+                                    {logoError}
+                                </p>
+                            )}
+                        </Field>
                     </div>
                 )}
             </section>

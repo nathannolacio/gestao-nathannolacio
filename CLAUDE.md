@@ -188,9 +188,15 @@ rascunho → enviada → aprovada
 - `about_project`: remover da tabela e do formulário (a seção deixou de existir)?
 - Detalhe de cada serviço (ex.: "Design + Implementação"): criar campo em `proposal_items`?
   Hoje a página mostra só descrição e quantidade.
-- Logo do cliente no card da capa: DECIDIDO (14/10/2026) usar Vercel Blob, com a URL em `clients.logo_url`;
-  fazer DEPOIS da copy dos "60 dias". A action de upload segue as regras (auth + Zod: png/jpeg/webp, máx.
-  ~2 MB, sem confiar no nome/tipo do navegador). Hoje é um placeholder com as iniciais.
+- Trocar a logo de um cliente EXISTENTE: hoje a logo só é enviada ao criar cliente novo. Reaproveitar
+  `uploadClientLogo` quando existir a tela de Clientes.
+- Logo do cliente (implementada em 15/10/2026, ainda sem commit/deploy): Vercel Blob (store público, variável
+  `BLOB_READ_WRITE_TOKEN`), URL em `clients.logo_url` (migration `client_logo_url`; aplicada só no dev).
+  `uploadClientLogo(FormData)` em `app/admin/clientes/actions.ts`: `requireUser()` + Zod (File, até 2 MB) +
+  tipo pelos BYTES (`lib/logo-file.ts`: png/jpg/webp, SVG recusado) + nome aleatório em `logos/`. O
+  `createProposal` recebe a URL; `lib/schemas/client.ts` só aceita https `*.public.blob.vercel-storage.com`
+  em `/logos/`. `serverActions.bodySizeLimit` = 3mb em `next.config.ts` (vale p/ todas as actions). A capa
+  (`ClientCard`) mostra a logo ou as iniciais. Arquivo órfão no Blob se desistir da proposta (aceito).
 - Texto do botão final da página ("formalizarmos o contrato"): ajustar, já que não há
   mais seção de contrato.
 

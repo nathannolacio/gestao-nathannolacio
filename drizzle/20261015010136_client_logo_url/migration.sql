@@ -1,0 +1,1 @@
+ALTER TABLE "clients" ADD COLUMN "logo_url" varchar(500);
