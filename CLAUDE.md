@@ -190,8 +190,9 @@ rascunho → enviada → aprovada
   Hoje a página mostra só descrição e quantidade.
 - Trocar a logo de um cliente EXISTENTE: hoje a logo só é enviada ao criar cliente novo. Reaproveitar
   `uploadClientLogo` quando existir a tela de Clientes.
-- Logo do cliente (implementada em 15/10/2026, ainda sem commit/deploy): Vercel Blob (store público, variável
-  `BLOB_READ_WRITE_TOKEN`), URL em `clients.logo_url` (migration `client_logo_url`; aplicada só no dev).
+- Logo do cliente (em produção desde 15/10/2026; migration `client_logo_url` e `db:seed` aplicados na
+  `production` ANTES do merge; sem teste prévio em preview, por decisão): Vercel Blob (store público,
+  variável `BLOB_READ_WRITE_TOKEN`), URL em `clients.logo_url`.
   `uploadClientLogo(FormData)` em `app/admin/clientes/actions.ts`: `requireUser()` + Zod (File, até 2 MB) +
   tipo pelos BYTES (`lib/logo-file.ts`: png/jpg/webp, SVG recusado) + nome aleatório em `logos/`. O
   `createProposal` recebe a URL; `lib/schemas/client.ts` só aceita https `*.public.blob.vercel-storage.com`
@@ -424,8 +425,8 @@ rascunho → enviada → aprovada
   inclusive em preview) o botão "Voltar a rascunho" some e `revertToDraft` recusa; para tê-lo em preview
   seria preciso trocar `NODE_ENV` por `VERCEL_ENV` (decisão adiada).
 - Próximo passo: MVP no ar. Candidatos (decidir): editar proposta (rascunho/enviada; recusar `approved`),
-  tela de Clientes, tela do modelo de textos, ajustar a copy dos "60 dias de manutenção" (ver Decisões
-  pendentes), data de envio/aprovação na listagem, testes automatizados do cálculo (`lib/proposal-calc.ts`) e
+  tela de Clientes (inclui trocar a logo de cliente existente), tela do modelo de textos, data de
+  envio/aprovação na listagem, testes automatizados do cálculo (`lib/proposal-calc.ts`) e
   do `approveProposal`.
 - `npm audit`: 5 "high" na cadeia `braces` → `eslint-config-next` (só lint). Não rodar `audit fix --force`.
 - Pronto na Etapa 7 (branch `feat/enviar-aprovar`):
