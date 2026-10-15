@@ -411,7 +411,7 @@ async function Proposal({ params }: ProposalPageProps) {
                   Cobrança <span className="text-(--accent)">anual</span>
                 </h3>
                 <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-3xl bg-grafite/5 px-5 py-3">
-                  <span className="min-w-0 flex-1 basis-40 text-balance text-lg font-medium max-[419px]:text-center">Hospedagem</span>
+                  <span className="min-w-0 flex-1 basis-40 text-balance text-lg font-medium max-[419px]:text-center">Hospedagem e manutenção</span>
                   <span
                     className={`${pill} shrink-0 bg-dourado text-lg tabular-nums text-[#f3f3f3] max-[419px]:mx-auto min-[420px]:ml-auto`}
                   >
@@ -419,8 +419,8 @@ async function Proposal({ params }: ProposalPageProps) {
                   </span>
                 </div>
                 <p className="mt-3 text-center text-base text-(--mute)">
-                  Pagamento anual, renovado todo ano. Pode ser parcelado. Cobrada à parte, fora
-                  do total do projeto.
+                  Começa depois dos 60 dias gratuitos. Pagamento anual, renovado todo ano. Pode
+                  ser parcelado. Cobrada à parte, fora do total do projeto.
                 </p>
               </div>
             )}

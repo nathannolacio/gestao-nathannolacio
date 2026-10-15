@@ -2,6 +2,7 @@
 // Na proposta, o navegador manda só os ids marcados; título e descrição são
 // copiados daqui pelo servidor para proposals.bonuses (a "foto" da proposta).
 // Os ids são estáveis: nunca renomear um id já usado em propostas salvas.
+// (O de hospedagem e manutenção foi renomeado em 14/10/2026, antes de existir proposta real.)
 // `value` (centavos) é o valor agregado exibido riscado, com o selo "Grátis".
 // É só referência de percepção: o bônus não é cobrado e nunca entra no total.
 
@@ -21,7 +22,7 @@ export const bonusCatalog = [
       "Painel simples, acessível pelo celular ou computador, para você acompanhar o desempenho do seu site: quantas pessoas visitaram, de onde vieram, quais páginas mais acessaram e quantas clicaram para entrar em contato.",
   },
   {
-    id: "manutencao-60-dias",
+    id: "hospedagem-manutencao-60-dias",
     title: "60 dias de hospedagem e manutenção",
     value: 6000,
     description:
@@ -30,6 +31,15 @@ export const bonusCatalog = [
 ] as const;
 
 export type BonusId = (typeof bonusCatalog)[number]["id"];
+
+// Bônus que entra em TODA proposta, sem opção de tirar: os textos fixos da página
+// (vantagens, processo, FAQ) prometem os 60 dias de hospedagem e manutenção a todos.
+// O servidor inclui estes ids mesmo que o navegador não os envie.
+const requiredBonusIds: readonly BonusId[] = ["hospedagem-manutencao-60-dias"];
+
+export function isRequiredBonus(id: string): boolean {
+  return (requiredBonusIds as readonly string[]).includes(id);
+}
 
 // Formato salvo na proposta (cópia do catálogo no momento da criação).
 export type ProposalBonus = {

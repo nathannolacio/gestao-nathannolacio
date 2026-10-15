@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { clients, proposalItems, proposals } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
-import { bonusCatalog } from "@/lib/proposal-bonuses";
+import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
 import { projectSubtotal, toDiscount } from "@/lib/proposal-calc";
 
 // Erro esperado (não é falha do sistema): serve para abortar a transação (rollback)
@@ -47,7 +47,10 @@ export async function createProposal(input: unknown) {
         }
     }
 
-    const bonuses = bonusCatalog.filter((b) => result.data.bonuses.includes(b.id));
+    // Os obrigatórios entram sempre (não dependem do que o navegador mandou).
+    const bonuses = bonusCatalog.filter(
+        (b) => isRequiredBonus(b.id) || result.data.bonuses.includes(b.id),
+    );
 
     const publicToken = randomBytes(18).toString("base64url");
 

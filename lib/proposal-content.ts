@@ -71,7 +71,7 @@ export const defaultFixedContent: FixedContent = {
       {
         icon: "shield",
         title: "Suporte depois da entrega",
-        text: "60 dias de manutenção gratuita para ajustes e dúvidas.",
+        text: "60 dias de hospedagem e manutenção gratuitas para ajustes e dúvidas.",
       },
     ],
   },
@@ -146,7 +146,7 @@ export const defaultFixedContent: FixedContent = {
   delivery: {
     note: "Contado a partir do recebimento dos materiais.",
     maintenance:
-      "Depois da entrega, você tem 60 dias de manutenção gratuita. Passado esse período, ajustes e manutenções são contratados de forma avulsa.",
+      "Depois da entrega, você tem 60 dias de hospedagem e manutenção gratuitas. Passado esse período, passam a ser cobradas em um valor anual único, que inclui hospedagem e manutenção.",
   },
 
   faq: {
@@ -155,7 +155,7 @@ export const defaultFixedContent: FixedContent = {
       {
         question: "Domínio e hospedagem estão inclusos?",
         answer:
-          "O domínio é contratado por você, e eu te guio no passo a passo. A hospedagem pode ser sua ou minha, em valor anual à parte, quando aparece no investimento.",
+          "O domínio é contratado por você, e eu te guio no passo a passo. A hospedagem pode ser sua ou minha. Os primeiros 60 dias de hospedagem são por minha conta; depois, quando ela é minha, o valor anual de hospedagem e manutenção aparece no investimento.",
       },
       {
         question: "Posso pedir alterações no layout?",
@@ -170,7 +170,7 @@ export const defaultFixedContent: FixedContent = {
       {
         question: "Como funciona o suporte depois da entrega?",
         answer:
-          "São 60 dias de manutenção gratuita. Depois, a manutenção é avulsa.",
+          "São 60 dias de hospedagem e manutenção gratuitas. Depois, o valor anual inclui os dois: manter o site no ar e fazer até 5 ajustes de conteúdo por mês, como troca de textos, fotos, telefone ou endereço. Nova página, seção ou funcionalidade vira uma proposta à parte.",
       },
     ],
   },

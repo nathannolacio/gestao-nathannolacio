@@ -129,14 +129,20 @@ A página já lê a proposta do banco pelo token (ver "Estado atual").
   3. Total do projeto = subtotal do projeto − desconto geral
   4. Valor à vista no Pix = total do projeto × 0,9 (10% de desconto, calculado na exibição)
 - Arredondamento sempre para centavos inteiros.
-- Hospedagem: valor ANUAL opcional (só quando o cliente não tem hospedagem própria),
-  separado do total do projeto, sem desconto e fora do cálculo do Pix.
+- Hospedagem e manutenção: valor ANUAL opcional (só quando o cliente não tem hospedagem própria),
+  separado do total do projeto, sem desconto e fora do cálculo do Pix. Começa depois dos 60 dias
+  gratuitos. A coluna segue chamada `hosting_annual`, mas o valor cobre hospedagem E manutenção.
+  Manutenção = manter o site no ar + até 5 ajustes de conteúdo por mês (textos, fotos, telefone, endereço); página
+  nova, seção ou funcionalidade NÃO entra (vira proposta nova).
 - Domínio: contratado pelo cliente, não aparece na proposta.
-- Manutenção: 60 dias grátis após a entrega. Agora é um BÔNUS do catálogo ("60 dias de
-  hospedagem e manutenção", inclui a hospedagem); depois disso é avulsa.
+- Hospedagem e manutenção: 60 dias grátis após a entrega, para TODOS os clientes (decisão de 14/10/2026).
+  É um BÔNUS OBRIGATÓRIO do catálogo ("60 dias de hospedagem e manutenção"); depois disso hospedagem e
+  manutenção seguem em valor ANUAL (texto fixo da página; o valor aparece no investimento).
 - Bônus (decisão): catálogo FIXO em `lib/proposal-bonuses.ts` (Google Meu Negócio, Painel de
-  métricas, 60 dias de hospedagem e manutenção), pensado para site institucional. Em cada proposta
-  só escolho quais valem (o motivo de tirar um: o cliente já tem ou não quer). O navegador manda só
+  métricas, 60 dias de hospedagem e manutenção), pensado para site institucional. O de 60 dias é
+  OBRIGATÓRIO (`isRequiredBonus`: o servidor inclui sempre; no formulário aparece marcado e travado).
+  Nos outros, em cada proposta só escolho quais valem (o motivo de tirar um: o cliente já tem ou não
+  quer). O navegador manda só
   os IDS; o servidor copia título, descrição e valor do catálogo para `proposals.bonuses` (a "foto").
   O `value` (centavos) é só referência exibida riscada; bônus não é cobrado e nunca entra no total.
   Id de bônus repetido é BARRADO (refine), não corrigido.
@@ -182,14 +188,11 @@ rascunho → enviada → aprovada
 - `about_project`: remover da tabela e do formulário (a seção deixou de existir)?
 - Detalhe de cada serviço (ex.: "Design + Implementação"): criar campo em `proposal_items`?
   Hoje a página mostra só descrição e quantidade.
-- Logo do cliente no card da capa: coluna `logo_url` em `clients` (arquivo hospedado,
-  ex.: Vercel Blob) ou só iniciais/nome? Hoje é um placeholder com as iniciais.
+- Logo do cliente no card da capa: DECIDIDO (14/10/2026) usar Vercel Blob, com a URL em `clients.logo_url`;
+  fazer DEPOIS da copy dos "60 dias". A action de upload segue as regras (auth + Zod: png/jpeg/webp, máx.
+  ~2 MB, sem confiar no nome/tipo do navegador). Hoje é um placeholder com as iniciais.
 - Texto do botão final da página ("formalizarmos o contrato"): ajustar, já que não há
   mais seção de contrato.
-- Copy dos textos fixos (`lib/proposal-content.ts`): três trechos afirmam "60 dias de manutenção
-  gratuita" para TODOS (item "Suporte depois da entrega" das vantagens, `delivery.maintenance` e
-  resposta do FAQ), mas agora isso é um bônus opcional. Ajustar, e revisar o FAQ/linha de
-  hospedagem para deixar claro que o valor anual vale DEPOIS dos 60 dias de hospedagem grátis.
 
 ## Etapas
 1. Setup: criar projeto Next, conectar ao Neon, configurar Drizzle. (CONCLUÍDA)
@@ -205,10 +208,10 @@ rascunho → enviada → aprovada
    botão de aprovar na página pública. (CONCLUÍDA)
 8. Login: Better Auth protegendo todo o sistema, exceto a página pública
    e a action de aprovar. (CONCLUÍDA)
-9. Deploy na Vercel.
+9. Deploy na Vercel. (CONCLUÍDA)
 
 # Estado atual
-- Etapa atual: 9 (Deploy). Etapas 1 a 8 concluídas (8 = Login, ver "Pronto na Etapa 8").
+- Etapa atual: MVP concluído e no ar. Etapas 1 a 9 concluídas (ver "Pronto na Etapa 8" e "Pronto na Etapa 9").
 - Branches e ambientes (decisão de 14/10/2026, Etapa 9):
   - Fluxo Git: `feat/*` → `dev` (branch de integração) → `main` (produção, Production Branch da Vercel).
   - Neon conectado à Vercel (integração com preview branching): cada branch Git com deploy de preview ganha
@@ -287,8 +290,8 @@ rascunho → enviada → aprovada
   - Itens e total entraram na Etapa 5 (ver acima).
 - Base da Etapa 4 (validação e catálogo):
   - `lib/proposal-bonuses.ts`: `bonusCatalog` (ids `google-meu-negocio`, `painel-metricas`,
-    `manutencao-60-dias`; o último ainda tem esse id mesmo com o título "60 dias de hospedagem e
-    manutenção": renomear ANTES de salvar propostas reais), `value` em centavos (15000, 20000, 6000),
+    `hospedagem-manutencao-60-dias`, renomeado em 14/10/2026 antes de haver proposta real),
+    `value` em centavos (15000, 20000, 6000),
     tipos `BonusId` e `ProposalBonus` e a tupla `bonusIds` para `z.enum`.
   - `db/schema.ts`: `proposals.bonus` (text) trocado por `bonuses` (jsonb, notNull, default `[]`).
     Migration `drizzle/20261013182456_misty_black_widow` aplicada no Neon (o texto de teste do
@@ -406,12 +409,18 @@ rascunho → enviada → aprovada
     (`client.*`, lista de bônus) e com o formulário interativo.
   - Cliente novo é inserido DENTRO da mesma `db.transaction` da proposta (atomicidade: sem cliente órfão).
     Dentro do callback, sempre `tx`, nunca `db`.
-- Próximo passo: Etapa 9 (Deploy na Vercel). Já feito: `dev` criada e com a Etapa 8, `preview/dev` no Neon
-  e `.env.local` apontando para ela. Falta: conferir em Vercel → Environment Variables o `DATABASE_URL` de
-  Production e cadastrar `BETTER_AUTH_SECRET` (valor novo, só para produção) e `BETTER_AUTH_URL`; tratar o
-  `BETTER_AUTH_URL` nos previews; limpar dados de teste da `production`; criar o usuário real na `production`
-  (script `db/create-user.ts` apontando para ela) e conferir que `revertToDraft` recusa em produção;
-  PR `dev` → `main`.
+- Pronto na Etapa 9 (Deploy, 14/10/2026): produção em https://gestao-nathannolacio.vercel.app/ (Production
+  Branch = `main`). Variáveis na Vercel: `BETTER_AUTH_SECRET` (Sensitive; Production e Preview) e
+  `BETTER_AUTH_URL` (SÓ Production; em Preview fica sem, o login funcionou inferindo da requisição);
+  `DATABASE_URL*` vêm da integração Neon (não editar). Dados de teste foram apagados da `production`
+  (`proposal_items` → `proposals` → `clients`; mantidos `proposal_template` e o usuário). Smoke test em
+  produção aprovado (proteção do admin, login, criar/enviar/aprovar, "Sair"). No deploy (`NODE_ENV=production`,
+  inclusive em preview) o botão "Voltar a rascunho" some e `revertToDraft` recusa; para tê-lo em preview
+  seria preciso trocar `NODE_ENV` por `VERCEL_ENV` (decisão adiada).
+- Próximo passo: MVP no ar. Candidatos (decidir): editar proposta (rascunho/enviada; recusar `approved`),
+  tela de Clientes, tela do modelo de textos, ajustar a copy dos "60 dias de manutenção" (ver Decisões
+  pendentes), data de envio/aprovação na listagem, testes automatizados do cálculo (`lib/proposal-calc.ts`) e
+  do `approveProposal`.
 - `npm audit`: 5 "high" na cadeia `braces` → `eslint-config-next` (só lint). Não rodar `audit fix --force`.
 - Pronto na Etapa 7 (branch `feat/enviar-aprovar`):
   - `sendProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE único

@@ -3,7 +3,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createProposal } from "@/app/admin/propostas/actions";
-import { bonusCatalog } from "@/lib/proposal-bonuses";
+import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
 
 type ClientOption = { id: string; name: string };
 type FieldErrors = Record<string, string[] | undefined>;
@@ -92,6 +92,7 @@ function ProposalFormFields({
     const [pending, setPending] = useState(false);
 
     function toggleBonus(id: string) {
+        if (isRequiredBonus(id)) return;
         setBonuses((current) =>
             current.includes(id) ? current.filter((b) => b !== id) : [...current, id],
         );
@@ -296,7 +297,7 @@ function ProposalFormFields({
                         />
                     </Field>
                     <Field
-                        label="Hospedagem anual (R$)"
+                        label="Hospedagem e manutenção anual (R$)"
                         htmlFor="hostingAnnual"
                         hint="Deixe vazio se o cliente tem hospedagem própria"
                         errors={fieldErrors.hostingAnnual}
@@ -508,7 +509,8 @@ function ProposalFormFields({
                         Bônus
                     </h2>
                     <p className="mt-1 text-sm text-admin-muted">
-                        Desmarque o que não vale para este cliente (ele já tem ou não quer).
+                        Desmarque o que não vale para este cliente (ele já tem ou não quer). Os 60 dias
+                        de hospedagem e manutenção entram em toda proposta.
                     </p>
                 </div>
 
@@ -521,10 +523,11 @@ function ProposalFormFields({
                 <ul className="space-y-2">
                     {bonusCatalog.map((bonus) => (
                         <li key={bonus.id}>
-                            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-admin-line px-4 py-3 has-checked:border-dourado/60">
+                            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-admin-line px-4 py-3 has-checked:border-dourado/60 has-disabled:cursor-default">
                                 <input
                                     type="checkbox"
-                                    checked={bonuses.includes(bonus.id)}
+                                    checked={isRequiredBonus(bonus.id) || bonuses.includes(bonus.id)}
+                                    disabled={isRequiredBonus(bonus.id)}
                                     onChange={() => toggleBonus(bonus.id)}
                                     className="mt-1 size-4 accent-dourado"
                                 />
@@ -532,6 +535,7 @@ function ProposalFormFields({
                                     <span className="block font-medium text-admin-text">{bonus.title}</span>
                                     <span className="mt-0.5 block text-admin-muted">
                                         Valor agregado: {formatCents(bonus.value)}
+                                        {isRequiredBonus(bonus.id) && " · incluído em toda proposta"}
                                     </span>
                                 </span>
                             </label>
