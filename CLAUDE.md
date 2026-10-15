@@ -98,10 +98,15 @@ Fixas = vêm do modelo, iguais para todos. Variáveis = preenchidas por proposta
 3. Etapa por etapa / processo de desenvolvimento (fixa), com o card de prazo de entrega
    (prazo variável) e o texto de manutenção (fixo) junto da última etapa
 4. Portfólio / projetos (fixa, 2 projetos por enquanto)
-5. Investimento (um card único): serviços solicitados, itens, descontos, total,
-   hospedagem (variáveis), bônus (catálogo fixo; escolho quais valem em cada proposta; cada
-   card mostra o valor agregado RISCADO com o selo "Grátis") e formas de pagamento
-   (fixas; valores do Pix e das parcelas calculados na exibição; o cliente escolhe uma)
+5. Investimento (um card único, dividido em 4 partes, cada uma com divisória + rótulo + parágrafo curto;
+   ordem decidida em 15/10/2026 para o cliente entender que o que paga AGORA é só o projeto):
+   1) O projeto: serviços solicitados, itens, descontos e total (variáveis);
+   2) Seus bônus (catálogo fixo; escolho quais valem em cada proposta; cada card mostra o valor
+      agregado RISCADO com o selo "Grátis");
+   3) Forma de pagamento (fixas; valores do Pix e das parcelas calculados na exibição; o cliente
+      escolhe uma; aqui é só SELEÇÃO, ele pode escolher e não aprovar);
+   4) Cobrança anual (hospedagem e manutenção; variável), ANTES do botão "Aprovar proposta" para o
+      cliente ver tudo antes de aprovar.
 6. FAQ / perguntas frequentes (fixa)
 7. Fechamento com o botão "Aprovar proposta"
 
@@ -138,6 +143,11 @@ A página já lê a proposta do banco pelo token (ver "Estado atual").
 - Hospedagem e manutenção: 60 dias grátis após a entrega, para TODOS os clientes (decisão de 14/10/2026).
   É um BÔNUS OBRIGATÓRIO do catálogo ("60 dias de hospedagem e manutenção"); depois disso hospedagem e
   manutenção seguem em valor ANUAL (texto fixo da página; o valor aparece no investimento).
+  Preço de tabela: R$ 60/mês (30 hospedagem + 30 manutenção) = R$ 720/ano, que é o valor a digitar em
+  `hosting_annual` (72000). Cobrado a partir do 3º mês; o ano de serviço conta da PRIMEIRA COBRANÇA (os
+  2 meses grátis são extra, não consomem o ano). Parcelável em até 12x (R$ 60/mês). A página mostra
+  "Primeiros 60 dias: Grátis → Depois, a partir de R$ 60/mês" com a pílula "Plano anual · R$ 720 em até
+  12x" (parcela = `installmentAmount(hostingAnnual, 12)`, calculada na exibição, nada novo no banco).
 - Bônus (decisão): catálogo FIXO em `lib/proposal-bonuses.ts` (Google Meu Negócio, Painel de
   métricas, 60 dias de hospedagem e manutenção), pensado para site institucional. O de 60 dias é
   OBRIGATÓRIO (`isRequiredBonus`: o servidor inclui sempre; no formulário aparece marcado e travado).
@@ -298,7 +308,7 @@ rascunho → enviada → aprovada
 - Base da Etapa 4 (validação e catálogo):
   - `lib/proposal-bonuses.ts`: `bonusCatalog` (ids `google-meu-negocio`, `painel-metricas`,
     `hospedagem-manutencao-60-dias`, renomeado em 14/10/2026 antes de haver proposta real),
-    `value` em centavos (15000, 20000, 6000),
+    `value` em centavos (15000, 20000, 12000; o de 60 dias = 2 meses × R$ 60, alterado em 15/10/2026),
     tipos `BonusId` e `ProposalBonus` e a tupla `bonusIds` para `z.enum`.
   - `db/schema.ts`: `proposals.bonus` (text) trocado por `bonuses` (jsonb, notNull, default `[]`).
     Migration `drizzle/20261013182456_misty_black_widow` aplicada no Neon (o texto de teste do
@@ -448,6 +458,20 @@ rascunho → enviada → aprovada
   - `NavLink` (`app/admin/_components/nav-link.tsx`): `usePathname()` dentro de `<Suspense>` (com fallback
     sem destaque), pois em rotas com segmento dinâmico o pathname é dado de runtime e bloqueava o prerender.
 - `npm audit`: 5 "high" na cadeia `braces` → `eslint-config-next` (só lint). Não rodar `audit fix --force`.
+- Pronto: reorganização do card de Investimento na página pública (15/10/2026; sem migration; só no working
+  tree/`dev`, ainda não conferida no navegador nem em produção):
+  - Ordem: projeto → bônus → forma de pagamento → cobrança anual → botão "Aprovar proposta". Para a cobrança
+    anual ficar ENTRE a seleção e o botão (que mora no `PaymentChoice`, Client Component com o estado), o
+    `PaymentChoice` ganhou `children`, renderizado entre as opções e o botão; a `page.tsx` (Server Component)
+    passa o bloco da cobrança anual por ali.
+  - Padrão visual em `page.tsx`: constantes `partDivider`, `partLabel` (caixa-alta dourada, sem número) e
+    `partIntro` (parágrafo cinza), usadas nas 4 partes. O título grande do pagamento (`payment.title`) não é
+    mais exibido (continua no `FixedContent`); os parágrafos de projeto, bônus e cobrança anual estão FIXOS no
+    código (como os selos), só o do pagamento vem do modelo (`payment.intro`).
+  - Cobrança anual: dois blocos (Grátis → valor mensal; empilhados com seta para baixo no mobile) e selos
+    "Nada a pagar agora" e "Fora do total do projeto".
+  - Bônus de 60 dias: `value` passou de 6000 para 12000 (2 meses × R$ 60). Propostas existentes só mudam se
+    editadas e salvas (a "foto" fica em `proposals.bonuses`); nelas, conferir `hosting_annual` = 72000.
 - Pronto: arquivar proposta e ícones na listagem (15/10/2026; testado manualmente; sem migration):
   - `archiveProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE
     único que preenche `deletedAt` com `WHERE id AND status IN ('draft','sent') AND deletedAt IS NULL`

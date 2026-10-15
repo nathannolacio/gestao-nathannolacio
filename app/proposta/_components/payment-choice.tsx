@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import type { FixedContent } from "@/lib/proposal-content";
 import { formatBRL, installmentAmount } from "@/lib/proposal-calc";
 import { approveProposal } from "../actions";
@@ -23,6 +23,8 @@ type PaymentChoiceProps = {
   // Escolha gravada na aprovação (null enquanto não aprovada): vem pré-selecionada.
   approvedMethod: MethodId | null;
   approvedInstallments: number | null;
+  // Conteúdo exibido entre a seleção e o botão de aprovar (cobrança anual), vindo do servidor.
+  children?: ReactNode;
 };
 
 const pill = "rounded-full px-4 py-1.5 font-display font-semibold";
@@ -41,6 +43,7 @@ export function PaymentChoice({
   approved,
   approvedMethod,
   approvedInstallments,
+  children,
 }: PaymentChoiceProps) {
   // Estado só da tela: a Server Action revalida tudo com Zod (nunca confiar no navegador).
   const [selected, setSelected] = useState<MethodId | null>(approvedMethod);
@@ -192,6 +195,8 @@ export function PaymentChoice({
           );
         })}
       </div>
+
+      {children}
 
       <div className="mt-8 flex flex-col items-center gap-3">
         {locked ? (

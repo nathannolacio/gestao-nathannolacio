@@ -24,7 +24,7 @@ export const bonusCatalog = [
   {
     id: "hospedagem-manutencao-60-dias",
     title: "60 dias de hospedagem e manutenção",
-    value: 6000,
+    value: 12000, // 2 meses × R$ 60 (valor de tabela da hospedagem + manutenção)
     description:
       "Hospedagem e acompanhamento do site durante os dois primeiros meses após a publicação: site no ar com segurança, monitoramento do funcionamento, correção de qualquer problema e até 5 ajustes de conteúdo por mês, como troca de textos, fotos, telefone ou endereço.",
   },

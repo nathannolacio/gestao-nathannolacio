@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import {
   formatBRL,
+  installmentAmount,
   itemSubtotal,
   pixTotal,
   projectSubtotal,
@@ -38,6 +39,13 @@ const fadeToSand = [
 
 // Pílula de valor usada no Investimento e no Pagamento.
 const pill = "rounded-full px-4 py-1.5 font-display font-semibold";
+
+// Partes do card de Investimento (projeto, bônus, pagamento, cobrança anual): divisória + rótulo.
+const partDivider = "mt-12 border-t border-grafite/10 pt-12";
+const partLabel =
+  "text-center text-sm font-semibold uppercase tracking-[0.18em] text-bronze";
+const partIntro =
+  "mx-auto mt-2 max-w-md text-balance text-center text-base leading-7 text-(--mute)";
 
 type ProposalPageProps = {
   params: Promise<{ token: string }>;
@@ -322,8 +330,10 @@ async function Proposal({ params }: ProposalPageProps) {
               Investimento para <span className="text-(--accent)">o projeto</span>
             </h2>
 
-            {/* serviços: uma lista só, com quantidade e desconto no detalhe */}
-            <ul className="mt-8 space-y-3">
+            {/* parte 1: o projeto. Serviços numa lista só, com quantidade e desconto no detalhe */}
+            <h3 className={`${partLabel} mt-10`}>O projeto</h3>
+            <p className={partIntro}>O que será desenvolvido para você e o valor do investimento.</p>
+            <ul className="mt-6 space-y-3">
               {p.items.map((item) => {
                 const subtotal = itemSubtotal(item);
                 const hasDetail = item.quantity > 1;
@@ -405,34 +415,12 @@ async function Proposal({ params }: ProposalPageProps) {
               )}
             </div>
 
-            {/* hospedagem: fora do total, como uma mini-seção própria com o mesmo destaque dos serviços */}
-            {p.hostingAnnual !== null && (
-              <div className="mt-12">
-                <h3 className="text-balance text-center font-display text-2xl leading-tight sm:text-3xl">
-                  Cobrança <span className="text-(--accent)">anual</span>
-                </h3>
-                <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-3xl bg-grafite/5 px-5 py-3">
-                  <span className="min-w-0 flex-1 basis-40 text-balance text-lg font-medium max-[419px]:text-center">Hospedagem e manutenção</span>
-                  <span
-                    className={`${pill} shrink-0 bg-dourado text-lg tabular-nums text-[#f3f3f3] max-[419px]:mx-auto min-[420px]:ml-auto`}
-                  >
-                    {formatBRL(p.hostingAnnual)}/ano
-                  </span>
-                </div>
-                <p className="mt-3 text-center text-base text-(--mute)">
-                  Começa depois dos 60 dias gratuitos. Pagamento anual, renovado todo ano. Pode
-                  ser parcelado. Cobrada à parte, fora do total do projeto.
-                </p>
-              </div>
-            )}
-
             {/* bônus: mini-seção, um card por bônus */}
             {p.bonuses.length > 0 && (
-              <div className="mt-12">
-                <h3 className="text-balance text-center font-display text-2xl leading-tight sm:text-3xl">
-                  Seus <span className="text-(--accent)">bônus</span>
-                </h3>
-                <ul className="mt-5 space-y-3">
+              <div className={partDivider}>
+                <h3 className={partLabel}>Seus bônus</h3>
+                <p className={partIntro}>Extras incluídos na sua proposta, sem custo.</p>
+                <ul className="mt-6 space-y-3">
                   {p.bonuses.map((bonus) => (
                     <li key={bonus.title}>
                       <details className="group rounded-3xl bg-grafite/5">
@@ -474,12 +462,10 @@ async function Proposal({ params }: ProposalPageProps) {
             )}
 
             {/* formas de pagamento */}
-            <h3 className="mt-16 text-balance text-center font-display text-3xl leading-tight sm:text-4xl">
-              <Rich text={c.payment.title} as="title" />
-            </h3>
-            <p className="mx-auto mt-2 max-w-md text-balance text-center text-base leading-7 text-(--mute)">
-              {c.payment.intro}
-            </p>
+            <div className={partDivider}>
+              <h3 className={partLabel}>Forma de pagamento</h3>
+              <p className={partIntro}>{c.payment.intro}</p>
+            </div>
 
             <PaymentChoice
               methods={c.payment.methods}
@@ -492,7 +478,51 @@ async function Proposal({ params }: ProposalPageProps) {
               approved={row.status === "approved"}
               approvedMethod={row.paymentMethod}
               approvedInstallments={row.cardInstallments}
-            />
+            >
+              {/* cobrança anual: depois da escolha do pagamento e antes do botão de aprovar; fora do total */}
+              {p.hostingAnnual !== null && (
+                <div className={partDivider}>
+                  <h3 className={partLabel}>Cobrança anual</h3>
+                  <p className={partIntro}>
+                    Hospedagem e manutenção do seu site, cobradas à parte do projeto.
+                  </p>
+                  {/* linha do tempo: de relance, "agora é grátis, depois é anual" */}
+                  <div className="mt-5 grid grid-cols-1 items-stretch gap-2 sm:grid-cols-[1fr_auto_1fr] sm:gap-3">
+                    <div className="flex flex-col items-center justify-center rounded-3xl bg-dourado/25 px-3 py-4 text-center">
+                      <p className="text-sm font-medium text-bronze">Primeiros 60 dias</p>
+                      <p className="font-display text-3xl font-bold tracking-tight text-bronze">
+                        Grátis
+                      </p>
+                    </div>
+                    {/* mobile: seta para baixo (a "→" girada); a partir de sm: para o lado */}
+                    <span
+                      aria-hidden
+                      className="flex rotate-90 items-center justify-center text-2xl text-(--mute) sm:rotate-0"
+                    >
+                      →
+                    </span>
+                    <div className="flex flex-col items-center justify-center rounded-3xl bg-grafite/5 px-3 py-4 text-center">
+                      <p className="text-sm font-medium text-(--mute)">Depois, a partir de</p>
+                      <p className="font-display text-3xl font-bold tracking-tight tabular-nums">
+                        {formatBRL(installmentAmount(p.hostingAnnual, 12))}
+                        <span className="text-base font-medium text-(--mute)">/mês</span>
+                      </p>
+                      {/* plano anual: pílula pequena (menor que o valor mensal) com o total do ano */}
+                      <span className="mt-2 inline-flex flex-wrap justify-center gap-x-1.5 rounded-full bg-dourado/25 px-3 py-1 text-sm font-semibold text-bronze">
+                        Plano anual
+                        <span className="font-medium tabular-nums">
+                          · {formatBRL(p.hostingAnnual)} em até 12x
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2 text-sm font-semibold text-bronze">
+                    <span className="rounded-full bg-dourado/25 px-3 py-1">Nada a pagar agora</span>
+                    <span className="rounded-full bg-dourado/25 px-3 py-1">Fora do total do projeto</span>
+                  </div>
+                </div>
+              )}
+            </PaymentChoice>
           </div>
 
           <p className="relative mt-10 text-center font-display text-2xl font-bold tracking-tight">
