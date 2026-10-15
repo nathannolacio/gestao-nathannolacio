@@ -448,6 +448,16 @@ rascunho → enviada → aprovada
   - `NavLink` (`app/admin/_components/nav-link.tsx`): `usePathname()` dentro de `<Suspense>` (com fallback
     sem destaque), pois em rotas com segmento dinâmico o pathname é dado de runtime e bloqueava o prerender.
 - `npm audit`: 5 "high" na cadeia `braces` → `eslint-config-next` (só lint). Não rodar `audit fix --force`.
+- Pronto: arquivar proposta e ícones na listagem (15/10/2026; testado manualmente; sem migration):
+  - `archiveProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE
+    único que preenche `deletedAt` com `WHERE id AND status IN ('draft','sent') AND deletedAt IS NULL`
+    (atômico). Decisão: arquivar = soft delete (sem novo status) e proposta APROVADA NÃO arquiva (é registro
+    de venda; recusada no servidor). Depois de arquivada some da listagem e a página pública responde 404.
+    Confirmação com `window.confirm` no cliente. Não há tela para restaurar (só no banco, `deleted_at = null`);
+    entra com a tela de Clientes/arquivadas se for preciso.
+  - Botões da linha da listagem viraram ícones (ver página, editar, enviar, arquivar, voltar a rascunho só em
+    dev), todos em `app/admin/propostas/_components/proposal-actions.tsx` (agora recebe `publicToken`), com
+    `title` e `aria-label`. Ícones novos em `app/admin/_components/icons.tsx`.
 - Pronto na Etapa 7 (branch `feat/enviar-aprovar`):
   - `sendProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE único
     `status = 'sent'`, `sentAt`, com `WHERE id AND status = 'draft' AND deletedAt IS NULL` (atômico). NÃO trava

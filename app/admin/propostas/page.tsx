@@ -99,29 +99,12 @@ async function ListaPropostas() {
                                 {proposta.createdAt.toLocaleDateString("pt-BR")}
                             </td>
                             <td className="px-4 py-3.5">
-                                <div className="flex items-start justify-end gap-2">
-                                    <ProposalActions
-                                        id={proposta.id}
-                                        status={proposta.status}
-                                        showDevRevert={process.env.NODE_ENV !== "production"}
-                                    />
-                                    {proposta.status !== "approved" && (
-                                        <Link
-                                            href={`/admin/propostas/${proposta.id}/editar`}
-                                            className="rounded-lg border border-admin-line px-3 py-1.5 text-xs font-medium text-admin-text transition-colors duration-150 hover:bg-admin-raised"
-                                        >
-                                            Editar
-                                        </Link>
-                                    )}
-                                    <Link
-                                        href={`/proposta/${proposta.publicToken}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="rounded-lg border border-admin-line px-3 py-1.5 text-xs font-medium text-admin-text transition-colors duration-150 hover:bg-admin-raised"
-                                    >
-                                        Ver página
-                                    </Link>
-                                </div>
+                                <ProposalActions
+                                    id={proposta.id}
+                                    publicToken={proposta.publicToken}
+                                    status={proposta.status}
+                                    showDevRevert={process.env.NODE_ENV !== "production"}
+                                />
                             </td>
                         </tr>
                     ))}

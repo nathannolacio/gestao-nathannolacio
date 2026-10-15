@@ -59,3 +59,50 @@ export function LogoutIcon({ className }: IconProps) {
     </Icon>
   );
 }
+
+export function SendIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M20 4 10.5 13.5" />
+      <path d="M20 4 14 20l-3.5-6.5L4 10l16-6Z" />
+    </Icon>
+  );
+}
+
+export function EditIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+      <path d="m14.5 7.5 3 3" />
+    </Icon>
+  );
+}
+
+export function ExternalIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M14 4.5h5.5V10" />
+      <path d="M19.5 4.5 11 13" />
+      <path d="M17.5 14v4.5a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1H10" />
+    </Icon>
+  );
+}
+
+export function ArchiveIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <rect x="3.5" y="4.5" width="17" height="4" rx="1" />
+      <path d="M5.5 8.5v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-10" />
+      <path d="M10 12.5h4" />
+    </Icon>
+  );
+}
+
+export function UndoIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M9 14 4.5 9.5 9 5" />
+      <path d="M4.5 9.5H15a4.5 4.5 0 0 1 0 9h-3" />
+    </Icon>
+  );
+}

@@ -271,6 +271,41 @@ export async function sendProposal(input: unknown) {
     return { ok: true as const };
 }
 
+// Arquivar = soft delete (preenche deletedAt). Só rascunho e enviada; aprovada é registro
+// de venda e não arquiva. Depois de arquivada, a página pública responde 404.
+export async function archiveProposal(input: unknown) {
+    await requireUser();
+
+    const result = sendProposalSchema.safeParse(input);
+
+    if (!result.success) {
+        return { ok: false as const, formError: "Proposta inválida." };
+    }
+
+    const updated = await db
+        .update(proposals)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(
+            and(
+                eq(proposals.id, result.data.id),
+                inArray(proposals.status, ["draft", "sent"]),
+                isNull(proposals.deletedAt),
+            ),
+        )
+        .returning({ id: proposals.id });
+
+    if (updated.length === 0) {
+        return {
+            ok: false as const,
+            formError: "Proposta não encontrada, já arquivada ou aprovada.",
+        };
+    }
+
+    revalidatePath("/admin/propostas");
+
+    return { ok: true as const };
+}
+
 // Só para testar em desenvolvimento: volta a proposta para rascunho e limpa envio/aprovação.
 // Em produção a action recusa, porque não existe "desenviar" no fluxo real.
 export async function revertToDraft(input: unknown) {
