@@ -15,6 +15,9 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Gestão",
   description: "Sistema de gestão pessoal",
+  // O iOS usa o apple-touch-icon como ícone da tela inicial.
+  icons: { apple: "/icons/icon-180.png" },
+  appleWebApp: { capable: true, title: "Gestão", statusBarStyle: "black-translucent" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

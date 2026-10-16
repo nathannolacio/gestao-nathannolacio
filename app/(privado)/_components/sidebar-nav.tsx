@@ -1,6 +1,7 @@
 import { logout } from "@/app/(publico)/login/actions";
 import { ClientsIcon, LogoutIcon, ProposalsIcon, TemplateIcon } from "./icons";
 import { NavLink } from "./nav-link";
+import { PushToggle } from "./push-toggle";
 
 const disabledItem =
   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-admin-muted/60 cursor-not-allowed";
@@ -25,6 +26,8 @@ export function SidebarNav() {
           Modelo de textos
         </span>
       </nav>
+
+      <PushToggle />
 
       <form action={logout}>
         <button

@@ -20,7 +20,9 @@ export function proxy(request: NextRequest) {
 //  - api/auth/  handler do Better Auth
 //  - _next/     arquivos internos do Next
 //  - *.ext      arquivos estáticos de public/ (imagens, favicon...)
+// Atenção: dentro da string, o ponto escapado é "\\." (a barra dupla vira uma barra no regex);
+// com "\." o TypeScript descarta a barra e o padrão deixa de proteger as rotas.
 // Atenção: "proposta/" tem a barra de propósito, para NÃO liberar /propostas (a lista privada).
 export const config = {
-    matcher: ["/((?!proposta/|login$|login/|api/auth/|_next/|.*\..*).*)"],
+    matcher: ["/((?!proposta/|login$|login/|api/auth/|_next/|.*\\..*).*)"],
 };

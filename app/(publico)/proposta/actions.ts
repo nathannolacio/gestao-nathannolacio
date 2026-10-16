@@ -2,8 +2,10 @@
 
 import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { db } from "@/db";
 import { proposals } from "@/db/schema";
+import { notifyProposalApproved } from "@/lib/push";
 import { approveProposalSchema } from "@/lib/schemas/approve-proposal";
 
 // Action PÚBLICA: o cliente não tem login. A proteção é o token (não adivinhável),
@@ -48,6 +50,10 @@ export async function approveProposal(input: unknown) {
     }
 
     revalidatePath("/propostas");
+
+    // Avisa o dono no celular DEPOIS de responder ao cliente (after). A função nunca lança,
+    // então uma falha no push não desfaz nem atrapalha a aprovação.
+    after(() => notifyProposalApproved(updated[0].id));
 
     return { ok: true as const };
 }

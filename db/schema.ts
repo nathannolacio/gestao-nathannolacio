@@ -1,6 +1,7 @@
 import type { ProposalBonus } from "../lib/proposal-bonuses.ts";
 import type { FixedContent } from "../lib/proposal-content.ts";
-import { integer, jsonb, pgEnum, smallint, snakeCase, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgEnum, smallint, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { user } from "./auth-schema.ts";
 
 export const clientType = pgEnum("client_type", ["PF", "PJ"]);
 
@@ -64,4 +65,16 @@ export const proposalItems = snakeCase.table("proposal_items", {
     discountType: discountTypeEnum(),
     discountValue: integer(),
     position: integer().notNull(),
+})
+
+// Inscrições de Web Push: um registro por aparelho/navegador do usuário.
+// O endpoint é o endereço único (serviço de push da Apple/Google) para onde o
+// servidor envia; p256dh e auth são as chaves para cifrar a mensagem.
+export const pushSubscriptions = snakeCase.table("push_subscriptions", {
+    id: uuid().defaultRandom().primaryKey(),
+    userId: text().notNull().references(() => user.id, { onDelete: "cascade" }),
+    endpoint: text().notNull().unique(),
+    p256dh: text().notNull(),
+    auth: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 })
