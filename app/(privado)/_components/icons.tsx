@@ -106,3 +106,19 @@ export function UndoIcon({ className }: IconProps) {
     </Icon>
   );
 }
+
+export function MenuIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </Icon>
+  );
+}
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </Icon>
+  );
+}

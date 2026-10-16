@@ -10,7 +10,7 @@ type ClientOption = { id: string; name: string };
 type FieldErrors = Record<string, string[] | undefined>;
 
 const inputClass =
-    "w-full rounded-lg border border-admin-line bg-admin-raised px-3 py-2.5 text-sm text-admin-text " +
+    "w-full rounded-lg border border-admin-line bg-admin-raised px-3 py-2.5 text-base text-admin-text sm:text-sm " +
     "placeholder:text-admin-muted/60 focus-visible:outline-2 focus-visible:outline-offset-0 " +
     "focus-visible:outline-dourado aria-invalid:border-red-400/70";
 
@@ -248,7 +248,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                     Cliente
                 </h2>
 
-                <fieldset className="flex gap-2">
+                <fieldset className="flex flex-wrap gap-2">
                     <legend className="sr-only">Tipo de seleção do cliente</legend>
                     {clients.length > 0 && (
                         <label className={pillClass}>
@@ -302,7 +302,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                     </Field>
                 ) : (
                     <div className="space-y-4">
-                        <fieldset className="flex gap-2">
+                        <fieldset className="flex flex-wrap gap-2">
                             <legend className="sr-only">Tipo de cliente</legend>
                             {(["PF", "PJ"] as const).map((option) => (
                                 <label key={option} className={pillClass}>
@@ -358,7 +358,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                             htmlFor="logo"
                             hint="PNG, JPG ou WebP, até 2 MB. Sem logo, a capa mostra as iniciais."
                         >
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
                                 {logoUrl && (
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img
@@ -373,13 +373,13 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                                     accept="image/png,image/jpeg,image/webp"
                                     onChange={handleLogoChange}
                                     disabled={uploadingLogo}
-                                    className="text-sm text-admin-muted file:mr-3 file:cursor-pointer file:rounded-lg file:border file:border-admin-line file:bg-admin-raised file:px-3 file:py-2 file:text-sm file:text-admin-text"
+                                    className="min-w-0 max-w-full text-sm text-admin-muted file:mr-3 file:cursor-pointer file:rounded-lg file:border file:border-admin-line file:bg-admin-raised file:px-3 file:py-2 file:text-sm file:text-admin-text"
                                 />
                                 {logoUrl && (
                                     <button
                                         type="button"
                                         onClick={() => setLogoUrl(null)}
-                                        className="text-sm text-admin-muted underline underline-offset-2 hover:text-admin-text"
+                                        className="py-2 text-sm text-admin-muted underline underline-offset-2 hover:text-admin-text"
                                     >
                                         Remover
                                     </button>
@@ -478,7 +478,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                                     <button
                                         type="button"
                                         onClick={() => removeItem(item.key)}
-                                        className="text-sm text-admin-muted transition-colors duration-150 hover:text-red-300 focus-visible:outline-2 focus-visible:outline-dourado"
+                                        className="-my-2 px-1 py-2 text-sm text-admin-muted transition-colors duration-150 hover:text-red-300 focus-visible:outline-2 focus-visible:outline-dourado"
                                     >
                                         Remover
                                     </button>

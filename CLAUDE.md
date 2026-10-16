@@ -477,7 +477,11 @@ rascunho → enviada → aprovada
     `redirect("/propostas")` (sem sessão, o proxy leva ao login e volta); quando existir um dashboard, trocar o destino.
   - `.next/types` e `.next/dev/types` ficam obsoletos após mover pastas (erros de `tsc`): apagar ou rodar
     `npx next typegen`.
-  - Pendência: responsividade do painel administrativo (mobile quebrado; decidido deixar para depois).
+  - Responsividade do painel administrativo (16/10/2026; sem migration; só `tsc`, NÃO conferida no navegador
+    por mim, aprovada por uso): no mobile o `Header` é a barra do topo (hambúrguer + "Gestão" à esquerda, avatar à
+    direita); o hambúrguer abre uma gaveta (`mobile-menu.tsx`, `<dialog>` + `showModal()`) com o mesmo `SidebarNav`
+    da sidebar (`sidebar-nav.tsx`), que só aparece em `md+`. Listagem de propostas: tabela em `md+`, cartões em grid
+    abaixo disso (mesmo markup, classes `max-md:`). Inputs do formulário com 16px no mobile (evita zoom do iOS).
 - Pronto: convite de abertura da página pública (15/10/2026; sem migration; só no working tree/`dev`;
   conferido no Playwright em desktop e celular, mas não em produção):
   - Componente `app/(publico)/proposta/_components/invite-gate.tsx` (Client Component) embrulha o `<main>` da
@@ -512,7 +516,8 @@ rascunho → enviada → aprovada
   - Cobrança anual: dois blocos (Grátis → valor mensal; empilhados com seta para baixo no mobile) e selos
     "Nada a pagar agora" e "Fora do total do projeto".
   - Bônus de 60 dias: `value` passou de 6000 para 12000 (2 meses × R$ 60). Propostas existentes só mudam se
-    editadas e salvas (a "foto" fica em `proposals.bonuses`); nelas, conferir `hosting_annual` = 72000.
+    editadas e salvas (a "foto" fica em `proposals.bonuses`). Em produção NÃO há propostas reais (confirmado
+    em 16/10/2026), então não há dado antigo a corrigir; nas novas, digitar `hosting_annual` = R$ 720,00.
 - Pronto: arquivar proposta e ícones na listagem (15/10/2026; testado manualmente; sem migration):
   - `archiveProposal(input)` em `app/(privado)/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE
     único que preenche `deletedAt` com `WHERE id AND status IN ('draft','sent') AND deletedAt IS NULL`

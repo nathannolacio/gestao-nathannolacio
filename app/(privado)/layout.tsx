@@ -15,14 +15,14 @@ async function SessionHeader() {
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="admin-shell flex min-h-screen flex-1 flex-col bg-admin-ground text-admin-text md:flex-row">
+    <div className="admin-shell flex min-h-dvh flex-1 flex-col bg-admin-ground text-admin-text md:flex-row">
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Suspense fallback={<div className="h-14 shrink-0 border-b border-admin-line" />}>
           <SessionHeader />
         </Suspense>
-        <main className="flex-1 p-6 md:p-8">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 md:p-8">{children}</main>
       </div>
     </div>
   );

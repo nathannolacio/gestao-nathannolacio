@@ -1,3 +1,7 @@
+import Link from "next/link";
+import { MobileMenu } from "./mobile-menu";
+import { SidebarNav } from "./sidebar-nav";
+
 type HeaderProps = {
   userName: string;
   userEmail: string;
@@ -15,17 +19,32 @@ function initials(name: string) {
 
 export function Header({ userName, userEmail }: HeaderProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-end gap-3 border-b border-admin-line px-6 md:px-8">
-      <div className="hidden text-right leading-tight sm:block">
-        <p className="text-sm text-admin-text">{userName}</p>
-        <p className="text-xs text-admin-muted">{userEmail}</p>
+    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-admin-line px-4 sm:px-6 md:justify-end md:px-8">
+      {/* Só mobile: hambúrguer (abre a gaveta com o menu) + nome do sistema. */}
+      <div className="flex items-center gap-1 md:hidden">
+        <MobileMenu>
+          <SidebarNav />
+        </MobileMenu>
+        <Link
+          href="/propostas"
+          className="rounded-lg px-2 py-1 font-display text-lg font-medium tracking-tight text-admin-text"
+        >
+          Gestão
+        </Link>
       </div>
-      <span
-        aria-hidden="true"
-        className="flex size-8 items-center justify-center rounded-full bg-admin-raised text-xs font-medium text-dourado ring-1 ring-admin-line"
-      >
-        {initials(userName)}
-      </span>
+
+      <div className="flex items-center gap-3">
+        <div className="hidden text-right leading-tight sm:block">
+          <p className="text-sm text-admin-text">{userName}</p>
+          <p className="text-xs text-admin-muted">{userEmail}</p>
+        </div>
+        <span
+          aria-hidden="true"
+          className="flex size-8 items-center justify-center rounded-full bg-admin-raised text-xs font-medium text-dourado ring-1 ring-admin-line"
+        >
+          {initials(userName)}
+        </span>
+      </div>
     </header>
   );
 }

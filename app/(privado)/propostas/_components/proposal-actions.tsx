@@ -20,7 +20,7 @@ type Props = {
 };
 
 const iconButtonClass =
-    "inline-flex size-8 items-center justify-center rounded-lg border border-admin-line text-admin-muted transition-colors duration-150 hover:bg-admin-raised hover:text-admin-text disabled:opacity-50";
+    "inline-flex size-10 items-center md:size-8 justify-center rounded-lg border border-admin-line text-admin-muted transition-colors duration-150 hover:bg-admin-raised hover:text-admin-text disabled:opacity-50";
 
 export function ProposalActions({ id, publicToken, status, showDevRevert }: Props) {
     const [isPending, startTransition] = useTransition();

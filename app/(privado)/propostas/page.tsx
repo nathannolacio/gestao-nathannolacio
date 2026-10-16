@@ -66,8 +66,9 @@ async function ListaPropostas() {
 
     return (
         <div className="overflow-hidden rounded-xl border border-admin-line">
-            <table className="w-full text-left text-sm">
-                <thead>
+            {/* Abaixo de md a tabela vira lista de cartões (grid 2 colunas por linha). */}
+            <table className="w-full text-left text-sm max-md:block">
+                <thead className="max-md:hidden">
                     <tr className="border-b border-admin-line text-xs text-admin-muted">
                         <th scope="col" className="px-4 py-3 font-medium">Proposta</th>
                         <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Cliente</th>
@@ -79,26 +80,29 @@ async function ListaPropostas() {
                         </th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-admin-line">
+                <tbody className="divide-y divide-admin-line max-md:block">
                     {propostas.map((proposta) => (
-                        <tr key={proposta.id} className="transition-colors duration-150 hover:bg-admin-raised/50">
-                            <td className="px-4 py-3.5">
-                                <p className="font-medium text-admin-text">{proposta.title}</p>
+                        <tr
+                            key={proposta.id}
+                            className="transition-colors duration-150 hover:bg-admin-raised/50 max-md:grid max-md:grid-cols-[minmax(0,1fr)_auto] max-md:items-center max-md:gap-x-3 max-md:gap-y-3 max-md:px-4 max-md:py-4"
+                        >
+                            <td className="px-4 py-3.5 max-md:col-start-1 max-md:row-start-1 max-md:p-0">
+                                <p className="font-medium text-admin-text max-md:wrap-break-word">{proposta.title}</p>
                                 <p className="mt-0.5 text-admin-muted md:hidden">{proposta.client?.name}</p>
                             </td>
                             <td className="hidden px-4 py-3.5 text-admin-muted md:table-cell">
                                 {proposta.client?.name}
                             </td>
-                            <td className="px-4 py-3.5 text-right tabular-nums text-admin-text">
+                            <td className="px-4 py-3.5 text-right tabular-nums text-admin-text max-md:col-start-1 max-md:row-start-2 max-md:p-0 max-md:text-left">
                                 {formatBRL(totalDaProposta(proposta))}
                             </td>
-                            <td className="px-4 py-3.5">
+                            <td className="px-4 py-3.5 max-md:col-start-2 max-md:row-start-1 max-md:justify-self-end max-md:p-0">
                                 <StatusBadge status={proposta.status} />
                             </td>
-                            <td className="hidden px-4 py-3.5 text-right tabular-nums text-admin-muted sm:table-cell">
+                            <td className="hidden px-4 py-3.5 text-right tabular-nums text-admin-muted md:table-cell">
                                 {proposta.createdAt.toLocaleDateString("pt-BR")}
                             </td>
-                            <td className="px-4 py-3.5">
+                            <td className="px-4 py-3.5 max-md:col-start-2 max-md:row-start-2 max-md:p-0">
                                 <ProposalActions
                                     id={proposta.id}
                                     publicToken={proposta.publicToken}
