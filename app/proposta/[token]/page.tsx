@@ -18,6 +18,7 @@ import { connection } from "next/server";
 import { ClientCard } from "../_components/client-card";
 import { CoverGrid, Sunburst } from "../_components/cover-art";
 import { Icon } from "../_components/icons";
+import { InviteGate } from "../_components/invite-gate";
 import { PaymentChoice } from "../_components/payment-choice";
 import { ProjectCard } from "../_components/project-card";
 import { Rich } from "../_components/rich";
@@ -49,11 +50,12 @@ const partIntro =
 
 type ProposalPageProps = {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ convite?: string | string[] }>;
 };
 
-// A página em si não espera `params`: só repassa a promessa. O `await` fica
-// em <Proposal>, dentro do Suspense (exigência do cacheComponents).
-export default function ProposalPage({ params }: ProposalPageProps) {
+// A página em si não espera `params`/`searchParams`: só repassa as promessas. O `await`
+// fica em <Proposal>, dentro do Suspense (exigência do cacheComponents).
+export default function ProposalPage({ params, searchParams }: ProposalPageProps) {
   return (
     <Suspense
       fallback={
@@ -62,14 +64,15 @@ export default function ProposalPage({ params }: ProposalPageProps) {
         </div>
       }
     >
-      <Proposal params={params} />
+      <Proposal params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Proposal({ params }: ProposalPageProps) {
+async function Proposal({ params, searchParams }: ProposalPageProps) {
   await connection();
   const { token } = await params;
+  const { convite } = await searchParams;
 
   // Sempre pelo token, nunca pelo ID. Soft delete filtrado na query.
   const row = await db.query.proposals.findFirst({
@@ -82,7 +85,13 @@ async function Proposal({ params }: ProposalPageProps) {
 
   // "Não existe" e "é rascunho sem login" respondem igual (404): não revela o token.
   if (!row || !row.client) notFound();
-  if (row.status === "draft" && !(await getOptionalUser())) notFound();
+  const user = await getOptionalUser();
+  if (row.status === "draft" && !user) notFound();
+
+  // Convite de abertura: só para o cliente (sem sessão) e enquanto não aprovada. O dono
+  // abre direto; para testar a animação, ?convite=1 (só vale com sessão, ignora o "já abriu").
+  const forceInvite = user !== null && convite === "1";
+  const skipInvite = row.status === "approved" || (user !== null && !forceInvite);
 
   const p = {
     title: row.title,
@@ -109,6 +118,13 @@ async function Proposal({ params }: ProposalPageProps) {
   const pixSaving = total - pixTotal(total);
 
   return (
+    <InviteGate
+      token={token}
+      clientName={p.clientName}
+      senderName={c.about.name}
+      skip={skipInvite}
+      force={forceInvite}
+    >
     <main className="overflow-x-clip">
       {/* Capa */}
       <header className="relative z-20 flex min-h-svh flex-col rounded-b-[3rem] bg-marfim text-grafite [--accent:#82612f] shadow-[0_24px_40px_-24px_rgb(22_22_28/0.25)]">
@@ -571,5 +587,6 @@ async function Proposal({ params }: ProposalPageProps) {
         </div>
       </footer>
     </main>
+    </InviteGate>
   );
 }

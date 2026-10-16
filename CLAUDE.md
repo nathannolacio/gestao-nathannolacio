@@ -92,6 +92,8 @@ Foco atual. Gestão completa de clientes, contratos, pagamentos e gateway ficam 
 
 ## Seções da proposta (na ordem da página)
 Fixas = vêm do modelo, iguais para todos. Variáveis = preenchidas por proposta.
+   (antes da capa, na 1ª visita do cliente, há um convite de abertura em tela cheia; ver "Pronto: convite de
+   abertura")
 0. Capa (título da proposta + card flutuante com o nome/logo do cliente; variável)
 1. Quem sou eu (fixa)
 2. Vantagens de trabalhar comigo (fixa)
@@ -458,6 +460,27 @@ rascunho → enviada → aprovada
   - `NavLink` (`app/admin/_components/nav-link.tsx`): `usePathname()` dentro de `<Suspense>` (com fallback
     sem destaque), pois em rotas com segmento dinâmico o pathname é dado de runtime e bloqueava o prerender.
 - `npm audit`: 5 "high" na cadeia `braces` → `eslint-config-next` (só lint). Não rodar `audit fix --force`.
+- Pronto: convite de abertura da página pública (15/10/2026; sem migration; só no working tree/`dev`;
+  conferido no Playwright em desktop e celular, mas não em produção):
+  - Componente `app/proposta/_components/invite-gate.tsx` (Client Component) embrulha o `<main>` da
+    `app/proposta/[token]/page.tsx`. A proposta continua renderizada no servidor por baixo (inerte via ref, sem
+    rolagem); o cliente vê um envelope dourado e clica em "Abrir proposta" para chegar ao Hero.
+  - Quando aparece: só na 1ª visita por NAVEGADOR (`localStorage`, chave `proposal-invite:<token>`, lido com
+    `useSyncExternalStore`: no servidor o valor é `null`, então o HTML já sai com a tela opaca, sem mostrar a
+    proposta nem piscar o envelope para quem já abriu). Não aparece em proposta `approved` nem para o dono
+    logado; `?convite=1` (só com sessão) força o convite para testar a animação. Decisão no servidor
+    (`skipInvite`/`forceInvite` em `page.tsx`); sem JS o `<noscript>` esconde o convite. NÃO há registro no banco
+    de "visualizada" (opção adiada: coluna `viewed_at` + action pública validada pelo token).
+  - Visual: base no grafite do projeto (bordas `--color-grafite`, centro aquecido `#2c2720`), 5 ondas de seda em
+    SVG (`SilkWave`: planos de profundidade com desfoque/opacidade/velocidade crescentes; formas `a/b/c`), bokeh
+    dourado subindo, paralaxe com o ponteiro (variáveis CSS `--px`/`--py`, sem re-render) e duas faixas de texto
+    em loop ("Proposta comercial" dourada em cima, "Sua proposta está pronta" translúcida embaixo), em sentidos
+    opostos. As faixas ficam NO FLUXO do layout (acima e abaixo do conteúdo) para nunca cruzar o texto em telas
+    baixas; o envelope encolhe por `svh`. Abertura: lacre some → aba gira → carta sobe → fade (~2,2s;
+    `OPEN_MS` = 2300 deve ser sempre ≥ ao fim do fade). Keyframes (`marquee`, `wave-bob`, `bokeh`) em
+    `app/globals.css`; `prefers-reduced-motion` desliga tudo, inclusive a paralaxe.
+  - Custo conhecido: 5 SVGs com blur + bokeh animados podem pesar em celular antigo (primeiro corte: a onda de
+    fundo, blur de 10px). Texto das faixas e do convite está FIXO no componente.
 - Pronto: reorganização do card de Investimento na página pública (15/10/2026; sem migration; só no working
   tree/`dev`, ainda não conferida no navegador nem em produção):
   - Ordem: projeto → bônus → forma de pagamento → cobrança anual → botão "Aprovar proposta". Para a cobrança
