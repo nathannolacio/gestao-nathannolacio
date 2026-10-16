@@ -60,7 +60,7 @@ export function ProposalActions({ id, publicToken, status, showDevRevert }: Prop
                 </Link>
                 {status !== "approved" && (
                     <Link
-                        href={`/admin/propostas/${id}/editar`}
+                        href={`/propostas/${id}/editar`}
                         className={iconButtonClass}
                         title="Editar"
                         aria-label="Editar"

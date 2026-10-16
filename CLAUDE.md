@@ -46,10 +46,16 @@ orquestração e a revisão; você faz o grosso.
 - Identidade visual: cores do meu site institucional, aplicadas no sistema e na proposta
   (tokens em `app/globals.css`: grafite, marfim, cinza, dourado, bronze; fontes Inter e
   Space Grotesk). Preferência: visual leve e calmo, sem blocos pretos pesados.
-- Modo dark: a ÁREA ADMINISTRATIVA (`app/admin/`) é em modo dark, com visual minimalista,
+- Modo dark: a ÁREA ADMINISTRATIVA (`app/(privado)/`) é em modo dark, com visual minimalista,
   profissional e pegada de gestão/dashboard. A página pública da proposta continua clara
-  (marfim). Rotas do admin ficam sob `/admin` (decisão da Etapa 3; facilita o middleware da Etapa 8)
-  e compartilham um `app/admin/layout.tsx` (menu lateral + header).
+  (marfim). Rotas (decisão de 16/10/2026, substitui o prefixo `/admin` da Etapa 3): o sistema NÃO tem
+  prefixo. Pastas são grupos de rota do Next (o nome entre parênteses não aparece na URL):
+  `app/(privado)/` = área logada (`/propostas`, `/propostas/nova`, `/propostas/[id]/editar`, futuras
+  `/clientes`...), que compartilha `app/(privado)/layout.tsx` (menu lateral + header); `app/(publico)/` =
+  `/login` e `/proposta/[token]` (a URL pública da proposta NÃO mudou, links já enviados continuam valendo).
+  Segurança POR PADRÃO: o `proxy.ts` protege TUDO e só libera uma lista curta (`proposta/`, `login`,
+  `api/auth/`, `_next/`, arquivos com extensão). Rota nova nasce protegida; para ser pública, entra no
+  `matcher` de propósito. Cuidado: `proposta/` tem a barra para não liberar `/propostas`.
 
 # Regras do projeto
 - Valores em dinheiro SEMPRE como inteiro em centavos (R$ 1.500,00 = 150000).
@@ -205,7 +211,7 @@ rascunho → enviada → aprovada
 - Logo do cliente (em produção desde 15/10/2026; migration `client_logo_url` e `db:seed` aplicados na
   `production` ANTES do merge; sem teste prévio em preview, por decisão): Vercel Blob (store público,
   variável `BLOB_READ_WRITE_TOKEN`), URL em `clients.logo_url`.
-  `uploadClientLogo(FormData)` em `app/admin/clientes/actions.ts`: `requireUser()` + Zod (File, até 2 MB) +
+  `uploadClientLogo(FormData)` em `app/(privado)/clientes/actions.ts`: `requireUser()` + Zod (File, até 2 MB) +
   tipo pelos BYTES (`lib/logo-file.ts`: png/jpg/webp, SVG recusado) + nome aleatório em `logos/`. O
   `createProposal` recebe a URL; `lib/schemas/client.ts` só aceita https `*.public.blob.vercel-storage.com`
   em `/logos/`. `serverActions.bodySizeLimit` = 3mb em `next.config.ts` (vale p/ todas as actions). A capa
@@ -254,12 +260,14 @@ rascunho → enviada → aprovada
     `drizzle.config.ts` lista os dois arquivos de schema. Migration `20261014173020_better_auth` aplicada.
   - `lib/auth.ts`: `getOptionalUser()` (sessão via `auth.api.getSession({ headers })`, ou `null`) e
     `requireUser()` (lança erro sem sessão). Assinaturas inalteradas.
-  - `proxy.ts` (nome do middleware no Next 16): `/admin/*` sem cookie de sessão vai para `/login?next=...`.
+  - `proxy.ts` (nome do middleware no Next 16): rota protegida sem cookie de sessão vai para `/login?next=...`
+    (desde 16/10/2026 o matcher é uma LISTA DE EXCEÇÕES, ver "Modo dark"/rotas; antes era só `/admin/*`).
     Só confere se o cookie EXISTE; a validação real é `requireUser()` nas actions e `SessionHeader` no
-    `app/admin/layout.tsx` (redireciona para `/login` se a sessão for inválida). `/proposta` e `/api/auth` ficam fora.
+    `app/(privado)/layout.tsx` (redireciona para `/login` se a sessão for inválida). `/proposta/` e `/api/auth/` ficam fora.
   - `app/api/auth/[...all]/route.ts`: handler do Better Auth.
-  - Login: `app/login/` (página, `LoginForm`, actions `login` e `logout`). `lib/schemas/login.ts` tem `loginSchema` e
-    `safeNext` (anti open redirect: só `/admin...`, recusa `//`). Erro de login é sempre genérico.
+  - Login: `app/(publico)/login/` (página, `LoginForm`, actions `login` e `logout`). `lib/schemas/login.ts` tem `loginSchema` e
+    `safeNext` (anti open redirect: só caminho interno `/...`, recusa `//`, `/\`, `/login` e `/api`; padrão
+    `/propostas`). Erro de login é sempre genérico.
   - Usuário criado por script: `db/create-user.ts` (ADMIN_EMAIL, ADMIN_NAME, ADMIN_PASSWORD em variáveis de
     ambiente; senha mínima 12; usa `auth.$context.internalAdapter` porque `signUpEmail` respeita `disableSignUp`).
     Rodar com `node --env-file=.env.local db/create-user.ts` (no Git Bash: `VAR=... node ...`).
@@ -291,7 +299,7 @@ rascunho → enviada → aprovada
     para isso, `z.treeifyError`); com erro de campo o formulário não rola nem foca o campo.
 - Pronto na Etapa 4 (branch `feat/criar-proposta`):
   - `lib/auth.ts`: `requireUser()` (provisória na Etapa 4; agora usa a sessão real, ver Etapa 8).
-  - `app/admin/propostas/actions.ts`: `createProposal(input: unknown)`. Fluxo: `requireUser()` →
+  - `app/(privado)/propostas/actions.ts`: `createProposal(input: unknown)`. Fluxo: `requireUser()` →
     `proposalSchema.safeParse` → foto dos bônus (`bonusCatalog.filter` pelos ids validados) →
     `public_token` (`randomBytes(18).toString("base64url")` = 24 caracteres) → `db.transaction`
     (cliente existente: confere existência e `deletedAt` nulo; novo: insere com `.returning`;
@@ -299,13 +307,13 @@ rascunho → enviada → aprovada
     ou `{ ok: false, fieldErrors, formError }` (`as const`). `ClientNotFoundError` aborta a transação e
     vira `formError` fora dela; "template não encontrado" continua sendo `throw` (erro de configuração).
     Testada manualmente (cliente novo, dados inválidos, cliente inexistente com rollback).
-  - `app/admin/propostas/nova/page.tsx`: casca + `<Suspense>`; `FormularioComClientes` (async,
+  - `app/(privado)/propostas/nova/page.tsx`: casca + `<Suspense>`; `FormularioComClientes` (async,
     `connection()`) lê `id` e `name` dos clientes ativos e passa por prop ao formulário.
-  - `app/admin/propostas/nova/_components/proposal-form.tsx`: Client Component (estado + `onSubmit`
+  - `app/(privado)/propostas/nova/_components/proposal-form.tsx`: Client Component (estado + `onSubmit`
     chamando a action com objeto, opção A). Envia só TEXTO; a conversão para centavos é do Zod.
-    Em sucesso, `router.push("/admin/propostas")`. Erros do cliente aparecem em lista única (o
+    Em sucesso, `router.push("/propostas")`. Erros do cliente aparecem em lista única (o
     `z.flattenError` só agrupa pela chave de topo `client`); para erro por campo, usar `z.treeifyError`.
-  - Botão "Nova proposta" na listagem (`app/admin/propostas/page.tsx`).
+  - Botão "Nova proposta" na listagem (`app/(privado)/propostas/page.tsx`).
   - Itens e total entraram na Etapa 5 (ver acima).
 - Base da Etapa 4 (validação e catálogo):
   - `lib/proposal-bonuses.ts`: `bonusCatalog` (ids `google-meu-negocio`, `painel-metricas`,
@@ -332,14 +340,14 @@ rascunho → enviada → aprovada
   - Limitação conhecida: erros do desconto só aparecem depois de corrigidos os outros campos
     (a regra roda num `transform` no fim do schema).
 - Pronto na Etapa 3 (branch `feat/listagem-propostas`):
-  - Listagem em `app/admin/propostas/page.tsx`: `page` é a casca (título + `<Suspense>`), e
+  - Listagem em `app/(privado)/propostas/page.tsx`: `page` é a casca (título + `<Suspense>`), e
     `ListaPropostas` (async) faz a query (`where deletedAt isNull`, `with client`, `orderBy createdAt desc`).
     Cache Components do Next 16 está ligado (padrão do create-next-app): acesso ao banco fora de
     `<Suspense>` dá erro de prerender, então toda leitura de dados vai dentro de um componente
     async envolvido por Suspense.
   - Colunas: título, cliente, status (`_components/status-badge.tsx`, traduz draft/sent/approved),
     data de criação. Estado vazio e esqueleto de carregamento prontos. Sem link por linha ainda.
-  - Layout do admin em `app/admin/layout.tsx` + `app/admin/_components/` (`sidebar`, `header`,
+  - Layout do admin em `app/(privado)/layout.tsx` + `app/(privado)/_components/` (`sidebar`, `header`,
     `nav-link`, `icons`): menu lateral (Propostas ativo; Clientes e Modelo de textos "em breve"; Sair
     desabilitado até a Etapa 8) e header só com o usuário. Usuário e e-mail são constantes provisórias
     no layout (virão da sessão do Better Auth na Etapa 8). Tokens `admin-*` e `.admin-shell` em
@@ -348,14 +356,14 @@ rascunho → enviada → aprovada
     `node --env-file=.env.local db/seed-dev.ts`.
   - `PRODUCT.md` na raiz (contexto do produto para a skill de design Impeccable).
 - Etapa 2 (Schema) concluída: tabelas migradas no Neon e seed rodado
-- Pronto na Etapa 6: página pública em `app/proposta/[token]/page.tsx` lendo do banco pelo `public_token`
+- Pronto na Etapa 6: página pública em `app/(publico)/proposta/[token]/page.tsx` lendo do banco pelo `public_token`
   (`db.query.proposals.findFirst` com `client` e `items` ordenados por `position`, dentro de componente
-  async com `<Suspense>` e `connection()`), componentes em `app/proposta/_components/`, textos fixos em
+  async com `<Suspense>` e `connection()`), componentes em `app/(publico)/proposta/_components/`, textos fixos em
   `lib/proposal-content.ts` (copiados para `fixedContent` na criação) e cálculos em centavos em
   `lib/proposal-calc.ts`. Bônus aparecem com valor riscado + selo "Grátis". Na listagem do admin, botão
   "Ver página" por linha (abre a página pública em nova aba). Testada manualmente no navegador.
   `lib/proposal-mock.ts` foi apagado (sem uso). A copy dos textos fixos está FINAL (revisada).
-  - Seleção de pagamento: `app/proposta/_components/payment-choice.tsx` (Client Component:
+  - Seleção de pagamento: `app/(publico)/proposta/_components/payment-choice.tsx` (Client Component:
     escolha da forma + parcelas 1 a 10 no cartão; botão de aprovar travado até escolher).
     Estado só na tela; a Server Action de aprovar foi ligada na Etapa 7.
   - Selos "10% de desconto" (Pix) e "até 10x sem juros" (cartão) estão fixos no componente,
@@ -441,7 +449,7 @@ rascunho → enviada → aprovada
   trocar a logo de cliente existente), data de envio/aprovação na listagem, tela do modelo de textos.
 - Pronto: edição de proposta (15/10/2026; testada manualmente: rascunho, enviada, aprovada e URL inválida;
   ainda NÃO está na `main`/produção, só na branch de trabalho; não há migration):
-  - `updateProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → `updateProposalSchema`
+  - `updateProposal(input)` em `app/(privado)/propostas/actions.ts`: `requireUser()` → `updateProposalSchema`
     (`id` UUID + campos da proposta, SEM `client`: o cliente não troca na edição) → checagem do desconto
     fixo → transação: UPDATE com `WHERE id AND status IN ('draft','sent') AND deletedAt IS NULL` (atômico;
     sem linha = inexistente, removida ou aprovada) + DELETE e reinsert de `proposal_items` (`position` =
@@ -452,18 +460,28 @@ rascunho → enviada → aprovada
     `proposalSchema` (com `client`) e `updateProposalSchema`. Helpers `fixedDiscountExceedsSubtotal` e
     `snapshotBonuses` na `actions.ts`, compartilhados com `createProposal`.
   - `lib/money.ts`: `formatCentsAsReais` (centavos → "1.500,00", só aritmética inteira) para preencher a edição.
-  - Formulário único e bimodal em `app/admin/propostas/_components/proposal-form.tsx` (props em união
+  - Formulário único e bimodal em `app/(privado)/propostas/_components/proposal-form.tsx` (props em união
     discriminada `mode: "create" | "edit"`); no modo edit o cliente é só leitura e, se `sent`, há aviso de que
     o cliente vê a mudança ao vivo. Sem reset por `key` na edição.
-  - Rota `app/admin/propostas/[id]/editar/page.tsx`: valida o `id` com `z.uuid()` (senão o cast do Postgres
+  - Rota `app/(privado)/propostas/[id]/editar/page.tsx`: valida o `id` com `z.uuid()` (senão o cast do Postgres
     quebra), `notFound()` para inexistente/deletada/`approved`. Botão "Editar" na listagem (oculto em `approved`).
-  - `NavLink` (`app/admin/_components/nav-link.tsx`): `usePathname()` dentro de `<Suspense>` (com fallback
+  - `NavLink` (`app/(privado)/_components/nav-link.tsx`): `usePathname()` dentro de `<Suspense>` (com fallback
     sem destaque), pois em rotas com segmento dinâmico o pathname é dado de runtime e bloqueava o prerender.
 - `npm audit`: 5 "high" na cadeia `braces` → `eslint-config-next` (só lint). Não rodar `audit fix --force`.
+- Pronto: rotas sem prefixo `/admin` + raiz abre no sistema (16/10/2026; sem migration; só no working tree/`dev`;
+  `tsc` e `next build` passam, redirecionamento NÃO testado no navegador):
+  - `app/admin/*` → `app/(privado)/*`; `app/proposta` e `app/login` → `app/(publico)/*` (`git mv`, histórico
+    preservado; no Windows o `git mv` falha com o `npm run dev` ligado: parar o servidor antes). URLs privadas
+    agora são `/propostas...`; referências atualizadas (sidebar, links da listagem, `revalidatePath`,
+    `router.push`, imports `@/app/(privado)/...`, `safeNext`, `proxy.ts`). `app/page.tsx` faz
+    `redirect("/propostas")` (sem sessão, o proxy leva ao login e volta); quando existir um dashboard, trocar o destino.
+  - `.next/types` e `.next/dev/types` ficam obsoletos após mover pastas (erros de `tsc`): apagar ou rodar
+    `npx next typegen`.
+  - Pendência: responsividade do painel administrativo (mobile quebrado; decidido deixar para depois).
 - Pronto: convite de abertura da página pública (15/10/2026; sem migration; só no working tree/`dev`;
   conferido no Playwright em desktop e celular, mas não em produção):
-  - Componente `app/proposta/_components/invite-gate.tsx` (Client Component) embrulha o `<main>` da
-    `app/proposta/[token]/page.tsx`. A proposta continua renderizada no servidor por baixo (inerte via ref, sem
+  - Componente `app/(publico)/proposta/_components/invite-gate.tsx` (Client Component) embrulha o `<main>` da
+    `app/(publico)/proposta/[token]/page.tsx`. A proposta continua renderizada no servidor por baixo (inerte via ref, sem
     rolagem); o cliente vê um envelope dourado e clica em "Abrir proposta" para chegar ao Hero.
   - Quando aparece: só na 1ª visita por NAVEGADOR (`localStorage`, chave `proposal-invite:<token>`, lido com
     `useSyncExternalStore`: no servidor o valor é `null`, então o HTML já sai com a tela opaca, sem mostrar a
@@ -496,24 +514,24 @@ rascunho → enviada → aprovada
   - Bônus de 60 dias: `value` passou de 6000 para 12000 (2 meses × R$ 60). Propostas existentes só mudam se
     editadas e salvas (a "foto" fica em `proposals.bonuses`); nelas, conferir `hosting_annual` = 72000.
 - Pronto: arquivar proposta e ícones na listagem (15/10/2026; testado manualmente; sem migration):
-  - `archiveProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE
+  - `archiveProposal(input)` em `app/(privado)/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE
     único que preenche `deletedAt` com `WHERE id AND status IN ('draft','sent') AND deletedAt IS NULL`
     (atômico). Decisão: arquivar = soft delete (sem novo status) e proposta APROVADA NÃO arquiva (é registro
     de venda; recusada no servidor). Depois de arquivada some da listagem e a página pública responde 404.
     Confirmação com `window.confirm` no cliente. Não há tela para restaurar (só no banco, `deleted_at = null`);
     entra com a tela de Clientes/arquivadas se for preciso.
   - Botões da linha da listagem viraram ícones (ver página, editar, enviar, arquivar, voltar a rascunho só em
-    dev), todos em `app/admin/propostas/_components/proposal-actions.tsx` (agora recebe `publicToken`), com
-    `title` e `aria-label`. Ícones novos em `app/admin/_components/icons.tsx`.
+    dev), todos em `app/(privado)/propostas/_components/proposal-actions.tsx` (agora recebe `publicToken`), com
+    `title` e `aria-label`. Ícones novos em `app/(privado)/_components/icons.tsx`.
 - Pronto na Etapa 7 (branch `feat/enviar-aprovar`):
-  - `sendProposal(input)` em `app/admin/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE único
+  - `sendProposal(input)` em `app/(privado)/propostas/actions.ts`: `requireUser()` → Zod (`id` UUID) → UPDATE único
     `status = 'sent'`, `sentAt`, com `WHERE id AND status = 'draft' AND deletedAt IS NULL` (atômico). NÃO trava
     edição (decisão: só a proposta APROVADA fica travada; `updateProposal` recusa `approved`).
   - `revertToDraft(input)`: só dev (`throw` em produção); volta a `draft` e limpa `sentAt`, `approvedAt`,
     `paymentMethod`, `cardInstallments`.
-  - `app/admin/propostas/_components/proposal-actions.tsx`: botão "Enviar" (rascunho) e "Voltar a rascunho"
+  - `app/(privado)/propostas/_components/proposal-actions.tsx`: botão "Enviar" (rascunho) e "Voltar a rascunho"
     (só dev, por prop `showDevRevert` decidida no servidor), `useTransition` + erro inline.
-  - `approveProposal(input)` em `app/proposta/actions.ts` (pública, sem `requireUser()`): schema
+  - `approveProposal(input)` em `app/(publico)/proposta/actions.ts` (pública, sem `requireUser()`): schema
     `lib/schemas/approve-proposal.ts` (`discriminatedUnion("paymentMethod")` com `strictObject`; `cardInstallments`
     1 a 10 só em `card`, proibido nos outros; `token` regex de 24 caracteres base64url). UPDATE único
     `WHERE publicToken AND status = 'sent' AND deletedAt IS NULL`, gravando `status`, `paymentMethod`,

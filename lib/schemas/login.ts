@@ -10,14 +10,18 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
-const DEFAULT_REDIRECT = "/admin/propostas";
+const DEFAULT_REDIRECT = "/propostas";
 
-// Evita open redirect: só aceita caminho interno do admin. Recusa URL absoluta
+// Não vale voltar para o login (loop) nem para a API.
+const BLOCKED = /^\/(login|api)(\/|$)/;
+
+// Evita open redirect: só aceita caminho interno do sistema. Recusa URL absoluta
 // ("https://..."), protocol-relative ("//site.com") e barra invertida ("/\site.com"),
 // que alguns navegadores tratam como "//".
 export function safeNext(next: string | undefined): string {
     if (!next) return DEFAULT_REDIRECT;
-    if (!/^\/admin(\/[A-Za-z0-9\-._~%/]*)?$/.test(next)) return DEFAULT_REDIRECT;
+    if (!/^\/[A-Za-z0-9\-._~%/]*$/.test(next)) return DEFAULT_REDIRECT;
     if (next.includes("//")) return DEFAULT_REDIRECT;
+    if (BLOCKED.test(next)) return DEFAULT_REDIRECT;
     return next;
 }

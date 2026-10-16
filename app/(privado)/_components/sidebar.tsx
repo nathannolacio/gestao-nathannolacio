@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { logout } from "@/app/login/actions";
+import { logout } from "@/app/(publico)/login/actions";
 import { ClientsIcon, LogoutIcon, ProposalsIcon, TemplateIcon } from "./icons";
 import { NavLink } from "./nav-link";
 
@@ -10,7 +10,7 @@ export function Sidebar() {
   return (
     <aside className="flex shrink-0 items-center gap-1 border-b border-admin-line bg-admin-sidebar px-3 py-3 md:sticky md:top-0 md:h-screen md:w-60 md:flex-col md:items-stretch md:gap-8 md:border-r md:border-b-0 md:py-5">
       <Link
-        href="/admin/propostas"
+        href="/propostas"
         className="shrink-0 rounded-lg px-3 py-1 font-display text-lg font-medium tracking-tight text-admin-text"
       >
         Gestão
@@ -20,7 +20,7 @@ export function Sidebar() {
         aria-label="Principal"
         className="flex min-w-0 flex-1 items-center gap-1 md:flex-col md:items-stretch"
       >
-        <NavLink href="/admin/propostas" icon={<ProposalsIcon />}>
+        <NavLink href="/propostas" icon={<ProposalsIcon />}>
           Propostas
         </NavLink>
 

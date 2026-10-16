@@ -229,7 +229,7 @@ export async function updateProposal(input: unknown) {
         };
     }
 
-    revalidatePath("/admin/propostas");
+    revalidatePath("/propostas");
 
     return { ok: true as const };
 }
@@ -266,7 +266,7 @@ export async function sendProposal(input: unknown) {
         };
     }
 
-    revalidatePath("/admin/propostas");
+    revalidatePath("/propostas");
 
     return { ok: true as const };
 }
@@ -301,7 +301,7 @@ export async function archiveProposal(input: unknown) {
         };
     }
 
-    revalidatePath("/admin/propostas");
+    revalidatePath("/propostas");
 
     return { ok: true as const };
 }
@@ -338,7 +338,7 @@ export async function revertToDraft(input: unknown) {
         return { ok: false as const, formError: "Proposta não encontrada." };
     }
 
-    revalidatePath("/admin/propostas");
+    revalidatePath("/propostas");
 
     return { ok: true as const };
 }

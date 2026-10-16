@@ -2,8 +2,8 @@
 
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { createProposal, updateProposal } from "@/app/admin/propostas/actions";
-import { uploadClientLogo } from "@/app/admin/clientes/actions";
+import { createProposal, updateProposal } from "@/app/(privado)/propostas/actions";
+import { uploadClientLogo } from "@/app/(privado)/clientes/actions";
 import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
 
 type ClientOption = { id: string; name: string };
@@ -204,7 +204,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                       });
 
             if (res.ok) {
-                router.push("/admin/propostas");
+                router.push("/propostas");
                 if (props.mode === "create") props.onCreated();
                 return;
             }

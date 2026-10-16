@@ -11,7 +11,7 @@ type NavLinkProps = {
 };
 
 // O pathname só é conhecido em tempo de requisição nas rotas com segmento dinâmico
-// (ex.: /admin/propostas/[id]/editar), então `usePathname` precisa ficar dentro de <Suspense>.
+// (ex.: /propostas/[id]/editar), então `usePathname` precisa ficar dentro de <Suspense>.
 // O fallback é o mesmo link sem destaque: o menu já vem na casca estática e o item ativo
 // entra por streaming.
 export function NavLink(props: NavLinkProps) {

@@ -9,7 +9,7 @@ export async function getOptionalUser() {
     return session?.user ?? null;
 }
 
-// Para Server Actions e páginas do admin: sem sessão válida, lança erro.
+// Para Server Actions e páginas privadas: sem sessão válida, lança erro.
 // Toda Server Action chama isto primeiro (o proxy protege páginas, mas não
 // substitui esta checagem: a action é um endpoint acessível pela rede).
 export async function requireUser() {

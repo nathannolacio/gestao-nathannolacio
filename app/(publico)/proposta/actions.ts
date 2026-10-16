@@ -47,7 +47,7 @@ export async function approveProposal(input: unknown) {
         };
     }
 
-    revalidatePath("/admin/propostas");
+    revalidatePath("/propostas");
 
     return { ok: true as const };
 }

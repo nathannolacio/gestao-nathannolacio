@@ -20,7 +20,7 @@ export default function Propostas() {
                     Propostas
                 </h1>
                 <Link
-                    href="/admin/propostas/nova"
+                    href="/propostas/nova"
                     className="rounded-lg bg-dourado px-4 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
                 >
                     Nova proposta
