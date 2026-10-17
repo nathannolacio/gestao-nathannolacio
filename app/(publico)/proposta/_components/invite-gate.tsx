@@ -13,6 +13,9 @@ import {
 // Tempo total da animação de abertura (aba + carta + fade da tela) antes de remover o convite.
 const OPEN_MS = 2300;
 
+// Evento da janela que reabre o convite (disparado pelo `ReopenInviteButton`).
+export const REOPEN_INVITE_EVENT = "proposal:reopen-invite";
+
 type InviteGateProps = {
   token: string;
   clientName: string;
@@ -207,17 +210,33 @@ export function InviteGate({
   const [opened, setOpened] = useState(false);
   const [done, setDone] = useState(false);
 
-  const phase: "gone" | "checking" | "showing" | "opening" = skip
-    ? "gone"
-    : opened
-      ? done
-        ? "gone"
-        : "opening"
-      : seen === null
-        ? "checking"
-        : seen && !force
-          ? "gone"
-          : "showing";
+  // Reaberto pelo botão do topo: mostra o convite de novo, ignorando `skip` e o "já abriu".
+  const [replay, setReplay] = useState(false);
+
+  useEffect(() => {
+    function reopen() {
+      setOpened(false);
+      setDone(false);
+      setReplay(true);
+    }
+    window.addEventListener(REOPEN_INVITE_EVENT, reopen);
+    return () => window.removeEventListener(REOPEN_INVITE_EVENT, reopen);
+  }, []);
+
+  const phase: "gone" | "checking" | "showing" | "opening" =
+    opened && done
+      ? "gone"
+      : opened
+        ? "opening"
+        : replay
+          ? "showing"
+          : skip
+            ? "gone"
+            : seen === null
+              ? "checking"
+              : seen && !force
+                ? "gone"
+                : "showing";
 
   const active = phase !== "gone";
 
