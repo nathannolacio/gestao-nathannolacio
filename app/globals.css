@@ -243,7 +243,30 @@ body {
   animation: wave-bob 11s ease-in-out infinite;
 }
 
+/* Indicador de rolagem da capa: a seta desce e some, repetindo */
+@keyframes scroll-cue {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.animate-scroll-cue {
+  animation: scroll-cue 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .animate-scroll-cue {
+    animation: none;
+  }
+
   .animate-card-in,
   .animate-float,
   .animate-glow-pulse,

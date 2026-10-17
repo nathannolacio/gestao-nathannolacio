@@ -26,6 +26,7 @@ import { ClientCard } from "../_components/client-card";
 import { CoverGrid, Sunburst } from "../_components/cover-art";
 import { Icon } from "../_components/icons";
 import { InviteGate } from "../_components/invite-gate";
+import { ReopenInviteButton } from "../_components/reopen-invite-button";
 import { PaymentChoice } from "../_components/payment-choice";
 import { ProjectCard } from "../_components/project-card";
 import { Rich } from "../_components/rich";
@@ -62,6 +63,24 @@ type ProposalPageProps = {
 
 // A página em si não espera `params`/`searchParams`: só repassa as promessas. O `await`
 // fica em <Proposal>, dentro do Suspense (exigência do cacheComponents).
+// Botões da capa: ir direto ao investimento e rever o convite. A capa renderiza o bloco duas vezes
+// (abaixo do parágrafo no desktop e abaixo da moldura no mobile); o CSS esconde o que não cabe.
+function CoverActions({ className }: { className: string }) {
+  return (
+    <nav
+      className={`flex flex-col gap-3 text-center text-xs lg:flex-row font-semibold uppercase tracking-widest ${className}`}
+    >
+      <a
+        href="#investimento"
+        className="whitespace-nowrap rounded-full bg-bronze px-5 py-3 text-marfim transition hover:bg-grafite"
+      >
+        Ver investimento
+      </a>
+      <ReopenInviteButton className="cursor-pointer whitespace-nowrap rounded-full border border-grafite/20 px-5 py-3 text-cinza transition hover:border-grafite/40 hover:text-grafite" />
+    </nav>
+  );
+}
+
 export default function ProposalPage({ params, searchParams }: ProposalPageProps) {
   return (
     <Suspense
@@ -151,15 +170,10 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
         <Sunburst className="absolute bottom-[10%] right-[4%] hidden size-44 lg:block" />
         </div>
 
-        <div className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-6 pt-8">
+        <div className="relative z-10 mx-auto flex w-full max-w-6xl items-center px-6 pt-8">
           <p className="font-display text-xl font-bold tracking-tight">
             {c.about.name}
           </p>
-          <nav className="hidden gap-8 text-xs uppercase tracking-widest text-cinza sm:flex">
-            <a href="#sobre" className="-my-3.5 py-3.5 hover:text-grafite">Sobre</a>
-            <a href="#portfolio" className="-my-3.5 py-3.5 hover:text-grafite">Portfólio</a>
-            <a href="#investimento" className="-my-3.5 py-3.5 hover:text-grafite">Investimento</a>
-          </nav>
         </div>
 
         <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-center gap-14 px-6 pb-20 pt-16 lg:grid-cols-2 lg:items-center lg:pb-0">
@@ -172,11 +186,38 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
             <p className="mt-6 max-w-md text-pretty text-lg leading-8 text-cinza">
               Escopo, prazo e investimento do seu projeto, reunidos em um só lugar.
             </p>
+            {/* desktop: botões abaixo do parágrafo */}
+            <CoverActions className="mt-10 hidden lg:flex" />
           </div>
           <div className="lg:flex lg:justify-center">
-            <ClientCard clientName={p.clientName} logoUrl={p.clientLogoUrl} />
+            <div className="w-full max-w-sm">
+              <ClientCard clientName={p.clientName} logoUrl={p.clientLogoUrl} />
+              {/* mobile: botões abaixo da moldura flutuante */}
+              <CoverActions className="mt-14 lg:hidden" />
+            </div>
           </div>
         </div>
+
+        {/* indicador de rolagem (desktop): avisa que a proposta continua abaixo da capa */}
+        <a
+          href="#sobre"
+          aria-label="Rolar para ver a proposta"
+          className="absolute inset-x-0 bottom-8 z-10 mx-auto hidden w-fit flex-col items-center gap-1 text-[0.6875rem] font-semibold uppercase tracking-[0.25em] text-cinza transition hover:text-grafite lg:flex"
+        >
+          Role para ver a proposta
+          <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            className="animate-scroll-cue size-6 text-(--accent)"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </a>
       </header>
 
       {/* 1. Quem sou eu */}
@@ -645,7 +686,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
               open={idx === 0}
               className="group border-b border-(--line)"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-lg py-6 font-display text-xl leading-snug">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-lg py-6 font-display text-xl leading-snug [&::-webkit-details-marker]:hidden">
                 {f.question}
                 <svg
                   aria-hidden
