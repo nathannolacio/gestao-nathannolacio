@@ -269,8 +269,13 @@ rascunho → enviada → aprovada
     (direta; usada pelo `drizzle-kit` quando existe, com fallback para `DATABASE_URL`).
   - Migrations: `npm run db:generate` e `npm run db:migrate` (atingem o banco do `.env.local`, hoje o de dev).
     Gerar na `feat/*`, aplicar na `preview/dev`; ao promover `dev` → `main`, aplicar na `production` ANTES do
-    deploy do código que depende dela (apontar a variável para a produção de propósito). NÃO colocar
-    `migrate` dentro do `build` por ora.
+    deploy do código que depende dela. NÃO colocar `migrate` dentro do `build` por ora.
+  - Produção (desde 17/10/2026): `npm run db:migrate:prod` e `npm run db:seed:prod` (`drizzle.prod.config.ts`
+    e `node --env-file=.env.production.local`), que leem `.env.production.local` (ignorado pelo git; contém
+    `DATABASE_URL` com pooler e `DATABASE_URL_UNPOOLED` direta da branch `production` do Neon) e imprimem o host
+    alvo. Fluxo de publicação: backup (branch do Neon a partir da `production`) → `git merge dev` NA `main`, sem
+    push → `db:migrate:prod` → `db:seed:prod` → `git push` (migration antes do push, porque um rename quebra o
+    código antigo durante o build). As migrations só rodam em branch que já tem os arquivos delas (por isso o merge antes).
   - Antes do lançamento: limpar da `production` os dados de teste (proposta do `seed-dev` e testes).
   - Preview e login: `BETTER_AUTH_URL` é fixa e cada preview tem outro domínio; para Preview não definir a
     variável (o Better Auth infere da requisição) ou derivar de `VERCEL_URL`. Confirmar na doc ao configurar.
@@ -541,7 +546,7 @@ rascunho → enviada → aprovada
     em 16/10/2026), então não há dado antigo a corrigir. (SUPERADO: o valor riscado desse bônus agora é 2 × a
     mensalidade, calculado na exibição.)
 - Pronto: ajustes da página de proposta de 16-17/10/2026 (contrato alinhado à proposta). Migrations NOVAS, aplicadas
-  só na `preview/dev` (ANTES do deploy aplicar na `production`, nesta ordem, e rodar `npm run db:seed`):
+  na `preview/dev` e, em 17/10/2026, também na `production` (com `db:migrate:prod` e `db:seed:prod`), nesta ordem:
   `20261016230113_hosting_monthly` (rename `hosting_annual` → `hosting_monthly`, sem perda de dados; atenção:
   valores antigos eram anuais), `20261016230649_proposal_scope` (cria `proposals.scope`) e
   `20261016232502_item_scope` (cria `proposal_items.scope` e APAGA `proposals.scope`; o escopo mudou de proposta
