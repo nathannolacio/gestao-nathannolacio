@@ -23,13 +23,13 @@ type PaymentChoiceProps = {
   // Escolha gravada na aprovação (null enquanto não aprovada): vem pré-selecionada.
   approvedMethod: MethodId | null;
   approvedInstallments: number | null;
-  // Conteúdo exibido entre a seleção e o botão de aprovar (cobrança anual), vindo do servidor.
+  // Conteúdo exibido entre a seleção e o botão de aprovar (plano mensal), vindo do servidor.
   children?: ReactNode;
 };
 
 const pill = "rounded-full px-4 py-1.5 font-display font-semibold";
 
-const MAX_INSTALLMENTS = 10;
+const MAX_INSTALLMENTS = 3;
 const installmentOptions = Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1);
 
 export function PaymentChoice({
@@ -164,7 +164,7 @@ export function PaymentChoice({
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pr-10">
                     <p className="text-lg font-medium">{m.title}</p>
                     <span className="rounded-full bg-dourado/25 px-3 py-1 text-sm font-semibold text-bronze">
-                      até 10x sem juros
+                      até 3x sem juros
                     </span>
                   </div>
                   <p className="text-base text-(--mute)">{m.text}</p>
@@ -200,9 +200,17 @@ export function PaymentChoice({
 
       <div className="mt-8 flex flex-col items-center gap-3">
         {locked ? (
-          <p role="status" className="text-center text-lg font-medium text-bronze">
-            Proposta aprovada. Obrigado! Entrarei em contato para os próximos passos.
-          </p>
+          <div role="status" className="text-center">
+            <p className="text-lg font-medium text-bronze">
+              Proposta aprovada. Obrigado! Entrarei em contato em até 1 dia útil.
+            </p>
+            <p className="mt-4 text-base text-(--mute)">Próximos passos:</p>
+            <ol className="mx-auto mt-2 w-fit list-inside list-decimal space-y-1 text-left text-base text-(--mute)">
+              <li>Contrato</li>
+              <li>Pagamento</li>
+              <li>Briefing</li>
+            </ol>
+          </div>
         ) : (
           <>
             <ApproveButton

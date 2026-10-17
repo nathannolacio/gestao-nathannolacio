@@ -15,7 +15,7 @@ export const approveProposalSchema = z.discriminatedUnion("paymentMethod", [
             .number("Informe o número de parcelas.")
             .int("O número de parcelas deve ser inteiro.")
             .min(1, "Mínimo de 1 parcela.")
-            .max(10, "Máximo de 10 parcelas."),
+            .max(3, "Máximo de 3 parcelas."),
     }),
 ]);
 

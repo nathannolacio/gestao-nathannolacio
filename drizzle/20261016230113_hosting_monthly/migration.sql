@@ -1,0 +1,1 @@
+ALTER TABLE "proposals" RENAME COLUMN "hosting_annual" TO "hosting_monthly";

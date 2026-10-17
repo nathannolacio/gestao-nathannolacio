@@ -29,15 +29,15 @@ const proposalFields = {
         .array(proposalItemSchema, "Itens inválidos.")
         .min(1, "Adicione pelo menos um item.")
         .max(50, "A proposta pode ter no máximo 50 itens."),
-    // Entrada: texto em reais ("600,00"). Saída: centavos (60000).
-    // Valor ANUAL; ausente = o cliente tem hospedagem própria.
-    hostingAnnual: z.preprocess(
+    // Entrada: texto em reais ("79,00"). Saída: centavos (7900).
+    // Valor MENSAL; ausente = o cliente tem hospedagem própria.
+    hostingMonthly: z.preprocess(
         emptyToUndefined,
         z.coerce
             .string("A hospedagem deve ser um valor em reais.")
             .refine(
                 (text) => parseReaisToCents(text) !== null,
-                "Informe a hospedagem em reais, por exemplo 600,00.",
+                "Informe a hospedagem em reais, por exemplo 79,00.",
             )
             .transform((text) => parseReaisToCents(text) as number)
             .pipe(z.number().positive("A hospedagem deve ser maior que zero."))

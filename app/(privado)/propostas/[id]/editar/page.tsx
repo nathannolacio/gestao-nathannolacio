@@ -60,8 +60,8 @@ async function FormularioDeEdicao({ params }: EditarPropostaProps) {
     const initialValues: ProposalFormValues = {
         title: proposal.title,
         deliveryDays: String(proposal.deliveryDays),
-        hostingAnnual:
-            proposal.hostingAnnual === null ? "" : formatCentsAsReais(proposal.hostingAnnual),
+        hostingMonthly:
+            proposal.hostingMonthly === null ? "" : formatCentsAsReais(proposal.hostingMonthly),
         discountType: discount.type,
         discountValue: discount.value,
         bonuses: proposal.bonuses.map((bonus) => bonus.id),
@@ -74,6 +74,12 @@ async function FormularioDeEdicao({ params }: EditarPropostaProps) {
                 unitPrice: formatCentsAsReais(item.unitPrice),
                 discountType: itemDiscount.type,
                 discountValue: itemDiscount.value,
+                scopePages: (item.scope?.pages ?? []).map((page) => ({
+                    name: page.name,
+                    sections: page.sections.join("\n"),
+                })),
+                scopeIncluded: item.scope?.included ?? [],
+                scopeNotIncluded: item.scope?.notIncluded ?? [],
             };
         }),
     };

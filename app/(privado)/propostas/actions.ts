@@ -126,7 +126,7 @@ export async function createProposal(input: unknown) {
                 deliveryDays: result.data.deliveryDays,
                 discountType: result.data.discountType,
                 discountValue: result.data.discountValue,
-                hostingAnnual: result.data.hostingAnnual,
+                hostingMonthly: result.data.hostingMonthly,
                 fixedContent: content,
             }).returning({ id: proposals.id });
 
@@ -139,6 +139,7 @@ export async function createProposal(input: unknown) {
                     unitPrice: item.unitPrice,
                     discountType: item.discountType,
                     discountValue: item.discountValue,
+                    scope: item.scope,
                     position: index,
                 })),
             );
@@ -188,7 +189,7 @@ export async function updateProposal(input: unknown) {
                 title: data.title,
                 deliveryDays: data.deliveryDays,
                 bonuses,
-                hostingAnnual: data.hostingAnnual ?? null,
+                hostingMonthly: data.hostingMonthly ?? null,
                 discountType: data.discountType ?? null,
                 discountValue: data.discountValue ?? null,
                 updatedAt: new Date(),
@@ -214,6 +215,7 @@ export async function updateProposal(input: unknown) {
                 unitPrice: item.unitPrice,
                 discountType: item.discountType,
                 discountValue: item.discountValue,
+                scope: item.scope,
                 position: index,
             })),
         );

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createProposal, updateProposal } from "@/app/(privado)/propostas/actions";
 import { uploadClientLogo } from "@/app/(privado)/clientes/actions";
 import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
+import { SCOPE_DESCRIPTION } from "@/lib/proposal-scope";
 
 type ClientOption = { id: string; name: string };
 type FieldErrors = Record<string, string[] | undefined>;
@@ -27,7 +28,17 @@ type ItemDraft = {
     unitPrice: string;
     discountType: "" | "percentage" | "fixed";
     discountValue: string;
+    scopePages: PageDraft[];
+    scopeIncluded: string[];
+    scopeNotIncluded: string[];
 };
+
+// Página do escopo em edição (`key` só da tela). `sections`: uma seção por linha.
+type PageDraft = { key: string; name: string; sections: string };
+
+function newPage(): PageDraft {
+    return { key: crypto.randomUUID(), name: "", sections: "" };
+}
 
 const MAX_ITEMS = 50;
 
@@ -39,6 +50,9 @@ function newItem(): ItemDraft {
         unitPrice: "",
         discountType: "",
         discountValue: "",
+        scopePages: [newPage()],
+        scopeIncluded: [],
+        scopeNotIncluded: [],
     };
 }
 
@@ -52,11 +66,13 @@ function formatCents(cents: number) {
 export type ProposalFormValues = {
     title: string;
     deliveryDays: string;
-    hostingAnnual: string;
+    hostingMonthly: string;
     discountType: "" | "percentage" | "fixed";
     discountValue: string;
     bonuses: string[];
-    items: Omit<ItemDraft, "key">[];
+    items: (Omit<ItemDraft, "key" | "scopePages"> & {
+        scopePages: Omit<PageDraft, "key">[];
+    })[];
 };
 
 // Criar: escolhe/cadastra o cliente. Editar: o cliente é o já gravado (só leitura).
@@ -106,7 +122,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
 
     const [title, setTitle] = useState(initial?.title ?? "");
     const [deliveryDays, setDeliveryDays] = useState(initial?.deliveryDays ?? "");
-    const [hostingAnnual, setHostingAnnual] = useState(initial?.hostingAnnual ?? "");
+    const [hostingMonthly, setHostingMonthly] = useState(initial?.hostingMonthly ?? "");
     const [discountType, setDiscountType] = useState<"" | "percentage" | "fixed">(
         initial?.discountType ?? "",
     );
@@ -117,7 +133,15 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
 
     const [items, setItems] = useState<ItemDraft[]>(() =>
         initial
-            ? initial.items.map((item) => ({ ...item, key: crypto.randomUUID() }))
+            ? initial.items.map((item) => ({
+                  ...item,
+                  key: crypto.randomUUID(),
+                  // item sem escopo salvo: uma página vazia pronta para preencher
+                  scopePages:
+                      item.scopePages.length > 0
+                          ? item.scopePages.map((page) => ({ ...page, key: crypto.randomUUID() }))
+                          : [newPage()],
+              }))
             : [newItem()],
     );
 
@@ -163,6 +187,39 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
         );
     }
 
+    function updateScopePage(itemKey: string, pageKey: string, changes: Partial<PageDraft>) {
+        setItems((current) =>
+            current.map((item) =>
+                item.key === itemKey
+                    ? {
+                          ...item,
+                          scopePages: item.scopePages.map((page) =>
+                              page.key === pageKey ? { ...page, ...changes } : page,
+                          ),
+                      }
+                    : item,
+            ),
+        );
+    }
+
+    function addScopePage(itemKey: string) {
+        setItems((current) =>
+            current.map((item) =>
+                item.key === itemKey ? { ...item, scopePages: [...item.scopePages, newPage()] } : item,
+            ),
+        );
+    }
+
+    function removeScopePage(itemKey: string, pageKey: string) {
+        setItems((current) =>
+            current.map((item) =>
+                item.key === itemKey
+                    ? { ...item, scopePages: item.scopePages.filter((page) => page.key !== pageKey) }
+                    : item,
+            ),
+        );
+    }
+
     function removeItem(key: string) {
         setItems((current) => current.filter((item) => item.key !== key));
     }
@@ -178,8 +235,11 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
             title,
             deliveryDays,
             bonuses,
-            items: items.map(({ key: _key, ...item }) => item),
-            hostingAnnual,
+            items: items.map(({ key: _key, scopePages, ...item }) => ({
+                ...item,
+                scopePages: scopePages.map(({ key: _pageKey, ...page }) => page),
+            })),
+            hostingMonthly,
             discountType,
             discountValue,
         };
@@ -416,7 +476,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field
-                        label="Prazo de entrega (dias)"
+                        label="Prazo de entrega (dias úteis)"
                         htmlFor="deliveryDays"
                         errors={fieldErrors.deliveryDays}
                     >
@@ -431,19 +491,19 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                         />
                     </Field>
                     <Field
-                        label="Hospedagem e manutenção anual (R$)"
-                        htmlFor="hostingAnnual"
+                        label="Hospedagem e manutenção mensal (R$)"
+                        htmlFor="hostingMonthly"
                         hint="Deixe vazio se o cliente tem hospedagem própria"
-                        errors={fieldErrors.hostingAnnual}
+                        errors={fieldErrors.hostingMonthly}
                     >
                         <input
-                            id="hostingAnnual"
+                            id="hostingMonthly"
                             inputMode="decimal"
-                            placeholder="600,00"
-                            value={hostingAnnual}
-                            onChange={(e) => setHostingAnnual(e.target.value)}
+                            placeholder="79,00"
+                            value={hostingMonthly}
+                            onChange={(e) => setHostingMonthly(e.target.value)}
                             autoComplete="off"
-                            aria-invalid={!!fieldErrors.hostingAnnual}
+                            aria-invalid={!!fieldErrors.hostingMonthly}
                             className={inputClass}
                         />
                     </Field>
@@ -564,6 +624,96 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                                     />
                                 </Field>
                             )}
+
+                            {/* Escopo do item: opcional; na proposta vira a setinha que abre/fecha o item */}
+                            <details className="rounded-lg border border-admin-line">
+                                <summary className="cursor-pointer px-3 py-2 text-sm text-admin-muted">
+                                    Escopo do item (opcional)
+                                    {(item.scopeNotIncluded.length > 0 ||
+                                        item.scopeIncluded.length > 0 ||
+                                        item.scopePages.some((page) => page.name || page.sections)) &&
+                                        " · preenchido"}
+                                </summary>
+                                <div className="space-y-3 px-3 pb-3">
+                                    <p className="text-xs text-admin-muted">
+                                        Fixos na proposta: a descrição ({SCOPE_DESCRIPTION}) e a nota de itens fora
+                                        do escopo. Os totais de páginas e seções aparecem sozinhos.
+                                    </p>
+                                    {/* Páginas e suas seções. Página única: uma página, sem nome. */}
+                                    <div className="space-y-3">
+                                        <p className="text-sm text-admin-text">
+                                            Páginas e seções{" "}
+                                            <span className="text-xs text-admin-muted">
+                                                (site de página única: uma página só, sem nome)
+                                            </span>
+                                        </p>
+                                        {item.scopePages.map((page, pageIndex) => (
+                                            <div
+                                                key={page.key}
+                                                className="space-y-2 rounded-lg border border-admin-line p-3"
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <label
+                                                        htmlFor={`item-${item.key}-page-${page.key}-name`}
+                                                        className="text-sm text-admin-text"
+                                                    >
+                                                        Página {pageIndex + 1}
+                                                    </label>
+                                                    {item.scopePages.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeScopePage(item.key, page.key)}
+                                                            className="text-sm text-admin-muted transition-colors duration-150 hover:text-red-300 focus-visible:outline-2 focus-visible:outline-dourado"
+                                                        >
+                                                            Remover página
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <input
+                                                    id={`item-${item.key}-page-${page.key}-name`}
+                                                    placeholder="Nome da página (ex.: Home). Vazio se for página única."
+                                                    value={page.name}
+                                                    onChange={(e) =>
+                                                        updateScopePage(item.key, page.key, { name: e.target.value })
+                                                    }
+                                                    autoComplete="off"
+                                                    className={inputClass}
+                                                />
+                                                <textarea
+                                                    aria-label={`Seções da página ${pageIndex + 1} (uma por linha)`}
+                                                    rows={5}
+                                                    placeholder={"Seções, uma por linha:\nInício (com chamada para o WhatsApp)\nSobre\nServiços (até 6)"}
+                                                    value={page.sections}
+                                                    onChange={(e) =>
+                                                        updateScopePage(item.key, page.key, {
+                                                            sections: e.target.value,
+                                                        })
+                                                    }
+                                                    className={inputClass}
+                                                />
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => addScopePage(item.key)}
+                                            disabled={item.scopePages.length >= 10}
+                                            className="rounded-lg border border-admin-line px-3 py-1.5 text-sm text-admin-text transition-colors duration-150 hover:border-dourado disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-dourado"
+                                        >
+                                            Adicionar página
+                                        </button>
+                                    </div>
+                                    <PillPicker
+                                        legend="Incluso no site"
+                                        value={item.scopeIncluded}
+                                        onChange={(scopeIncluded) => updateItem(item.key, { scopeIncluded })}
+                                    />
+                                    <PillPicker
+                                        legend="Não incluso"
+                                        value={item.scopeNotIncluded}
+                                        onChange={(scopeNotIncluded) => updateItem(item.key, { scopeNotIncluded })}
+                                    />
+                                </div>
+                            </details>
                         </li>
                     ))}
                 </ul>
@@ -704,6 +854,80 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                 </button>
             </div>
         </form>
+    );
+}
+
+// Pílulas de um grupo do escopo: digite e adicione (Enter ou botão); o × exclui qualquer uma.
+function PillPicker({
+    legend,
+    value,
+    onChange,
+}: {
+    legend: string;
+    value: string[];
+    onChange: (next: string[]) => void;
+}) {
+    const [draft, setDraft] = useState("");
+
+    function add() {
+        const text = draft.trim();
+        if (text && !value.some((current) => current.toLowerCase() === text.toLowerCase())) {
+            onChange([...value, text]);
+        }
+        setDraft("");
+    }
+
+    return (
+        <fieldset className="space-y-2">
+            <legend className="text-sm text-admin-text">{legend}</legend>
+
+            {value.length > 0 && (
+                <ul className="flex flex-wrap gap-2">
+                    {value.map((text) => (
+                        <li
+                            key={text}
+                            className="inline-flex items-center gap-2 rounded-lg border border-dourado px-3 py-2 text-sm text-admin-text"
+                        >
+                            {text}
+                            <button
+                                type="button"
+                                aria-label={`Excluir "${text}"`}
+                                title="Excluir"
+                                onClick={() => onChange(value.filter((current) => current !== text))}
+                                className="text-admin-muted transition-colors duration-150 hover:text-red-300 focus-visible:outline-2 focus-visible:outline-dourado"
+                            >
+                                ×
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+                <input
+                    aria-label={`Adicionar pílula em "${legend}"`}
+                    placeholder="Digite e adicione"
+                    value={draft}
+                    maxLength={100}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            add();
+                        }
+                    }}
+                    autoComplete="off"
+                    className={`${inputClass} max-w-xs`}
+                />
+                <button
+                    type="button"
+                    onClick={add}
+                    className="rounded-lg border border-admin-line px-3 py-2 text-sm text-admin-text transition-colors duration-150 hover:border-dourado focus-visible:outline-2 focus-visible:outline-dourado"
+                >
+                    Adicionar
+                </button>
+            </div>
+        </fieldset>
     );
 }
 

@@ -24,9 +24,9 @@ export const bonusCatalog = [
   {
     id: "hospedagem-manutencao-60-dias",
     title: "60 dias de hospedagem e manutenção",
-    value: 12000, // 2 meses × R$ 60 (valor de tabela da hospedagem + manutenção)
+    value: 0, // não usado: o valor é 2 × mensalidade da proposta, calculado na exibição (bonusDisplayValue)
     description:
-      "Hospedagem e acompanhamento do site durante os dois primeiros meses após a publicação: site no ar com segurança, monitoramento do funcionamento, correção de qualquer problema e até 5 ajustes de conteúdo por mês, como troca de textos, fotos, telefone ou endereço.",
+      "Hospedagem e acompanhamento do site durante os dois primeiros meses após a publicação: site no ar com segurança, monitoramento do funcionamento, correção de qualquer problema e até 3 alterações por mês, como troca de textos, fotos, telefone ou endereço.",
   },
 ] as const;
 
@@ -39,6 +39,17 @@ const requiredBonusIds: readonly BonusId[] = ["hospedagem-manutencao-60-dias"];
 
 export function isRequiredBonus(id: string): boolean {
   return (requiredBonusIds as readonly string[]).includes(id);
+}
+
+// Valor exibido riscado. O bônus de hospedagem vale 2 meses da mensalidade DA PROPOSTA
+// (variável), então é calculado aqui e não guardado. Sem mensalidade (cliente com
+// hospedagem própria) devolve null: a página não mostra valor riscado.
+export function bonusDisplayValue(
+  bonus: { id: string; value: number },
+  hostingMonthly: number | null,
+): number | null {
+  if (bonus.id !== "hospedagem-manutencao-60-dias") return bonus.value;
+  return hostingMonthly === null ? null : hostingMonthly * 2;
 }
 
 // Formato salvo na proposta (cópia do catálogo no momento da criação).

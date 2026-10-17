@@ -3,7 +3,6 @@ import Image from "next/image";
 import { Suspense } from "react";
 import {
   formatBRL,
-  installmentAmount,
   itemSubtotal,
   pixTotal,
   projectSubtotal,
@@ -12,6 +11,14 @@ import {
   toDiscount,
 } from "@/lib/proposal-calc";
 import { db } from "@/db";
+import { bonusDisplayValue } from "@/lib/proposal-bonuses";
+import {
+  SCOPE_DESCRIPTION,
+  SCOPE_OUT_OF_SCOPE_NOTE,
+  pagesLabel,
+  scopeCounts,
+  sectionsLabel,
+} from "@/lib/proposal-scope";
 import { getOptionalUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -41,7 +48,7 @@ const fadeToSand = [
 // Pílula de valor usada no Investimento e no Pagamento.
 const pill = "rounded-full px-4 py-1.5 font-display font-semibold";
 
-// Partes do card de Investimento (projeto, bônus, pagamento, cobrança anual): divisória + rótulo.
+// Partes do card de Investimento (projeto, bônus, pagamento, plano mensal): divisória + rótulo.
 const partDivider = "mt-12 border-t border-grafite/10 pt-12";
 const partLabel =
   "text-center text-sm font-semibold uppercase tracking-[0.18em] text-bronze";
@@ -99,13 +106,14 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
     clientLogoUrl: row.client.logoUrl,
     bonuses: row.bonuses,
     deliveryDays: row.deliveryDays,
-    hostingAnnual: row.hostingAnnual,
+    hostingMonthly: row.hostingMonthly,
     discount: toDiscount(row.discountType, row.discountValue),
     items: row.items.map((item) => ({
       description: item.description,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       discount: toDiscount(item.discountType, item.discountValue),
+      scope: item.scope,
     })),
     fixedContent: row.fixedContent,
   };
@@ -273,15 +281,15 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
             <div className="w-fit rounded-3xl border border-(--line) bg-(--card) p-6">
               <p className="text-base text-(--mute)">Prazo de entrega do projeto:</p>
               <p className="my-3 font-display text-5xl font-bold tracking-tight text-(--accent) sm:text-6xl">
-                {p.deliveryDays} {p.deliveryDays === 1 ? "dia" : "dias"}
+                {p.deliveryDays} {p.deliveryDays === 1 ? "dia útil" : "dias úteis"}
               </p>
               <p className="text-base text-(--mute)">{c.delivery.note}</p>
             </div>
           </div>
 
+          <div>
           <ol className="relative space-y-12 before:absolute before:bottom-4 before:left-4.5 before:top-4 before:w-px before:bg-dourado/50">
             {c.process.steps.map((s, idx) => {
-              const last = idx === c.process.steps.length - 1;
               return (
                 <li key={s.title} className="relative pl-16">
                   <span className="absolute left-0 top-0 flex size-9 items-center justify-center rounded-full border border-dourado bg-marfim font-display text-base font-semibold tabular-nums text-(--accent)">
@@ -296,15 +304,23 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                   {s.note && (
                     <p className="mt-2 text-base text-(--accent)">{s.note}</p>
                   )}
-                  {last && (
-                    <p className="mt-4 rounded-2xl bg-dourado/10 px-5 py-4 text-base leading-7 text-(--mute)">
-                      {c.delivery.maintenance}
-                    </p>
-                  )}
                 </li>
               );
             })}
           </ol>
+
+          {/* regra das rodadas e nota dos 60 dias, logo abaixo dos passos */}
+          <div className="mt-12 space-y-4">
+            {c.process.adjustments && (
+              <p className="rounded-2xl border border-(--line) px-5 py-4 text-base leading-7 text-(--mute)">
+                <Rich text={c.process.adjustments} />
+              </p>
+            )}
+            <p className="rounded-2xl bg-dourado/10 px-5 py-4 text-base leading-7 text-(--mute)">
+              {c.delivery.maintenance}
+            </p>
+          </div>
+          </div>
         </div>
       </Section>
 
@@ -352,7 +368,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
             <ul className="mt-6 space-y-3">
               {p.items.map((item) => {
                 const subtotal = itemSubtotal(item);
-                const hasDetail = item.quantity > 1;
+                const hasDetail = item.quantity > 1 || item.scope !== null;
                 const original = item.quantity * item.unitPrice;
                 const price = (
                   <span className="flex shrink-0 items-center gap-3 max-[419px]:mx-auto min-[420px]:ml-auto">
@@ -373,11 +389,11 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                   </span>
                 );
 
-                // Sem detalhe (qtd 1): linha fixa. Com detalhe (qtd > 1): abre ao clicar na seta.
+                // Sem detalhe (qtd 1 e sem escopo): linha fixa. Com detalhe (qtd > 1 ou escopo): abre ao clicar na seta.
                 return (
                   <li key={item.description}>
                     {hasDetail ? (
-                      <details className="group rounded-3xl bg-grafite/5">
+                      <details open className="group rounded-3xl bg-grafite/5">
                         <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 rounded-3xl px-5 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bronze [&::-webkit-details-marker]:hidden">
                           <svg
                             aria-hidden
@@ -396,9 +412,84 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                           </span>
                           {price}
                         </summary>
-                        <p className="px-5 pb-4 pl-12 text-base text-(--mute)">
-                          {`${item.quantity} × ${formatBRL(item.unitPrice)}`}
-                        </p>
+                        <div className="space-y-3 px-5 pb-4 pl-12">
+                          {item.quantity > 1 && (
+                            <p className="text-base text-(--mute)">
+                              {`${item.quantity} × ${formatBRL(item.unitPrice)}`}
+                            </p>
+                          )}
+                          {item.scope && (
+                            <>
+                              <p className="text-base leading-7 text-(--mute)">
+                                {SCOPE_DESCRIPTION}
+                              </p>
+                              {item.scope.pages.length > 0 && (
+                                <>
+                                  {/* rótulos calculados da lista: páginas e seções */}
+                                  <div className="flex flex-wrap gap-2 text-sm font-semibold text-bronze">
+                                    <span className="rounded-full bg-dourado/25 px-3 py-1">
+                                      {pagesLabel(scopeCounts(item.scope).pages)}
+                                    </span>
+                                    <span className="rounded-full bg-dourado/25 px-3 py-1">
+                                      {sectionsLabel(scopeCounts(item.scope).sections)}
+                                    </span>
+                                  </div>
+                                  <div className="space-y-4">
+                                    {item.scope.pages.map((page, pageIndex) => (
+                                      <div key={`${pageIndex}-${page.name}`}>
+                                        {page.name && (
+                                          <p className="mb-1.5 text-base font-semibold">{page.name}</p>
+                                        )}
+                                        <ul className="space-y-1.5">
+                                          {page.sections.map((section) => (
+                                            <li key={section} className="flex gap-3 text-base leading-7">
+                                              <span
+                                                aria-hidden
+                                                className="mt-2.5 size-1.5 shrink-0 rounded-full bg-dourado"
+                                              />
+                                              {section}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                              {item.scope.included.length > 0 && (
+                                <div className="border-t border-(--line) pt-3">
+                                  <p className="mb-2 text-sm font-semibold text-bronze">Incluso no site</p>
+                                  <ul className="flex flex-wrap gap-2">
+                                    {item.scope.included.map((text) => (
+                                      <li
+                                        key={text}
+                                        className="rounded-full bg-grafite/10 px-3 py-1 text-sm text-(--mute)"
+                                      >
+                                        {text}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {item.scope.notIncluded.length > 0 && (
+                                <div className="border-t border-(--line) pt-3">
+                                  <p className="mb-2 text-sm font-semibold text-bronze">Não incluso</p>
+                                  <ul className="flex flex-wrap gap-2">
+                                    {item.scope.notIncluded.map((text) => (
+                                      <li
+                                        key={text}
+                                        className="rounded-full bg-grafite/10 px-3 py-1 text-sm text-(--mute)"
+                                      >
+                                        {text}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              <p className="text-sm leading-6 text-(--mute)">{SCOPE_OUT_OF_SCOPE_NOTE}</p>
+                            </>
+                          )}
+                        </div>
                       </details>
                     ) : (
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-3xl bg-grafite/5 px-5 py-3">
@@ -437,7 +528,9 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                 <h3 className={partLabel}>Seus bônus</h3>
                 <p className={partIntro}>Extras incluídos na sua proposta, sem custo.</p>
                 <ul className="mt-6 space-y-3">
-                  {p.bonuses.map((bonus) => (
+                  {p.bonuses.map((bonus) => {
+                    const bonusValue = bonusDisplayValue(bonus, p.hostingMonthly);
+                    return (
                     <li key={bonus.title}>
                       <details className="group rounded-3xl bg-grafite/5">
                         <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 rounded-3xl px-5 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bronze [&::-webkit-details-marker]:hidden">
@@ -457,9 +550,11 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                             {bonus.title}
                           </span>
                           <span className="flex shrink-0 items-center gap-3 max-[419px]:mx-auto min-[420px]:ml-auto">
-                            <span className="text-base tabular-nums text-(--mute) line-through">
-                              {formatBRL(bonus.value)}
-                            </span>
+                            {bonusValue !== null && (
+                              <span className="text-base tabular-nums text-(--mute) line-through">
+                                {formatBRL(bonusValue)}
+                              </span>
+                            )}
                             <span
                               className={`${pill} bg-dourado/25 text-lg text-bronze`}
                             >
@@ -472,7 +567,8 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                         </p>
                       </details>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -495,14 +591,14 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
               approvedMethod={row.paymentMethod}
               approvedInstallments={row.cardInstallments}
             >
-              {/* cobrança anual: depois da escolha do pagamento e antes do botão de aprovar; fora do total */}
-              {p.hostingAnnual !== null && (
+              {/* plano mensal: depois da escolha do pagamento e antes do botão de aprovar; fora do total */}
+              {p.hostingMonthly !== null && (
                 <div className={partDivider}>
-                  <h3 className={partLabel}>Cobrança anual</h3>
+                  <h3 className={partLabel}>Plano mensal</h3>
                   <p className={partIntro}>
                     Hospedagem e manutenção do seu site, cobradas à parte do projeto.
                   </p>
-                  {/* linha do tempo: de relance, "agora é grátis, depois é anual" */}
+                  {/* linha do tempo: de relance, "agora é grátis, depois é mensal" */}
                   <div className="mt-5 grid grid-cols-1 items-stretch gap-2 sm:grid-cols-[1fr_auto_1fr] sm:gap-3">
                     <div className="flex flex-col items-center justify-center rounded-3xl bg-dourado/25 px-3 py-4 text-center">
                       <p className="text-sm font-medium text-bronze">Primeiros 60 dias</p>
@@ -518,18 +614,11 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                       →
                     </span>
                     <div className="flex flex-col items-center justify-center rounded-3xl bg-grafite/5 px-3 py-4 text-center">
-                      <p className="text-sm font-medium text-(--mute)">Depois, a partir de</p>
+                      <p className="text-sm font-medium text-(--mute)">Depois</p>
                       <p className="font-display text-3xl font-bold tracking-tight tabular-nums">
-                        {formatBRL(installmentAmount(p.hostingAnnual, 12))}
+                        {formatBRL(p.hostingMonthly)}
                         <span className="text-base font-medium text-(--mute)">/mês</span>
                       </p>
-                      {/* plano anual: pílula pequena (menor que o valor mensal) com o total do ano */}
-                      <span className="mt-2 inline-flex flex-wrap justify-center gap-x-1.5 rounded-full bg-dourado/25 px-3 py-1 text-sm font-semibold text-bronze">
-                        Plano anual
-                        <span className="font-medium tabular-nums">
-                          · {formatBRL(p.hostingAnnual)} em até 12x
-                        </span>
-                      </span>
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap justify-center gap-2 text-sm font-semibold text-bronze">

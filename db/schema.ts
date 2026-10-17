@@ -1,5 +1,6 @@
 import type { ProposalBonus } from "../lib/proposal-bonuses.ts";
 import type { FixedContent } from "../lib/proposal-content.ts";
+import type { ItemScope } from "../lib/proposal-scope.ts";
 import { integer, jsonb, pgEnum, smallint, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema.ts";
 
@@ -45,7 +46,7 @@ export const proposals = snakeCase.table("proposals", {
     deliveryDays: integer().notNull(),
     discountType: discountTypeEnum(),
     discountValue: integer(),
-    hostingAnnual: integer(),
+    hostingMonthly: integer(),
     fixedContent: jsonb().$type<FixedContent>().notNull(),
     status: proposalStatusEnum().default("draft").notNull(),
     sentAt: timestamp({ withTimezone: true }),
@@ -64,6 +65,7 @@ export const proposalItems = snakeCase.table("proposal_items", {
     unitPrice: integer().notNull(),
     discountType: discountTypeEnum(),
     discountValue: integer(),
+    scope: jsonb().$type<ItemScope>(),
     position: integer().notNull(),
 })
 

@@ -28,6 +28,8 @@ export type FixedContent = {
   process: {
     title: string;
     steps: { title: string; text: string; note?: string }[];
+    // Regra das rodadas de ajustes, logo abaixo dos passos. Opcional: cópias antigas não têm.
+    adjustments?: string;
   };
   payment: {
     title: string;
@@ -96,31 +98,31 @@ export const defaultFixedContent: FixedContent = {
     ],
   },
   process: {
-    title: "Do primeiro contato ao *projeto no ar*",
+    title: "Da aprovação ao *site no ar*",
     steps: [
       {
-        title: "Alinhamento",
-        text: "Entendo seu negócio, seus objetivos e suas referências para definir o escopo juntos.",
-        note: "Algumas conversas rápidas",
+        title: "Início",
+        text: "Assinamos o contrato, você faz o pagamento, preenche o briefing e me envia o material: textos, fotos, logo e acessos. O prazo começa a contar a partir daqui.",
+        note: "Contrato, briefing e material",
       },
       {
-        title: "Design",
-        text: "Defino a identidade visual e a estrutura das páginas. Você aprova antes de eu construir.",
-        note: "Primeiras impressões",
+        title: "Layout",
+        text: "Defino o visual e a estrutura das seções e apresento o layout. Se partirmos da prévia que já te mostrei, ela é o layout. Você aprova antes de eu construir.",
+        note: "Etapa 1 · até 2 rodadas de ajustes",
       },
       {
         title: "Desenvolvimento",
-        text: "Construo o projeto e te mostro o andamento ao longo do caminho.",
-      },
-      {
-        title: "Revisão",
-        text: "Você testa, pede ajustes e validamos tudo juntos.",
+        text: "Construo o site conforme o layout aprovado e te mostro em um link de teste para revisar.",
+        note: "Etapa 2 · até 2 rodadas de ajustes",
       },
       {
         title: "Entrega",
-        text: "Coloco o projeto no ar e explico como usar.",
+        text: "Coloco o site no ar e explico como usar.",
+        note: "Site publicado",
       },
     ],
+    adjustments:
+      "*Como funcionam os ajustes:* em cada etapa, você envia uma lista única com tudo o que quer ajustar. Cada lista conta como uma rodada.",
   },
   payment: {
     title: "Formas de *pagamento*",
@@ -144,9 +146,9 @@ export const defaultFixedContent: FixedContent = {
     ],
   },
   delivery: {
-    note: "Contado a partir do recebimento dos materiais.",
+    note: "Em dias úteis, contados a partir do recebimento do briefing e dos materiais. O tempo que você leva para responder não conta no prazo.",
     maintenance:
-      "Depois da entrega, você tem 60 dias de hospedagem e manutenção gratuitas. Passado esse período, passam a ser cobradas em um valor anual único, que inclui hospedagem e manutenção.",
+      "Depois da entrega, você tem 60 dias de hospedagem e manutenção gratuitas, com até 3 alterações por mês. Passado esse período, passam a ser cobradas no plano mensal, que inclui hospedagem e manutenção.",
   },
 
   faq: {
@@ -155,22 +157,26 @@ export const defaultFixedContent: FixedContent = {
       {
         question: "Domínio e hospedagem estão inclusos?",
         answer:
-          "O domínio é contratado por você, e eu te guio no passo a passo. A hospedagem pode ser sua ou minha. Os primeiros 60 dias de hospedagem são por minha conta; depois, quando ela é minha, o valor anual de hospedagem e manutenção aparece no investimento.",
+          "O domínio é contratado por você, e eu te guio no passo a passo. A hospedagem pode ser sua ou minha. Os primeiros 60 dias de hospedagem e manutenção são grátis; depois, quando ela é minha, o plano mensal de hospedagem e manutenção aparece no investimento.",
       },
       {
         question: "Posso pedir alterações no layout?",
         answer:
-          "Pode. Os ajustes combinados no processo fazem parte do projeto. Refazer um design já aprovado é orçado à parte.",
+          "Pode. Cada etapa (layout e site desenvolvido) inclui até 2 rodadas de ajustes, e cada rodada é uma lista única e consolidada de solicitações. Refazer um layout já aprovado é orçado à parte.",
       },
       {
         question: "E se eu quiser novas páginas ou funcionalidades depois?",
         answer:
-          "Sem problema. Cada novo serviço vira uma proposta própria, com escopo e valor claros.",
+          "Sem problema. A manutenção já está incluída no plano; só páginas, seções e funcionalidades novas são cobradas à parte, cada uma em uma proposta própria, com escopo e valor claros.",
       },
       {
         question: "Como funciona o suporte depois da entrega?",
         answer:
-          "São 60 dias de hospedagem e manutenção gratuitas. Depois, o valor anual inclui os dois: manter o site no ar e fazer até 5 ajustes de conteúdo por mês, como troca de textos, fotos, telefone ou endereço. Nova página, seção ou funcionalidade vira uma proposta à parte.",
+          "São 60 dias de hospedagem e manutenção grátis, com até 3 alterações por mês, como troca de textos, fotos, telefone ou endereço. Depois, o plano mensal inclui os dois: manter o site no ar e as alterações de conteúdo.",
+      },
+      {
+        question: "Em quanto tempo você responde?",
+        answer: "Respondo suas mensagens em até 1 dia útil.",
       },
     ],
   },
