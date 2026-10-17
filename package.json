@@ -9,7 +9,9 @@
     "lint": "eslint",
     "db:seed": "node --env-file=.env.local db/seed.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:migrate:prod": "drizzle-kit migrate --config=drizzle.prod.config.ts",
+    "db:seed:prod": "node --env-file=.env.production.local db/seed.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
