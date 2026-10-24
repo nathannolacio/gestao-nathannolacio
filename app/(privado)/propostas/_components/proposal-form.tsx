@@ -389,7 +389,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                             />
                         </Field>
                         <div className="grid gap-4 sm:grid-cols-2">
-                            <Field label="E-mail" htmlFor="email">
+                            <Field label="E-mail (opcional)" htmlFor="email">
                                 <input
                                     id="email"
                                     type="email"

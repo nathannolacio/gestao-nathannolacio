@@ -101,7 +101,7 @@ export async function createProposal(input: unknown) {
 
                 const queryResult = await tx.insert(clients).values({
                     name,
-                    email,
+                    email: email ?? null,
                     phoneNumber: phone,
                     type,
                     logoUrl,

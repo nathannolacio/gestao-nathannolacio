@@ -10,7 +10,8 @@ export const clients = snakeCase.table("clients", {
     id: uuid().defaultRandom().primaryKey(),
     type: clientType().notNull(),
     name: varchar({ length:100 }).notNull(),
-    email: varchar({ length:256 }).notNull(),
+    // Nulo até o cliente aprovar a proposta (pedido depois, para o contrato).
+    email: varchar({ length:256 }),
     phoneNumber: varchar({ length:13 }).notNull(),
     // URL pública da logo (Vercel Blob). Nula = a capa mostra as iniciais.
     logoUrl: varchar({ length: 500 }),
