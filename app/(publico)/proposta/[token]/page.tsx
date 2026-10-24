@@ -191,7 +191,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
           </p>
         </div>
 
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-center gap-14 px-6 pb-20 pt-16 lg:grid-cols-2 lg:items-center lg:pb-0">
+        <div className="relative z-10 mx-auto my-auto grid w-full max-w-6xl grid-cols-1 gap-14 px-6 pb-20 pt-16 lg:grid-cols-2 lg:items-center lg:pb-0">
           <div className="animate-fade-up relative">
             <h1 className="font-display text-[2.5rem] uppercase leading-[1.05] tracking-tight sm:text-7xl">
               Proposta comercial
