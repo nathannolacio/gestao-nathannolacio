@@ -227,6 +227,9 @@ rascunho → enviada → aprovada
 - `about_project`: remover da tabela e do formulário (a seção deixou de existir)?
 - Detalhe de cada serviço (ex.: "Design + Implementação"): criar campo em `proposal_items`?
   Hoje a página mostra só descrição e quantidade.
+- E-mail do cliente (decisão de 24/10/2026): OPCIONAL na criação da proposta (`clients.email` nulável, migration
+  `20261024160514_wandering_mystique`, aplicada na `preview/dev`; produção pendente). Será preenchido depois da
+  aprovação, para enviar o contrato, pela futura tela de Clientes (junto com trocar a logo).
 - Trocar a logo de um cliente EXISTENTE: hoje a logo só é enviada ao criar cliente novo. Reaproveitar
   `uploadClientLogo` quando existir a tela de Clientes.
 - Logo do cliente (em produção desde 15/10/2026; migration `client_logo_url` e `db:seed` aplicados na

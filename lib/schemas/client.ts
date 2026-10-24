@@ -7,9 +7,15 @@ import * as z from "zod";
         .trim()
         .min(3, "O nome deve ter pelo menos 3 caracteres.")
         .max(100, "O nome deve ter no máximo 100 caracteres."),
-    email: z
-        .email("Informe um e-mail válido.")
-        .max(256, "O e-mail deve ter no máximo 256 caracteres."),
+    // Opcional: o e-mail é pedido só depois da aprovação, para enviar o contrato.
+    // Vazio (ou só espaços) vira ausente, nunca string vazia.
+    email: z.preprocess(
+        (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+        z
+            .email("Informe um e-mail válido.")
+            .max(256, "O e-mail deve ter no máximo 256 caracteres.")
+            .optional(),
+    ),
     phone: z
         .string("O telefone é obrigatório.")
         .transform((p) => p.replace(/\D/g, ""))
