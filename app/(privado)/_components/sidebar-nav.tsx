@@ -16,10 +16,9 @@ export function SidebarNav() {
           Propostas
         </NavLink>
 
-        <span aria-disabled="true" title="Em breve" className={disabledItem}>
-          <ClientsIcon />
+        <NavLink href="/clientes" icon={<ClientsIcon />}>
           Clientes
-        </span>
+        </NavLink>
 
         <span aria-disabled="true" title="Em breve" className={disabledItem}>
           <TemplateIcon />

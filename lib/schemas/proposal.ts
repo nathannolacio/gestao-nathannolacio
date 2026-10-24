@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { parseReaisToCents } from "../money.ts";
 import { bonusIds } from "../proposal-bonuses.ts";
-import { clientSchema } from "./client.ts";
+import { clientSchema, logoUrlSchema } from "./client.ts";
 import { proposalItemSchema } from "./proposal-item.ts";
 
 // Campo opcional de formulário: "" (input vazio) e null viram undefined.
@@ -110,8 +110,13 @@ export const proposalSchema = z
     .transform(resolveGeneralDiscount);
 
 // Edição: sem `client` (não se troca o cliente) e com o id da proposta.
+// `logoUrl` (logo do cliente): ausente = não mexe; null = remove; URL = troca.
 export const updateProposalSchema = z
-    .object({ id: z.uuid("Proposta inválida."), ...proposalFields })
+    .object({
+        id: z.uuid("Proposta inválida."),
+        ...proposalFields,
+        logoUrl: logoUrlSchema.nullable().optional(),
+    })
     .transform(resolveGeneralDiscount);
 
 export type ProposalInput = z.infer<typeof proposalSchema>;

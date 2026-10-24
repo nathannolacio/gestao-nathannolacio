@@ -201,9 +201,18 @@ export async function updateProposal(input: unknown) {
                     isNull(proposals.deletedAt),
                 ),
             )
-            .returning({ id: proposals.id });
+            .returning({ id: proposals.id, clientId: proposals.clientId });
 
         if (rows.length === 0) return false;
+
+        // A logo é do cliente: trocar aqui vale para todas as propostas dele.
+        // `undefined` = não mexe; `null` = remove.
+        if (data.logoUrl !== undefined) {
+            await tx
+                .update(clients)
+                .set({ logoUrl: data.logoUrl })
+                .where(eq(clients.id, rows[0].clientId));
+        }
 
         // Troca a lista inteira (mais simples que diff; `proposal_items` não tem soft delete).
         await tx.delete(proposalItems).where(eq(proposalItems.proposalId, data.id));

@@ -10,7 +10,7 @@ import { SCOPE_DESCRIPTION } from "@/lib/proposal-scope";
 type ClientOption = { id: string; name: string };
 type FieldErrors = Record<string, string[] | undefined>;
 
-const inputClass =
+export const inputClass =
     "w-full rounded-lg border border-admin-line bg-admin-raised px-3 py-2.5 text-base text-admin-text sm:text-sm " +
     "placeholder:text-admin-muted/60 focus-visible:outline-2 focus-visible:outline-offset-0 " +
     "focus-visible:outline-dourado aria-invalid:border-red-400/70";
@@ -82,6 +82,7 @@ type ProposalFormProps =
           mode: "edit";
           proposalId: string;
           clientName: string;
+          clientLogoUrl: string | null;
           status: "draft" | "sent";
           initialValues: ProposalFormValues;
       };
@@ -116,7 +117,11 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
     const [phone, setPhone] = useState("");
     const [type, setType] = useState<"PF" | "PJ">("PF");
     // URL devolvida pelo upload (a logo já está no Blob; a proposta só guarda o link).
-    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [logoUrl, setLogoUrl] = useState<string | null>(
+        props.mode === "edit" ? props.clientLogoUrl : null,
+    );
+    // Na edição só enviamos a logo se ela mudou (trocou ou removeu).
+    const [logoChanged, setLogoChanged] = useState(false);
     const [logoError, setLogoError] = useState<string | null>(null);
     const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -170,6 +175,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
 
             if (res.ok) {
                 setLogoUrl(res.url);
+                setLogoChanged(true);
             } else {
                 setLogoError(res.error);
             }
@@ -247,7 +253,11 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
         try {
             const res =
                 props.mode === "edit"
-                    ? await updateProposal({ id: props.proposalId, ...fields })
+                    ? await updateProposal({
+                          id: props.proposalId,
+                          ...fields,
+                          logoUrl: logoChanged ? logoUrl : undefined,
+                      })
                     : await createProposal({
                           client:
                               clientMode === "existing"
@@ -282,6 +292,54 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
         }
     }
 
+    const logoField = (
+        <Field
+            label="Logo (opcional)"
+            htmlFor="logo"
+            hint={
+                "PNG, JPG ou WebP, até 2 MB. Sem logo, a capa mostra as iniciais." +
+                (isEdit ? " A logo é do cliente: vale para todas as propostas dele." : "")
+            }
+        >
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                {logoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={logoUrl}
+                        alt="Logo do cliente"
+                        className="size-16 rounded-lg border border-admin-line bg-admin-raised object-contain p-1"
+                    />
+                )}
+                <input
+                    id="logo"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleLogoChange}
+                    disabled={uploadingLogo}
+                    className="min-w-0 max-w-full text-sm text-admin-muted file:mr-3 file:cursor-pointer file:rounded-lg file:border file:border-admin-line file:bg-admin-raised file:px-3 file:py-2 file:text-sm file:text-admin-text"
+                />
+                {logoUrl && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setLogoUrl(null);
+                            setLogoChanged(true);
+                        }}
+                        className="py-2 text-sm text-admin-muted underline underline-offset-2 hover:text-admin-text"
+                    >
+                        Remover
+                    </button>
+                )}
+            </div>
+            {uploadingLogo && <p className="mt-2 text-sm text-admin-muted">Enviando…</p>}
+            {logoError && (
+                <p role="alert" className="mt-2 text-sm text-red-300">
+                    {logoError}
+                </p>
+            )}
+        </Field>
+    );
+
     return (
         <form onSubmit={handleSubmit} noValidate className="max-w-2xl space-y-10">
             {props.mode === "edit" && props.status === "sent" && (
@@ -301,6 +359,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                 <p className="text-xs text-admin-muted">
                     O cliente de uma proposta não é alterado na edição.
                 </p>
+                {logoField}
             </section>
             ) : (
             <section aria-labelledby="secao-cliente" className="space-y-4">
@@ -413,45 +472,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                             </Field>
                         </div>
 
-                        <Field
-                            label="Logo (opcional)"
-                            htmlFor="logo"
-                            hint="PNG, JPG ou WebP, até 2 MB. Sem logo, a capa mostra as iniciais."
-                        >
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-                                {logoUrl && (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        src={logoUrl}
-                                        alt="Logo do cliente"
-                                        className="size-16 rounded-lg border border-admin-line bg-admin-raised object-contain p-1"
-                                    />
-                                )}
-                                <input
-                                    id="logo"
-                                    type="file"
-                                    accept="image/png,image/jpeg,image/webp"
-                                    onChange={handleLogoChange}
-                                    disabled={uploadingLogo}
-                                    className="min-w-0 max-w-full text-sm text-admin-muted file:mr-3 file:cursor-pointer file:rounded-lg file:border file:border-admin-line file:bg-admin-raised file:px-3 file:py-2 file:text-sm file:text-admin-text"
-                                />
-                                {logoUrl && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setLogoUrl(null)}
-                                        className="py-2 text-sm text-admin-muted underline underline-offset-2 hover:text-admin-text"
-                                    >
-                                        Remover
-                                    </button>
-                                )}
-                            </div>
-                            {uploadingLogo && <p className="mt-2 text-sm text-admin-muted">Enviando…</p>}
-                            {logoError && (
-                                <p role="alert" className="mt-2 text-sm text-red-300">
-                                    {logoError}
-                                </p>
-                            )}
-                        </Field>
+                        {logoField}
                     </div>
                 )}
             </section>
@@ -931,7 +952,7 @@ function PillPicker({
     );
 }
 
-function Field({
+export function Field({
     label,
     htmlFor,
     hint,

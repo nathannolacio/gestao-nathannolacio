@@ -15,6 +15,22 @@ export const clients = snakeCase.table("clients", {
     phoneNumber: varchar({ length:13 }).notNull(),
     // URL pública da logo (Vercel Blob). Nula = a capa mostra as iniciais.
     logoUrl: varchar({ length: 500 }),
+    // Dados do contrato (todos opcionais; preenchidos depois da aprovação).
+    // `name` é o nome curto da capa; `legalName` é o nome completo / razão social.
+    legalName: varchar({ length: 150 }),
+    // CPF (11 dígitos, PF) ou CNPJ (14, PJ), só dígitos.
+    document: varchar({ length: 14 }),
+    zipCode: varchar({ length: 8 }),
+    street: varchar({ length: 150 }),
+    addressNumber: varchar({ length: 20 }),
+    addressComplement: varchar({ length: 100 }),
+    neighborhood: varchar({ length: 100 }),
+    city: varchar({ length: 100 }),
+    state: varchar({ length: 2 }),
+    // Responsável legal (quem assina pela empresa; só PJ).
+    legalRepName: varchar({ length: 100 }),
+    legalRepDocument: varchar({ length: 11 }),
+    legalRepRole: varchar({ length: 100 }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     deletedAt: timestamp({ withTimezone: true }),
 })

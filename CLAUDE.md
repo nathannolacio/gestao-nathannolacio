@@ -193,9 +193,12 @@ A página já lê a proposta do banco pelo token (ver "Estado atual").
 - Gateway: Asaas.
 
 ## Modelo de dados
-- clients: id, tipo (PF | PJ, enum `client_type`), nome, email, telefone,
-  criado em, deleted_at (soft delete)
-  (mínimo, só para vincular à proposta; sem CPF/CNPJ por enquanto)
+- clients: id, tipo (PF | PJ, enum `client_type`), nome (curto, aparece na capa), email (opcional),
+  telefone (= WhatsApp, 13 dígitos), logo_url, criado em, deleted_at (soft delete), e os DADOS DO CONTRATO
+  (todos opcionais, preenchidos na tela de Clientes; ver "Pronto: tela de Clientes"): legal_name (nome completo /
+  razão social), document (CPF 11 ou CNPJ 14 dígitos, só números), zip_code, street, address_number,
+  address_complement, neighborhood, city, state (UF), legal_rep_name / legal_rep_document / legal_rep_role
+  (responsável legal, só PJ)
 - proposal_template: id, textos das seções fixas, atualizado em
   (as seções fixas são: about, advantages, portfolio, process, payment, delivery e faq;
   tipo `FixedContent` em `lib/proposal-content.ts`)
@@ -220,7 +223,9 @@ rascunho → enviada → aprovada
 
 ## Decisões pendentes
 - Status para propostas não aprovadas: "arquivada", "recusada" ou nenhum.
-- Incluir ou não CPF/CNPJ do cliente na proposta.
+- Incluir ou não CPF/CNPJ do cliente na PÁGINA da proposta (o dado já existe em `clients.document`, usado só no contrato).
+- Tela de Clientes: busca automática de CEP (ViaCEP) e máscaras (CPF/CNPJ, CEP, telefone) ficaram para depois;
+  criar cliente isolado e arquivar cliente também. Arquivo antigo da logo fica órfão no Blob ao trocar (aceito).
 - Tela para editar os textos do modelo.
 - Portfólio: fixo no modelo ou escolher projetos por proposta.
 - Notificação por EMAIL quando a proposta for aprovada (adiada em 17/10/2026; o push já cobre o aviso).
@@ -228,10 +233,10 @@ rascunho → enviada → aprovada
 - Detalhe de cada serviço (ex.: "Design + Implementação"): criar campo em `proposal_items`?
   Hoje a página mostra só descrição e quantidade.
 - E-mail do cliente (decisão de 24/10/2026): OPCIONAL na criação da proposta (`clients.email` nulável, migration
-  `20261024160514_wandering_mystique`, aplicada na `preview/dev`; produção pendente). Será preenchido depois da
-  aprovação, para enviar o contrato, pela futura tela de Clientes (junto com trocar a logo).
-- Trocar a logo de um cliente EXISTENTE: hoje a logo só é enviada ao criar cliente novo. Reaproveitar
-  `uploadClientLogo` quando existir a tela de Clientes.
+  `20261024160514_wandering_mystique`). Preenchido depois da aprovação pela tela de Clientes.
+- Trocar a logo de um cliente EXISTENTE: FEITO em 24/10/2026, de dois jeitos (a logo é do CLIENTE, então vale
+  para todas as propostas dele): no formulário de EDITAR PROPOSTA (`updateProposal` aceita `logoUrl`: ausente =
+  não mexe, `null` = remove, URL = troca) e na tela de Clientes (`updateClient`). Reaproveitam `uploadClientLogo`.
 - Logo do cliente (em produção desde 15/10/2026; migration `client_logo_url` e `db:seed` aplicados na
   `production` ANTES do merge; sem teste prévio em preview, por decisão): Vercel Blob (store público,
   variável `BLOB_READ_WRITE_TOKEN`), URL em `clients.logo_url`.
@@ -377,7 +382,7 @@ rascunho → enviada → aprovada
   - Colunas: título, cliente, status (`_components/status-badge.tsx`, traduz draft/sent/approved),
     data de criação. Estado vazio e esqueleto de carregamento prontos. Sem link por linha ainda.
   - Layout do admin em `app/(privado)/layout.tsx` + `app/(privado)/_components/` (`sidebar`, `header`,
-    `nav-link`, `icons`): menu lateral (Propostas ativo; Clientes e Modelo de textos "em breve"; Sair
+    `nav-link`, `icons`): menu lateral (Propostas e, desde 24/10/2026, Clientes ativos; Modelo de textos "em breve"; Sair
     desabilitado até a Etapa 8) e header só com o usuário. Usuário e e-mail são constantes provisórias
     no layout (virão da sessão do Better Auth na Etapa 8). Tokens `admin-*` e `.admin-shell` em
     `app/globals.css`. No mobile o menu vira barra no topo só com ícones.
@@ -473,9 +478,23 @@ rascunho → enviada → aprovada
   produção aprovado (proteção do admin, login, criar/enviar/aprovar, "Sair"). No deploy (`NODE_ENV=production`,
   inclusive em preview) o botão "Voltar a rascunho" some e `revertToDraft` recusa; para tê-lo em preview
   seria preciso trocar `NODE_ENV` por `VERCEL_ENV` (decisão adiada).
-- Próximo passo: MVP no ar e edição de proposta pronta. Candidatos (decidir): testes automatizados do
-  cálculo (`lib/proposal-calc.ts`) e do `approveProposal`/`updateProposal`, tela de Clientes (inclui
-  trocar a logo de cliente existente), data de envio/aprovação na listagem, tela do modelo de textos.
+- Próximo passo: MVP no ar, edição de proposta e tela de Clientes prontas. Candidatos (decidir): testes
+  automatizados do cálculo (`lib/proposal-calc.ts`) e do `approveProposal`/`updateProposal`/`updateClient`,
+  data de envio/aprovação na listagem, tela do modelo de textos, geração do contrato a partir dos dados do cliente.
+- Pronto: tela de Clientes (24/10/2026; `tsc` e `eslint` passam, NÃO testada no navegador; migration
+  `20261024162724_loving_moira_mactaggert`, só ADD COLUMN nulas, aplicada na `preview/dev`):
+  - Menu "Clientes" ativo. `app/(privado)/clientes/page.tsx` lista clientes ativos (nome, tipo, CPF/CNPJ formatado,
+    e-mail) com o selo "Pronto para contrato" / "Contrato: faltam N" (`lib/client-contract.ts`,
+    `missingContractFields`, CALCULADO, nada salvo: nome completo/razão social, documento, e-mail, endereço e,
+    em PJ, responsável legal). Cada linha leva a `app/(privado)/clientes/[id]/editar/page.tsx` (valida o `id` com
+    `z.uuid()`, `notFound()` se inexistente/arquivado) e `_components/client-form.tsx` (Identificação + logo, Contato,
+    Endereço, Responsável legal só em PJ). Reaproveita `Field` e `inputClass`, agora exportados de `proposal-form.tsx`.
+  - `updateClient(input)` em `clientes/actions.ts`: `requireUser()` → `updateClientSchema`
+    (`lib/schemas/client-update.ts`) → UPDATE `WHERE id AND deleted_at IS NULL`. Zod: campo vazio vira `null`
+    (limpa a coluna); documento/CEP/CPF do responsável guardados só com dígitos; documento validado pelo TIPO
+    (PF = CPF, PJ = CNPJ) com dígito verificador (`lib/document.ts`: `isValidCpf`, `isValidCnpj`, `formatDocument`);
+    UF restrita às 27 siglas; em PF os campos do responsável legal são zerados. O tipo PF/PJ pode ser trocado.
+  - `logoUrlSchema` agora é exportado de `lib/schemas/client.ts` (mesma regra: https, Blob nosso, `/logos/`).
 - Pronto: edição de proposta (15/10/2026; testada manualmente: rascunho, enviada, aprovada e URL inválida;
   ainda NÃO está na `main`/produção, só na branch de trabalho; não há migration):
   - `updateProposal(input)` em `app/(privado)/propostas/actions.ts`: `requireUser()` → `updateProposalSchema`

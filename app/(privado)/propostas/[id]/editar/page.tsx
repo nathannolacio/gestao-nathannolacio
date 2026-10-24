@@ -89,6 +89,7 @@ async function FormularioDeEdicao({ params }: EditarPropostaProps) {
             mode="edit"
             proposalId={proposal.id}
             clientName={proposal.client.name}
+            clientLogoUrl={proposal.client.logoUrl}
             status={proposal.status}
             initialValues={initialValues}
         />
