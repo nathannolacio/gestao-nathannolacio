@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import {
   formatBRL,
   itemSubtotal,
@@ -32,10 +32,32 @@ import { ProjectCard } from "../_components/project-card";
 import { Rich } from "../_components/rich";
 import { Section } from "../_components/section";
 
-export const metadata: Metadata = {
-  title: "Proposta comercial",
-  robots: { index: false, follow: false }, // link privado: fora do Google
-};
+// Sempre pelo token, nunca pelo ID. Soft delete filtrado na query. `cache` do React dedupe a
+// leitura dentro da mesma requisição: `generateMetadata` e a página dividem uma única ida ao banco.
+const getProposal = cache((token: string) =>
+  db.query.proposals.findFirst({
+    where: { publicToken: token, deletedAt: { isNull: true } },
+    with: {
+      client: true,
+      items: { orderBy: { position: "asc" } },
+    },
+  }),
+);
+
+// Favicon = logo do cliente (quando há). Rascunho não vaza a logo (a página nem abre sem login);
+// sem logo, ou token inválido, vale o ícone padrão do app/layout.
+export async function generateMetadata({ params }: ProposalPageProps): Promise<Metadata> {
+  await connection();
+  const { token } = await params;
+  const row = await getProposal(token);
+  const logo = row && row.status !== "draft" ? row.client?.logoUrl : null;
+
+  return {
+    title: "Proposta comercial",
+    robots: { index: false, follow: false }, // link privado: fora do Google
+    ...(logo ? { icons: { icon: logo, shortcut: logo, apple: logo } } : {}),
+  };
+}
 
 // Foto da seção "Quem sou eu": o corpo se dissolve no fundo areia (esconde o corte dos braços).
 // A foto aparece inteira da metade para cima (cabeça e topo dos ombros) e, daí para baixo, só
@@ -100,14 +122,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
   const { token } = await params;
   const { convite } = await searchParams;
 
-  // Sempre pelo token, nunca pelo ID. Soft delete filtrado na query.
-  const row = await db.query.proposals.findFirst({
-    where: { publicToken: token, deletedAt: { isNull: true } },
-    with: {
-      client: true,
-      items: { orderBy: { position: "asc" } },
-    },
-  });
+  const row = await getProposal(token);
 
   // "Não existe" e "é rascunho sem login" respondem igual (404): não revela o token.
   if (!row || !row.client) notFound();
