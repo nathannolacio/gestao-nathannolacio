@@ -32,7 +32,7 @@ export const logoUrlSchema = z
         .string("O telefone é obrigatório.")
         .transform((p) => p.replace(/\D/g, ""))
         .pipe(
-            z.string().regex(/^\d{13}$/, "O telefone deve ter 13 dígitos (55 + DDD + número)."),
+            z.string().regex(/^\d{12,13}$/, "O telefone deve ter 12 ou 13 dígitos (55 + DDD + número)."),
         ),
     type: z.enum(["PF", "PJ"], "Selecione o tipo do cliente (PF ou PJ)."),
     logoUrl: logoUrlSchema.optional(),

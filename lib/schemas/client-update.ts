@@ -48,7 +48,7 @@ export const updateClientSchema = z
         phone: z
             .string("O WhatsApp é obrigatório.")
             .transform((p) => p.replace(/\D/g, ""))
-            .pipe(z.string().regex(/^\d{13}$/, "O WhatsApp deve ter 13 dígitos (55 + DDD + número).")),
+            .pipe(z.string().regex(/^\d{12,13}$/, "O WhatsApp deve ter 12 ou 13 dígitos (55 + DDD + número).")),
         // CPF ou CNPJ; o dígito verificador é conferido no superRefine, conforme o tipo.
         document: z.preprocess(
             (value) => {
