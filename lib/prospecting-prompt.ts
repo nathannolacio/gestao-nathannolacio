@@ -4,28 +4,47 @@
 
 import { importColumns, MAX_IMPORT_ROWS } from "./lead-import.ts";
 
+export const prospectingOffers = {
+    site: "site one-page",
+    menu: "cardápio digital (para food: doceria, marmita, hamburgueria, pizzaria)",
+} as const;
+export type ProspectingOffer = keyof typeof prospectingOffers;
+
 export type ProspectingPromptInput = {
+    offer: ProspectingOffer;
     niche: string;
     cities: string;
     count: number;
+    // Negócios que já estão no sistema ou já foram abordados (um por linha), para a IA pular.
+    exclude: string;
 };
 
 export const defaultPromptInput: ProspectingPromptInput = {
+    offer: "site",
     niche: "",
     cities: "Caieiras e Franco da Rocha",
     count: 20,
+    exclude: "",
 };
 
-export function buildProspectingPrompt({ niche, cities, count }: ProspectingPromptInput) {
+export function buildProspectingPrompt({ offer, niche, cities, count, exclude }: ProspectingPromptInput) {
     const nicho = niche.trim() || "[NICHO, ex.: doceria, dentista, esteticista]";
     const cidades = cities.trim() || "[CIDADES]";
     const quantidade = Math.min(Math.max(Math.trunc(count) || 20, 1), MAX_IMPORT_ROWS);
     const header = importColumns.join(";");
+    const excluded = exclude
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+    const excludeBlock =
+        excluded.length > 0
+            ? `\n\n## Não incluir (já tenho ou já abordei)\n${excluded.map((name) => `- ${name}`).join("\n")}`
+            : "";
 
     return `Você é meu assistente de prospecção. Eu sou o Nathan, de Caieiras (SP), e faço sites one-page e cardápios digitais para pequenos negócios da região. Vou abordar cada negócio pelo WhatsApp com uma prévia do site deles.
 
 ## Tarefa
-Encontre ${quantidade} negócios de ${nicho} em ${cidades} que sejam bons candidatos a um site. Pesquise no Google Maps e no Instagram e use só informação pública do negócio (ficha do Google e perfil comercial).
+Encontre ${quantidade} negócios de ${nicho} em ${cidades} que sejam bons candidatos a um ${prospectingOffers[offer]}. Pesquise no Google Maps e no Instagram e use só informação pública do negócio (ficha do Google e perfil comercial).
 
 ## Quem entra
 - Negócio aberto e ativo: postou no Instagram nos últimos 2 meses ou tem avaliação recente no Google.
@@ -37,7 +56,8 @@ Encontre ${quantidade} negócios de ${nicho} em ${cidades} que sejam bons candid
 - A: celular/WhatsApp que parece ser do dono, postou nos últimos 15 dias e tem 30 avaliações ou mais no Google (ou 1.000 seguidores ou mais no Instagram).
 - B: tem celular, mas pouca avaliação ou pouca postagem, ou é um negócio com equipe/recepção.
 - C: só telefone fixo, passa por recepção, ou já usa iFood/site de pedidos e parece satisfeito.
-Ordene a lista com os A primeiro, depois B, depois C.
+Se você não conseguir confirmar algum critério do A (ex.: não dá para ver a data do último post), dê no máximo B.
+Ordene a lista com os A primeiro, depois B, depois C.${excludeBlock}
 
 ## Gancho (coluna "gancho")
 Uma frase curta (até 250 caracteres) que vou colar na primeira mensagem, baseada em um fato REAL e verificável do negócio. Exemplos: "Com 110 avaliações e nota 4,9 no Google, falta só o site para quem pesquisa dentista em Caieiras achar vocês." ou "Os bolos de vocês no Instagram já vendem sozinhos; um cardápio com preço e pedido no WhatsApp facilita para quem chega pela bio."

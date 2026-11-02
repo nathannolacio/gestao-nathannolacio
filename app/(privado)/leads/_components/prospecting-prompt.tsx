@@ -3,17 +3,23 @@
 import { useState } from "react";
 import { inputClass } from "@/app/(privado)/propostas/_components/proposal-form";
 import { MAX_IMPORT_ROWS } from "@/lib/lead-import";
-import { buildProspectingPrompt, defaultPromptInput } from "@/lib/prospecting-prompt";
+import {
+    buildProspectingPrompt,
+    defaultPromptInput,
+    type ProspectingOffer,
+} from "@/lib/prospecting-prompt";
 
 // Prompt base para pedir a lista a uma IA já no formato da importação. Nicho, cidades e quantidade
 // preenchem o texto; o resto (regras A/B/C, gancho, formato das colunas) é fixo em lib/prospecting-prompt.ts.
 export function ProspectingPrompt() {
+    const [offer, setOffer] = useState<ProspectingOffer>(defaultPromptInput.offer);
+    const [exclude, setExclude] = useState(defaultPromptInput.exclude);
     const [niche, setNiche] = useState(defaultPromptInput.niche);
     const [cities, setCities] = useState(defaultPromptInput.cities);
     const [count, setCount] = useState(String(defaultPromptInput.count));
     const [copied, setCopied] = useState(false);
 
-    const prompt = buildProspectingPrompt({ niche, cities, count: Number(count) });
+    const prompt = buildProspectingPrompt({ offer, niche, cities, count: Number(count), exclude });
 
     async function copy() {
         try {
@@ -41,7 +47,21 @@ export function ProspectingPrompt() {
                 bloco inteiro e cole no passo 2.
             </p>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-[2fr_2fr_1fr]">
+            <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_2fr_2fr_1fr]">
+                <div>
+                    <label htmlFor="prompt-offer" className="mb-1.5 block text-sm text-admin-muted">
+                        Oferta
+                    </label>
+                    <select
+                        id="prompt-offer"
+                        value={offer}
+                        onChange={(e) => setOffer(e.target.value as ProspectingOffer)}
+                        className={inputClass}
+                    >
+                        <option value="site">Site</option>
+                        <option value="menu">Cardápio</option>
+                    </select>
+                </div>
                 <div>
                     <label htmlFor="prompt-niche" className="mb-1.5 block text-sm text-admin-muted">
                         Nicho
@@ -79,6 +99,20 @@ export function ProspectingPrompt() {
                         className={inputClass}
                     />
                 </div>
+            </div>
+
+            <div className="mt-4">
+                <label htmlFor="prompt-exclude" className="mb-1.5 block text-sm text-admin-muted">
+                    Não incluir (opcional, um por linha)
+                </label>
+                <textarea
+                    id="prompt-exclude"
+                    rows={3}
+                    value={exclude}
+                    onChange={(e) => setExclude(e.target.value)}
+                    placeholder="Negócios que você já tem ou já abordou"
+                    className={inputClass}
+                />
             </div>
 
             <label htmlFor="prospecting-prompt" className="sr-only">
