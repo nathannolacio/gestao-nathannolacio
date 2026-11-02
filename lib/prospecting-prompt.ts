@@ -49,7 +49,7 @@ Encontre ${quantidade} negócios de ${nicho} em ${cidades} que sejam bons candid
 ## Quem entra
 - Negócio aberto e ativo: postou no Instagram nos últimos 2 meses ou tem avaliação recente no Google.
 - NÃO tem site próprio funcionando. Pode ter só Instagram, Linktree, página do iFood ou site quebrado/abandonado.
-- Tem um jeito de falar direto: WhatsApp (celular) na ficha, na bio ou no link do Instagram.
+- Tem um jeito de falar direto: WhatsApp na ficha, na bio ou no link do Instagram (de preferência celular).
 - Fica de fora: franquia ou rede, negócio que parece fechado, Instagram parado há mais de 2 meses, quem já tem site próprio funcionando.
 
 ## Nota (coluna "nota")
@@ -76,7 +76,7 @@ Regras de cada coluna:
 - contato: primeiro nome do dono ou responsável, só se aparecer publicamente. Senão, vazio.
 - segmento: o tipo de negócio em poucas palavras (até 60 caracteres), ex.: Doceria, Dentista, Estética.
 - cidade: a cidade do negócio.
-- whatsapp: só dígitos, com 55 + DDD + número (12 ou 13 dígitos), ex.: 5511912345678. Se não tiver certeza, deixe vazio. NUNCA invente ou complete número.
+- whatsapp: só dígitos, com 55 + DDD + número, ex.: 5511912345678. Use CELULAR (13 dígitos, com o 9 depois do DDD). Telefone fixo (12 dígitos) só se o próprio negócio indicar que ele é WhatsApp (link wa.me, ícone ou "WhatsApp" escrito ao lado); senão, deixe vazio. Se não tiver certeza, deixe vazio. NUNCA invente ou complete número.
 - instagram: só o usuário, sem @ (ex.: docesdamaria). Vazio se não tiver.
 - nota: A, B ou C.
 - previa_url: deixe SEMPRE vazio (eu preencho depois de fazer a prévia).
