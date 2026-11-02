@@ -73,7 +73,7 @@ export const defaultFixedContent: FixedContent = {
       {
         icon: "shield",
         title: "Suporte depois da entrega",
-        text: "60 dias de hospedagem e manutenção gratuitas para ajustes e dúvidas.",
+        text: "30 dias de hospedagem e manutenção grátis depois da publicação, para ajustes e dúvidas.",
       },
     ],
   },
@@ -117,8 +117,8 @@ export const defaultFixedContent: FixedContent = {
       },
       {
         title: "Entrega",
-        text: "Coloco o site no ar e explico como usar.",
-        note: "Site publicado",
+        text: "Coloco o site no ar, explico como usar e começam os seus 30 dias de hospedagem e manutenção grátis.",
+        note: "Site publicado · 30 dias grátis",
       },
     ],
     adjustments:
@@ -148,7 +148,7 @@ export const defaultFixedContent: FixedContent = {
   delivery: {
     note: "Em dias úteis, contados a partir do recebimento do briefing e dos materiais. O tempo que você leva para responder não conta no prazo.",
     maintenance:
-      "Depois da entrega, você tem 60 dias de hospedagem e manutenção gratuitas, com até 3 alterações por mês. Passado esse período, passam a ser cobradas no plano mensal, que inclui hospedagem e manutenção.",
+      "Depois da publicação, você tem 30 dias de hospedagem e manutenção grátis, com até 4 alterações por mês. Depois disso, o plano mensal (hospedagem e manutenção) começa automaticamente. Se preferir não continuar, é só avisar até 10 dias antes e eu te entrego os arquivos do site.",
   },
 
   faq: {
@@ -157,7 +157,7 @@ export const defaultFixedContent: FixedContent = {
       {
         question: "Domínio e hospedagem estão inclusos?",
         answer:
-          "O domínio é contratado por você, e eu te guio no passo a passo. A hospedagem pode ser sua ou minha. Os primeiros 60 dias de hospedagem e manutenção são grátis; depois, quando ela é minha, o plano mensal de hospedagem e manutenção aparece no investimento.",
+          "O domínio fica no seu nome: você contrata (cerca de R$ 40 por ano no Registro.br) e eu te guio no passo a passo. Os primeiros 30 dias de hospedagem e manutenção são grátis; depois, o plano mensal aparece no investimento. Se preferir hospedar por conta própria, eu te entrego os arquivos do site.",
       },
       {
         question: "Posso pedir alterações no layout?",
@@ -172,7 +172,7 @@ export const defaultFixedContent: FixedContent = {
       {
         question: "Como funciona o suporte depois da entrega?",
         answer:
-          "São 60 dias de hospedagem e manutenção grátis, com até 3 alterações por mês, como troca de textos, fotos, telefone ou endereço. Depois, o plano mensal inclui os dois: manter o site no ar e as alterações de conteúdo.",
+          "São 30 dias de hospedagem e manutenção grátis, com até 4 alterações por mês. Alteração é uma troca pontual de até 15 minutos, como texto, foto, preço, telefone ou endereço, atendida em até 3 dias úteis. Seção, página ou layout novo é orçado à parte. Depois dos 30 dias, o plano mensal mantém o site no ar com as mesmas 4 alterações por mês.",
       },
       {
         question: "Em quanto tempo você responde?",
