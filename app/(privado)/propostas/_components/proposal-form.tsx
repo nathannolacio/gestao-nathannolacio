@@ -520,7 +520,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                         <input
                             id="hostingMonthly"
                             inputMode="decimal"
-                            placeholder="79,00"
+                            placeholder="69,00"
                             value={hostingMonthly}
                             onChange={(e) => setHostingMonthly(e.target.value)}
                             autoComplete="off"
@@ -814,7 +814,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                         Bônus
                     </h2>
                     <p className="mt-1 text-sm text-admin-muted">
-                        Desmarque o que não vale para este cliente (ele já tem ou não quer). Os 60 dias
+                        Desmarque o que não vale para este cliente (ele já tem ou não quer). Os 30 dias
                         de hospedagem e manutenção entram em toda proposta.
                     </p>
                 </div>

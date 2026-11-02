@@ -68,6 +68,22 @@ const fadeToSand = [
   "radial-gradient(ellipse 48% 36.08% at 50% 50%, black 94%, transparent 100%)",
 ].join(", ");
 
+// Validade da proposta em dias corridos, contada do envio (decisão de 02/11/2026). Só informa:
+// não bloqueia a aprovação. Data exibida no fuso de São Paulo (o servidor roda em UTC).
+const PROPOSAL_VALIDITY_DAYS = 7;
+const validUntilFormat = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo",
+  day: "2-digit",
+  month: "2-digit",
+});
+function proposalValidity(sentAt: Date) {
+  const until = new Date(sentAt.getTime() + PROPOSAL_VALIDITY_DAYS * 86_400_000);
+  const date = validUntilFormat.format(until);
+  return Date.now() > until.getTime()
+    ? `A validade desta proposta terminou em ${date}. Fale comigo para confirmar as condições.`
+    : `Proposta válida até ${date}.`;
+}
+
 // Pílula de valor usada no Investimento e no Pagamento.
 const pill = "rounded-full px-4 py-1.5 font-display font-semibold";
 
@@ -365,7 +381,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
             })}
           </ol>
 
-          {/* regra das rodadas e nota dos 60 dias, logo abaixo dos passos */}
+          {/* regra das rodadas e nota dos 30 dias, logo abaixo dos passos */}
           <div className="mt-12 space-y-4">
             {c.process.adjustments && (
               <p className="rounded-2xl border border-(--line) px-5 py-4 text-base leading-7 text-(--mute)">
@@ -657,7 +673,7 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                   {/* linha do tempo: de relance, "agora é grátis, depois é mensal" */}
                   <div className="mt-5 grid grid-cols-1 items-stretch gap-2 sm:grid-cols-[1fr_auto_1fr] sm:gap-3">
                     <div className="flex flex-col items-center justify-center rounded-3xl bg-dourado/25 px-3 py-4 text-center">
-                      <p className="text-sm font-medium text-bronze">Primeiros 60 dias</p>
+                      <p className="text-sm font-medium text-bronze">Primeiros 30 dias</p>
                       <p className="font-display text-3xl font-bold tracking-tight text-bronze">
                         Grátis
                       </p>
@@ -682,6 +698,12 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                     <span className="rounded-full bg-dourado/25 px-3 py-1">Fora do total do projeto</span>
                   </div>
                 </div>
+              )}
+              {/* validade: 7 dias corridos a partir do envio (só informa; não bloqueia a aprovação) */}
+              {row.status === "sent" && row.sentAt && (
+                <p className="mt-8 text-center text-sm text-(--mute)">
+                  {proposalValidity(row.sentAt)}
+                </p>
               )}
             </PaymentChoice>
           </div>

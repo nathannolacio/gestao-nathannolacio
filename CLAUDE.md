@@ -93,7 +93,8 @@ Foco atual. Gestão completa de clientes, contratos, pagamentos e gateway ficam 
   pelo token, editar uma proposta já enviada muda o que ele vê. Depois de APROVADA, a proposta
   NÃO pode mais ser editada (`updateProposal` recusa `approved`).
 - Serviços futuros (ex.: manutenção) viram uma proposta nova.
-- Sem numeração própria, sem validade e sem expiração por enquanto.
+- Sem numeração própria. Validade de 7 dias corridos a partir do envio (decisão de 02/11/2026), só INFORMADA na
+  página ("Proposta válida até dd/mm"); não bloqueia a aprovação nem expira sozinha.
 - Aprovação: aparece no sistema e avisa o dono por NOTIFICAÇÃO PUSH no celular (ver "Pronto: notificação push"); email fica para depois.
 
 ## Seções da proposta (na ordem da página)
@@ -481,6 +482,15 @@ rascunho → enviada → aprovada
 - Próximo passo: MVP no ar, edição de proposta e tela de Clientes prontas. Candidatos (decidir): testes
   automatizados do cálculo (`lib/proposal-calc.ts`) e do `approveProposal`/`updateProposal`/`updateClient`,
   data de envio/aprovação na listagem, tela do modelo de textos, geração do contrato a partir dos dados do cliente.
+- Pronto: ajustes da proposta às decisões de 02/11/2026 (sem migration; `tsc`, `eslint` e `next build` passam):
+  cortesia de hospedagem e manutenção passou de 60 para 30 DIAS, com até 4 alterações/mês (alteração = troca
+  pontual de até 15 min, atendida em até 3 dias úteis; seção/página/layout novo é orçado à parte). Depois dos 30
+  dias o plano mensal começa automaticamente, salvo aviso até 10 dias antes (aí o cliente recebe os arquivos),
+  igual ao contrato v2. Bônus obrigatório: id `hospedagem-manutencao-60-dias` MANTIDO (ids não mudam), título
+  "30 dias..." e valor riscado = 1 × `hosting_monthly`. Placeholder da mensalidade: 69,00 (Plano Site R$ 69).
+  Página pública mostra "Proposta válida até dd/mm" (7 dias do `sentAt`) em proposta enviada.
+  Os textos novos só valem para propostas NOVAS: rodar `db:seed` e atualizar o `fixed_content` das não aprovadas
+  (mesmo UPDATE de 16-17/10). As regras acima que falam em "60 dias" e "3 alterações" foram SUPERADAS por esta.
 - Pronto: tela de Clientes (24/10/2026; `tsc` e `eslint` passam, NÃO testada no navegador; migration
   `20261024162724_loving_moira_mactaggert`, só ADD COLUMN nulas, aplicada na `preview/dev`):
   - Menu "Clientes" ativo. `app/(privado)/clientes/page.tsx` lista clientes ativos (nome, tipo, CPF/CNPJ formatado,
