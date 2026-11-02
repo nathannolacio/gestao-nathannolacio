@@ -94,7 +94,8 @@ Foco atual. Gestão completa de clientes, contratos, pagamentos e gateway ficam 
   NÃO pode mais ser editada (`updateProposal` recusa `approved`).
 - Serviços futuros (ex.: manutenção) viram uma proposta nova.
 - Sem numeração própria. Validade de 7 dias corridos a partir do envio (decisão de 02/11/2026), só INFORMADA na
-  página ("Proposta válida até dd/mm"); não bloqueia a aprovação nem expira sozinha.
+  página ("Proposta válida até dd/mm"); não bloqueia a aprovação nem expira sozinha. Propostas enviadas antes de
+  02/11/2026 16:30 UTC (`VALIDITY_STARTS_AT`) ficam com a validade em aberto: a página não mostra data.
 - Aprovação: aparece no sistema e avisa o dono por NOTIFICAÇÃO PUSH no celular (ver "Pronto: notificação push"); email fica para depois.
 
 ## Seções da proposta (na ordem da página)
