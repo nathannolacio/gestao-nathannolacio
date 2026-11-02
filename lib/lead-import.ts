@@ -67,7 +67,8 @@ export function parseLeadImport(text: string): ParsedImport {
     const lines = text
         .split(/\r?\n/)
         .map((line, index) => ({ line: index + 1, raw: line }))
-        .filter(({ raw }) => raw.trim() !== "");
+        // Ignora linhas vazias e as cercas de bloco de código (```) que vêm junto ao copiar a resposta de uma IA.
+        .filter(({ raw }) => raw.trim() !== "" && !raw.trim().startsWith("```"));
 
     if (lines.length === 0) return { rows: [], hasHeader: false, unknownHeaders: [], tooMany: false };
 
