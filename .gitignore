@@ -45,3 +45,7 @@ next-env.d.ts
 
 # capturas da skill de design (Impeccable)
 .impeccable/review/
+
+# skills do Claude Code: instaladas por máquina (symlinks), registradas no skills-lock.json
+.claude/skills/
+.claude/settings.local.json
