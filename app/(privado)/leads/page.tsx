@@ -7,9 +7,11 @@ import {
     leadSourceLabel,
     leadStageLabel,
     openLeadStages,
+    priorityRank,
     todayInSaoPaulo,
     type LeadStage,
 } from "@/lib/leads";
+import { PriorityBadge } from "./_components/priority-badge";
 import { StageBadge } from "./_components/stage-badge";
 
 // Abas da lista (filtro pela URL: ?filtro=ganhos). Padrão = em aberto, agrupados por estágio.
@@ -27,12 +29,20 @@ export default function Leads({ searchParams }: LeadsProps) {
         <>
             <div className="flex items-center justify-between gap-4">
                 <h1 className="font-display text-2xl font-medium tracking-tight">Leads</h1>
-                <Link
-                    href="/leads/novo"
-                    className="rounded-lg bg-dourado px-4 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
-                >
-                    Novo lead
-                </Link>
+                <div className="flex flex-wrap gap-2">
+                    <Link
+                        href="/leads/importar"
+                        className="rounded-lg border border-admin-line px-4 py-2 text-sm text-admin-text transition-colors duration-150 hover:border-dourado"
+                    >
+                        Importar lista
+                    </Link>
+                    <Link
+                        href="/leads/novo"
+                        className="rounded-lg bg-dourado px-4 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
+                    >
+                        Novo lead
+                    </Link>
+                </div>
             </div>
 
             <Suspense fallback={<ListaSkeleton />}>
@@ -62,13 +72,17 @@ async function ListaLeads({ searchParams }: LeadsProps) {
 
     const visible = all.filter((lead) => filters[active].stages.includes(lead.stage));
 
-    // Dentro de cada estágio: follow-up mais antigo primeiro; sem data no fim.
+    // Dentro de cada estágio: nota A antes de B e C (sem nota no fim); depois, follow-up mais antigo primeiro.
     const byStage = filters[active].stages
         .map((stage) => ({
             stage,
             leads: visible
                 .filter((lead) => lead.stage === stage)
-                .sort((a, b) => (a.nextFollowUpAt ?? "9999").localeCompare(b.nextFollowUpAt ?? "9999")),
+                .sort(
+                    (a, b) =>
+                        priorityRank(a.priority) - priorityRank(b.priority) ||
+                        (a.nextFollowUpAt ?? "9999").localeCompare(b.nextFollowUpAt ?? "9999"),
+                ),
         }))
         .filter((group) => group.leads.length > 0);
 
@@ -121,7 +135,8 @@ async function ListaLeads({ searchParams }: LeadsProps) {
                                                 className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors duration-150 hover:bg-admin-raised/50"
                                             >
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="font-medium text-admin-text wrap-break-word">
+                                                    <p className="flex items-center gap-2 font-medium text-admin-text wrap-break-word">
+                                                        {lead.priority && <PriorityBadge priority={lead.priority} />}
                                                         {lead.businessName}
                                                     </p>
                                                     <p className="mt-0.5 text-sm text-admin-muted wrap-break-word">

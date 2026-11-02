@@ -3,6 +3,7 @@ import {
     contactChannels,
     diagnosisQuestions,
     isOpenStage,
+    leadPriorities,
     leadSources,
     leadStages,
 } from "../leads.ts";
@@ -26,6 +27,17 @@ const optionalDate = z.preprocess(
     blankToNull,
     z.iso.date("Data inválida.").nullable(),
 );
+
+// Link opcional (prévia, Google Maps): só http(s), para nunca virar `javascript:` num href.
+function optionalUrl(label: string) {
+    return z.preprocess(
+        blankToNull,
+        z
+            .url({ protocol: /^https?$/, error: `${label}: cole o link completo, começando com https://` })
+            .max(500, `${label} deve ter no máximo 500 caracteres.`)
+            .nullable(),
+    );
+}
 
 // Campos do lead (cadastro e edição usam os mesmos).
 const leadFields = {
@@ -70,6 +82,11 @@ const leadFields = {
     lostReason: optionalText("O motivo", 200),
     nextFollowUpAt: optionalDate,
     notes: optionalText("As observações", 2000),
+    // Prospecção (todos opcionais).
+    priority: z.preprocess(blankToNull, z.enum(leadPriorities, "Nota inválida (use A, B ou C).").nullable()),
+    hook: optionalText("O gancho", 300),
+    previewUrl: optionalUrl("Link da prévia"),
+    mapsUrl: optionalUrl("Link do Google Maps"),
 };
 
 type LeadRules = {
@@ -150,3 +167,12 @@ export const leadDiagnosisSchema = z.object({
 });
 
 export const leadIdSchema = z.object({ id: z.uuid("Lead inválido.") });
+
+// Importação em lote: só o texto colado (o servidor separa as colunas e valida linha a linha).
+export const leadImportSchema = z.object({
+    text: z
+        .string("Cole a lista.")
+        .trim()
+        .min(1, "Cole a lista.")
+        .max(200_000, "Lista grande demais: importe em partes de até 200 linhas."),
+});

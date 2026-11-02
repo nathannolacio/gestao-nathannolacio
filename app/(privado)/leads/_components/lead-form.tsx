@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { createLead, updateLead } from "@/app/(privado)/leads/actions";
 import { Field, inputClass } from "@/app/(privado)/propostas/_components/proposal-form";
 import {
+    leadPriorities,
+    leadPriorityHint,
     leadSourceLabel,
     leadSources,
     leadStageLabel,
     leadStages,
     isOpenStage,
+    type LeadPriority,
     type LeadSource,
     type LeadStage,
 } from "@/lib/leads";
@@ -28,6 +31,10 @@ export type LeadFormValues = {
     lostReason: string;
     nextFollowUpAt: string;
     notes: string;
+    priority: LeadPriority | "";
+    hook: string;
+    previewUrl: string;
+    mapsUrl: string;
 };
 
 export const emptyLead: LeadFormValues = {
@@ -43,6 +50,10 @@ export const emptyLead: LeadFormValues = {
     lostReason: "",
     nextFollowUpAt: "",
     notes: "",
+    priority: "",
+    hook: "",
+    previewUrl: "",
+    mapsUrl: "",
 };
 
 type FieldErrors = Record<string, string[] | undefined>;
@@ -77,7 +88,7 @@ export function LeadForm(props: LeadFormProps) {
         setValues((current) => ({ ...current, [key]: value }));
     }
 
-    function text(key: keyof LeadFormValues, extra?: { list?: string; inputMode?: "tel" }) {
+    function text(key: keyof LeadFormValues, extra?: { list?: string; inputMode?: "tel" | "url" }) {
         return {
             id: key,
             value: values[key],
@@ -204,6 +215,43 @@ export function LeadForm(props: LeadFormProps) {
                         </Field>
                     )
                 )}
+            </div>
+
+            <div className="grid gap-4 border-t border-admin-line pt-6 sm:grid-cols-2">
+                <Field
+                    label="Nota de prospecção"
+                    htmlFor="priority"
+                    hint={values.priority ? leadPriorityHint[values.priority] : "A, B ou C (opcional)"}
+                    errors={fieldErrors.priority}
+                >
+                    <select
+                        id="priority"
+                        value={values.priority}
+                        onChange={(e) => set("priority", e.target.value as LeadPriority | "")}
+                        className={inputClass}
+                    >
+                        <option value="">Sem nota</option>
+                        {leadPriorities.map((p) => (
+                            <option key={p} value={p}>
+                                {p}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+                <Field label="Link da prévia" htmlFor="previewUrl" errors={fieldErrors.previewUrl}>
+                    <input {...text("previewUrl", { inputMode: "url" })} placeholder="https://..." />
+                </Field>
+                <Field label="Link do Google Maps" htmlFor="mapsUrl" errors={fieldErrors.mapsUrl}>
+                    <input {...text("mapsUrl", { inputMode: "url" })} placeholder="https://maps.app.goo.gl/..." />
+                </Field>
+                <Field
+                    label="Gancho"
+                    htmlFor="hook"
+                    hint="Frase que entra na 1ª mensagem"
+                    errors={fieldErrors.hook}
+                >
+                    <input {...text("hook")} placeholder="Ex.: Com 110 avaliações no Google, falta só o site." />
+                </Field>
             </div>
 
             <Field label="Observações" htmlFor="notes" errors={fieldErrors.notes}>

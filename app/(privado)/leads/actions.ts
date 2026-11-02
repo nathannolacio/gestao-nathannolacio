@@ -6,11 +6,13 @@ import { z } from "zod";
 import { db } from "@/db";
 import { leadContacts, leads } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { parseLeadImport } from "@/lib/lead-import";
 import { isOpenStage } from "@/lib/leads";
 import {
     leadContactSchema,
     leadDiagnosisSchema,
     leadIdSchema,
+    leadImportSchema,
     leadSchema,
     updateLeadSchema,
 } from "@/lib/schemas/lead";
@@ -163,4 +165,123 @@ export async function archiveLead(input: unknown) {
     revalidateLeads();
 
     return { ok: true as const };
+}
+
+// ---------------------------------------------------------------------------
+// Importação em lote. O navegador manda só o TEXTO colado; separar, validar e checar duplicados é
+// tudo aqui no servidor (nunca confiar no que veio pronto do navegador). A mesma análise roda na
+// conferência e de novo na importação, então o que é gravado é sempre o que acabou de ser validado.
+// ---------------------------------------------------------------------------
+
+type ImportRowStatus = "ok" | "duplicate" | "invalid";
+
+async function analyzeImport(text: string) {
+    const parsed = parseLeadImport(text);
+
+    // Duplicado = mesmo WhatsApp, mesmo Instagram ou (sem nenhum dos dois) mesmo nome de negócio,
+    // contra os leads ativos e contra as linhas anteriores do próprio lote.
+    const existing = await db
+        .select({ phone: leads.phoneNumber, instagram: leads.instagram, name: leads.businessName })
+        .from(leads)
+        .where(isNull(leads.deletedAt));
+
+    const phones = new Set(existing.flatMap((l) => (l.phone ? [l.phone] : [])));
+    const instagrams = new Set(existing.flatMap((l) => (l.instagram ? [l.instagram.toLowerCase()] : [])));
+    const names = new Set(existing.map((l) => l.name.trim().toLowerCase()));
+
+    const rows = parsed.rows.map(({ line, values }) => {
+        const result = leadSchema.safeParse({
+            businessName: values.negocio,
+            contactName: values.contato,
+            segment: values.segmento,
+            city: values.cidade,
+            phone: values.whatsapp,
+            instagram: values.instagram,
+            priority: values.nota?.toUpperCase(),
+            previewUrl: values.previa_url,
+            mapsUrl: values.maps_url,
+            hook: values.gancho,
+            source: "prospecting",
+            stage: "new",
+        });
+
+        if (!result.success) {
+            const message = result.error.issues.map((issue) => issue.message).join(" ");
+            return { line, label: values.negocio ?? "(sem nome)", status: "invalid" as ImportRowStatus, message, data: null };
+        }
+
+        const data = result.data;
+        const instagram = data.instagram?.toLowerCase() ?? null;
+        const name = data.businessName.toLowerCase();
+        const duplicate =
+            (data.phone !== null && phones.has(data.phone)) ||
+            (instagram !== null && instagrams.has(instagram)) ||
+            (data.phone === null && instagram === null && names.has(name));
+
+        // Registra a linha para pegar repetição dentro do próprio lote.
+        if (data.phone) phones.add(data.phone);
+        if (instagram) instagrams.add(instagram);
+        names.add(name);
+
+        return {
+            line,
+            label: data.businessName,
+            status: (duplicate ? "duplicate" : "ok") as ImportRowStatus,
+            message: duplicate ? "Já existe um lead com este WhatsApp, Instagram ou nome." : null,
+            data: duplicate ? null : data,
+        };
+    });
+
+    return { ...parsed, rows };
+}
+
+// Conferência: mostra o que vai entrar, sem gravar nada.
+export async function previewLeadImport(input: unknown) {
+    await requireUser();
+
+    const result = leadImportSchema.safeParse(input);
+    if (!result.success) {
+        return { ok: false as const, formError: result.error.issues[0]?.message ?? "Texto inválido." };
+    }
+
+    const analysis = await analyzeImport(result.data.text);
+
+    return {
+        ok: true as const,
+        unknownHeaders: analysis.unknownHeaders,
+        tooMany: analysis.tooMany,
+        rows: analysis.rows.map(({ line, label, status, message, data }) => ({
+            line,
+            label,
+            status,
+            message,
+            priority: data?.priority ?? null,
+            phone: data?.phone ?? null,
+            instagram: data?.instagram ?? null,
+            hasPreview: !!data?.previewUrl,
+        })),
+    };
+}
+
+// Importa as linhas válidas e não duplicadas num único INSERT (atômico: ou entram todas, ou nenhuma).
+export async function importLeads(input: unknown) {
+    await requireUser();
+
+    const result = leadImportSchema.safeParse(input);
+    if (!result.success) {
+        return { ok: false as const, formError: result.error.issues[0]?.message ?? "Texto inválido." };
+    }
+
+    const analysis = await analyzeImport(result.data.text);
+    const valid = analysis.rows.flatMap((row) => (row.data ? [row.data] : []));
+
+    if (valid.length === 0) {
+        return { ok: false as const, formError: "Nenhuma linha válida para importar." };
+    }
+
+    await db.insert(leads).values(valid.map(({ phone, ...data }) => ({ ...data, phoneNumber: phone })));
+
+    revalidateLeads();
+
+    return { ok: true as const, created: valid.length, skipped: analysis.rows.length - valid.length };
 }

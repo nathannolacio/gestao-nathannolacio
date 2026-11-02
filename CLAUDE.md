@@ -291,6 +291,20 @@ rascunho → enviada → aprovada
   - `/hoje` é a tela inicial (raiz, login e logo do menu apontam para lá): follow-ups vencidos/de hoje, propostas
     enviadas aguardando (alerta a partir de 7 dias) e leads em aberto sem próximo passo.
   - Publicar: aplicar a migration na `preview/dev`, testar, e na `production` antes do deploy (fluxo de sempre).
+- Pronto: prospecção no módulo de Leads (02/11/2026; branch `feat/prospeccao-lote`; migration
+  `20261102164859_lead_prospecting`, só CREATE TYPE + ADD COLUMN nulas, NÃO aplicada em nenhum banco Neon; `tsc`,
+  `eslint` e `next build` passam; testado no navegador contra um Postgres local). Rotina em
+  https://claude.ai/artifact/NSYLu6mWRu9ukgGKpoAiMJ:
+  - Colunas novas em `leads`: `priority` (enum `lead_priority` A/B/C), `hook` (gancho da 1ª mensagem),
+    `preview_url` e `maps_url` (Zod só aceita http/https). Editáveis em "Dados do lead".
+  - `/leads/importar`: cola a lista (tab ou ";"; colunas em `importColumns` de `lib/lead-import.ts`, ou qualquer ordem
+    com cabeçalho). `previewLeadImport` (confere, sem gravar) e `importLeads` (grava num único INSERT) refazem a
+    análise NO SERVIDOR: cada linha passa pelo `leadSchema` (origem prospecting, estágio new) e duplicado (mesmo
+    WhatsApp, Instagram ou, sem os dois, mesmo nome, contra leads ativos e o próprio lote) é pulado. Até 200 linhas.
+  - Ficha do lead em "Novo" com WhatsApp: card "Primeira mensagem" (`firstMessage` em `lib/leads.ts`: com prévia =
+    modelo do lead A de site; sem = modelo do lead B), editável, e "Abrir no WhatsApp" (`wa.me` com o texto; o envio é
+    manual). `/hoje` ganhou a fila "Para abordar" (leads novos sem follow-up, A primeiro, 15 por vez); "Leads sem próximo
+    passo" agora exclui os novos. Na lista de Leads, nota ao lado do nome e ordem A → B → C dentro do estágio.
 - Branches e ambientes (decisão de 14/10/2026, Etapa 9):
   - Fluxo Git: `feat/*` → `dev` (branch de integração) → `main` (produção, Production Branch da Vercel).
   - Neon conectado à Vercel (integração com preview branching): cada branch Git com deploy de preview ganha

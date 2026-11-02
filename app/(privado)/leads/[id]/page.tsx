@@ -7,6 +7,7 @@ import { db } from "@/db";
 import {
     contactChannelLabel,
     diagnosisQuestions,
+    firstMessage,
     followUpLabel,
     leadSourceLabel,
     todayInSaoPaulo,
@@ -15,7 +16,9 @@ import {
 import { ArchiveLeadButton } from "../_components/archive-lead-button";
 import { ContactForm } from "../_components/contact-form";
 import { DiagnosisForm } from "../_components/diagnosis-form";
+import { FirstMessage } from "../_components/first-message";
 import { LeadForm } from "../_components/lead-form";
+import { PriorityBadge } from "../_components/priority-badge";
 import { StageBadge } from "../_components/stage-badge";
 
 type LeadPageProps = { params: Promise<{ id: string }> };
@@ -79,6 +82,7 @@ async function FichaDoLead({ params }: LeadPageProps) {
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
                         <StageBadge stage={lead.stage} />
+                        {lead.priority && <PriorityBadge priority={lead.priority} />}
                         {lead.nextFollowUpAt && (
                             <span className={`text-sm ${overdue ? "text-red-300" : "text-admin-muted"}`}>
                                 Follow-up: {followUpLabel(lead.nextFollowUpAt, today)}
@@ -101,6 +105,10 @@ async function FichaDoLead({ params }: LeadPageProps) {
                             Abrir WhatsApp
                         </a>
                     )}
+                    {lead.previewUrl && (
+                        <ExternalButton href={lead.previewUrl}>Prévia</ExternalButton>
+                    )}
+                    {lead.mapsUrl && <ExternalButton href={lead.mapsUrl}>Google Maps</ExternalButton>}
                     {lead.instagram && (
                         <a
                             href={`https://instagram.com/${lead.instagram}`}
@@ -124,6 +132,12 @@ async function FichaDoLead({ params }: LeadPageProps) {
 
             <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                 <div className="space-y-8">
+                    {lead.stage === "new" && lead.phoneNumber && (
+                        <Card title={lead.previewUrl ? "Primeira mensagem (com prévia)" : "Primeira mensagem"}>
+                            <FirstMessage phone={lead.phoneNumber} initialText={firstMessage(lead)} />
+                        </Card>
+                    )}
+
                     <Card title="Registrar contato">
                         {/* key: recria o formulário quando o estágio muda, para a sugestão de estágio acompanhar. */}
                         <ContactForm
@@ -155,6 +169,10 @@ async function FichaDoLead({ params }: LeadPageProps) {
                                 lostReason: lead.lostReason ?? "",
                                 nextFollowUpAt: lead.nextFollowUpAt ?? "",
                                 notes: lead.notes ?? "",
+                                priority: lead.priority ?? "",
+                                hook: lead.hook ?? "",
+                                previewUrl: lead.previewUrl ?? "",
+                                mapsUrl: lead.mapsUrl ?? "",
                             }}
                         />
                         <div className="mt-6 border-t border-admin-line pt-4">
@@ -193,6 +211,20 @@ async function FichaDoLead({ params }: LeadPageProps) {
                 </Card>
             </div>
         </>
+    );
+}
+
+// Link externo digitado pelo dono (prévia, Maps): o Zod só aceita http(s), então não vira `javascript:`.
+function ExternalButton({ href, children }: { href: string; children: ReactNode }) {
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-admin-line px-3 py-2 text-sm text-admin-text transition-colors duration-150 hover:border-dourado"
+        >
+            {children}
+        </a>
     );
 }
 
