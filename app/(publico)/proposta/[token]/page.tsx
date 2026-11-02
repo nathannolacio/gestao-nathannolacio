@@ -71,6 +71,9 @@ const fadeToSand = [
 // Validade da proposta em dias corridos, contada do envio (decisão de 02/11/2026). Só informa:
 // não bloqueia a aprovação. Data exibida no fuso de São Paulo (o servidor roda em UTC).
 const PROPOSAL_VALIDITY_DAYS = 7;
+// Propostas enviadas ANTES da regra de validade entrar no ar ficam com a validade em aberto
+// (decisão de 02/11/2026: as 2 já enviadas não ganham prazo depois de o cliente ter recebido o link).
+const VALIDITY_STARTS_AT = new Date("2026-11-02T16:30:00Z");
 const validUntilFormat = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
   day: "2-digit",
@@ -699,8 +702,8 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
                   </div>
                 </div>
               )}
-              {/* validade: 7 dias corridos a partir do envio (só informa; não bloqueia a aprovação) */}
-              {row.status === "sent" && row.sentAt && (
+              {/* validade: 7 dias corridos a partir do envio (só informa; não bloqueia a aprovação; em aberto se enviada antes da regra) */}
+              {row.status === "sent" && row.sentAt && row.sentAt >= VALIDITY_STARTS_AT && (
                 <p className="mt-8 text-center text-sm text-(--mute)">
                   {proposalValidity(row.sentAt)}
                 </p>
