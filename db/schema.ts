@@ -118,6 +118,9 @@ export const contactChannelEnum = pgEnum("contact_channel", [
     "whatsapp", "call", "email", "dm", "in_person",
 ]);
 
+// Nota de prospecção (regra A/B/C da rotina de prospecção): A = prévia própria, B = demo do nicho, C = só se sobrar tempo.
+export const leadPriorityEnum = pgEnum("lead_priority", ["A", "B", "C"]);
+
 export const leads = snakeCase.table("leads", {
     id: uuid().defaultRandom().primaryKey(),
     businessName: varchar({ length: 100 }).notNull(),
@@ -137,6 +140,11 @@ export const leads = snakeCase.table("leads", {
     // Data (sem hora) do próximo contato. Nula em ganho/perdido.
     nextFollowUpAt: date({ mode: "string" }),
     notes: text(),
+    // Prospecção: nota A/B/C, gancho da 1ª mensagem e links (prévia feita para o lead e ficha do Google Maps).
+    priority: leadPriorityEnum(),
+    hook: varchar({ length: 300 }),
+    previewUrl: varchar({ length: 500 }),
+    mapsUrl: varchar({ length: 500 }),
     // Respostas do roteiro de diagnóstico, por id da pergunta (lib/leads.ts).
     diagnosis: jsonb().$type<LeadDiagnosis>(),
     // Preenchido quando o lead vira cliente (Fase 2).

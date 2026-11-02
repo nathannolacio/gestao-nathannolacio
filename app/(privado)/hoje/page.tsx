@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { connection } from "next/server";
 import { db } from "@/db";
-import { daysBetween, followUpLabel, openLeadStages, todayInSaoPaulo } from "@/lib/leads";
+import { daysBetween, followUpLabel, openLeadStages, priorityRank, todayInSaoPaulo } from "@/lib/leads";
+import { PriorityBadge } from "../leads/_components/priority-badge";
 import { StageBadge } from "../leads/_components/stage-badge";
 
 // Painel "Hoje": a tela inicial do sistema. Mostra só o que pede ação agora.
@@ -20,6 +21,9 @@ export default function Hoje() {
 
 // Dias desde o envio de uma proposta para pedir o último follow-up (validade combinada: 7 dias).
 const PROPOSAL_NUDGE_DAYS = 7;
+
+// Quantos leads novos a fila de abordagem mostra por vez (meta da rotina: ~15 por bloco).
+const APPROACH_QUEUE_SIZE = 15;
 
 async function Painel() {
     await connection();
@@ -55,6 +59,13 @@ async function Painel() {
         }),
     ]);
 
+    // Leads novos ainda sem abordagem viram a fila do dia (A primeiro); os demais sem data pedem um próximo passo.
+    const newLeads = withoutNextStep
+        .filter((lead) => lead.stage === "new")
+        .sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
+    const toApproach = newLeads.slice(0, APPROACH_QUEUE_SIZE);
+    const stalled = withoutNextStep.filter((lead) => lead.stage !== "new");
+
     return (
         <div className="mt-6 space-y-8">
             <dl className="grid grid-cols-3 gap-3">
@@ -81,6 +92,28 @@ async function Painel() {
                 })}
             </Section>
 
+            {toApproach.length > 0 && (
+                <Section
+                    title={`Para abordar · ${newLeads.length}`}
+                    empty=""
+                    action={{ href: "/leads/importar", label: "Importar lista" }}
+                >
+                    {toApproach.map((lead) => (
+                        <Row
+                            key={lead.id}
+                            href={`/leads/${lead.id}`}
+                            title={lead.businessName}
+                            subtitle={[lead.segment, lead.city].filter(Boolean).join(" · ") || null}
+                        >
+                            {lead.priority && <PriorityBadge priority={lead.priority} />}
+                            <span className="text-sm text-dourado">
+                                {lead.phoneNumber ? "Mandar mensagem" : "Abordar no Instagram"}
+                            </span>
+                        </Row>
+                    ))}
+                </Section>
+            )}
+
             <Section title="Propostas aguardando resposta" empty="Nenhuma proposta enviada esperando resposta.">
                 {waitingProposals.map((proposal) => {
                     const days = proposal.sentAt ? daysBetween(todayInSaoPaulo(proposal.sentAt), today) : null;
@@ -105,9 +138,9 @@ async function Painel() {
                 })}
             </Section>
 
-            {withoutNextStep.length > 0 && (
+            {stalled.length > 0 && (
                 <Section title="Leads sem próximo passo" empty="">
-                    {withoutNextStep.map((lead) => (
+                    {stalled.map((lead) => (
                         <Row key={lead.id} href={`/leads/${lead.id}`} title={lead.businessName} subtitle={lead.segment}>
                             <StageBadge stage={lead.stage} />
                             <span className="text-sm text-dourado">Marcar follow-up</span>
