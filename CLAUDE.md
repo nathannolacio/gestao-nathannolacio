@@ -266,6 +266,29 @@ rascunho → enviada → aprovada
 
 # Estado atual
 - Etapa atual: MVP concluído e no ar. Etapas 1 a 9 concluídas (ver "Pronto na Etapa 8" e "Pronto na Etapa 9").
+- Sistema de gestão (decisão de 02/11/2026): o sistema cresce por FASES, cada uma construída só quando for usada.
+  Escopo completo: https://claude.ai/artifact/8hh77RzXtLEjUffLfuofMf
+  1. Leads + follow-up + painel "Hoje" (FEITA, branch `feat/leads`, ver abaixo);
+  2. Contratos + Projetos/entrega (na primeira proposta aprovada);
+  3. Planos mensais + Financeiro com cobrança manual no Asaas (no primeiro mensalista);
+  4. API/webhook do Asaas + métricas do funil (a partir de 3 ou 4 mensalistas).
+- Pronto: Fase 1, Leads e painel Hoje (02/11/2026; migration `20261102143505_leads`, só CREATE TYPE/TABLE, NÃO
+  aplicada em nenhum banco Neon ainda; `tsc`, `eslint` e `next build` passam; fluxo testado no navegador contra um
+  Postgres local: cadastro com erro e sucesso, contato com follow-up, perda sem/com motivo, diagnóstico, abas e Hoje):
+  - Tabelas `leads` (negócio em negociação, separado de `clients`) e `lead_contacts` (histórico). Enums `lead_stage`
+    (new → contacted → talking → diagnosis → proposal → won | lost), `lead_source` e `contact_channel`.
+    `next_follow_up_at` é `date` (sem hora, texto "AAAA-MM-DD" no fuso de São Paulo, `todayInSaoPaulo()` em
+    `lib/leads.ts`); lead ganho/perdido nunca tem follow-up e perdido exige `lost_reason` (Zod em `lib/schemas/lead.ts`).
+    `diagnosis` (jsonb) guarda as respostas do roteiro fixo `diagnosisQuestions` pelo id da pergunta.
+    `client_id` (nulo) fica pronto para a conversão em cliente da Fase 2. Soft delete em `leads`.
+  - Actions em `app/(privado)/leads/actions.ts` (todas com `requireUser()` + Zod): `createLead`, `updateLead`,
+    `logLeadContact` (insere o contato e atualiza estágio + follow-up na MESMA transação), `saveLeadDiagnosis`,
+    `archiveLead`.
+  - Telas: `/leads` (abas Em aberto/Ganhos/Perdidos por `?filtro=`, agrupado por estágio, follow-up mais antigo
+    primeiro), `/leads/novo`, `/leads/[id]` (registrar contato com atalhos de data, histórico, diagnóstico e dados).
+  - `/hoje` é a tela inicial (raiz, login e logo do menu apontam para lá): follow-ups vencidos/de hoje, propostas
+    enviadas aguardando (alerta a partir de 7 dias) e leads em aberto sem próximo passo.
+  - Publicar: aplicar a migration na `preview/dev`, testar, e na `production` antes do deploy (fluxo de sempre).
 - Branches e ambientes (decisão de 14/10/2026, Etapa 9):
   - Fluxo Git: `feat/*` → `dev` (branch de integração) → `main` (produção, Production Branch da Vercel).
   - Neon conectado à Vercel (integração com preview branching): cada branch Git com deploy de preview ganha

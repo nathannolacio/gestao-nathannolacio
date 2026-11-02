@@ -1,7 +1,8 @@
 import type { ProposalBonus } from "../lib/proposal-bonuses.ts";
 import type { FixedContent } from "../lib/proposal-content.ts";
 import type { ItemScope } from "../lib/proposal-scope.ts";
-import { integer, jsonb, pgEnum, smallint, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import type { LeadDiagnosis } from "../lib/leads.ts";
+import { date, integer, jsonb, pgEnum, smallint, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema.ts";
 
 export const clientType = pgEnum("client_type", ["PF", "PJ"]);
@@ -95,5 +96,61 @@ export const pushSubscriptions = snakeCase.table("push_subscriptions", {
     endpoint: text().notNull().unique(),
     p256dh: text().notNull(),
     auth: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+})
+
+// ---------------------------------------------------------------------------
+// Leads (Fase 1 do sistema de gestão): prospecção, follow-up e diagnóstico.
+// Um lead é um NEGÓCIO em negociação. Fica separado de `clients` para a lista de
+// prospecção (dezenas de contatos frios) não se misturar com quem fechou.
+// ---------------------------------------------------------------------------
+
+// Funil: new → contacted → talking → diagnosis → proposal → won | lost.
+export const leadStageEnum = pgEnum("lead_stage", [
+    "new", "contacted", "talking", "diagnosis", "proposal", "won", "lost",
+]);
+
+export const leadSourceEnum = pgEnum("lead_source", [
+    "prospecting", "referral", "instagram", "google", "site", "other",
+]);
+
+export const contactChannelEnum = pgEnum("contact_channel", [
+    "whatsapp", "call", "email", "dm", "in_person",
+]);
+
+export const leads = snakeCase.table("leads", {
+    id: uuid().defaultRandom().primaryKey(),
+    businessName: varchar({ length: 100 }).notNull(),
+    contactName: varchar({ length: 100 }),
+    segment: varchar({ length: 60 }),
+    city: varchar({ length: 100 }),
+    // Só dígitos (55 + DDD + número), igual a `clients.phone_number`. Opcional: às vezes só há o Instagram.
+    phoneNumber: varchar({ length: 13 }),
+    // Usuário do Instagram sem o "@".
+    instagram: varchar({ length: 60 }),
+    source: leadSourceEnum().default("prospecting").notNull(),
+    // Quem indicou (texto livre: pode ser cliente, parente ou parceiro).
+    referredBy: varchar({ length: 100 }),
+    stage: leadStageEnum().default("new").notNull(),
+    // Obrigatório quando stage = lost (regra no Zod).
+    lostReason: varchar({ length: 200 }),
+    // Data (sem hora) do próximo contato. Nula em ganho/perdido.
+    nextFollowUpAt: date({ mode: "string" }),
+    notes: text(),
+    // Respostas do roteiro de diagnóstico, por id da pergunta (lib/leads.ts).
+    diagnosis: jsonb().$type<LeadDiagnosis>(),
+    // Preenchido quando o lead vira cliente (Fase 2).
+    clientId: uuid().references(() => clients.id),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp({ withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+    deletedAt: timestamp({ withTimezone: true }),
+})
+
+// Histórico de contatos de um lead (um registro por tentativa/conversa).
+export const leadContacts = snakeCase.table("lead_contacts", {
+    id: uuid().defaultRandom().primaryKey(),
+    leadId: uuid().notNull().references(() => leads.id),
+    channel: contactChannelEnum().notNull(),
+    note: varchar({ length: 500 }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 })

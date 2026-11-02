@@ -1,5 +1,5 @@
 import { logout } from "@/app/(publico)/login/actions";
-import { ClientsIcon, LogoutIcon, ProposalsIcon, TemplateIcon } from "./icons";
+import { ClientsIcon, LeadsIcon, LogoutIcon, ProposalsIcon, TemplateIcon, TodayIcon } from "./icons";
 import { NavLink } from "./nav-link";
 import { PushToggle } from "./push-toggle";
 
@@ -12,6 +12,14 @@ export function SidebarNav() {
   return (
     <>
       <nav aria-label="Principal" className="flex flex-1 flex-col gap-1">
+        <NavLink href="/hoje" icon={<TodayIcon />}>
+          Hoje
+        </NavLink>
+
+        <NavLink href="/leads" icon={<LeadsIcon />}>
+          Leads
+        </NavLink>
+
         <NavLink href="/propostas" icon={<ProposalsIcon />}>
           Propostas
         </NavLink>

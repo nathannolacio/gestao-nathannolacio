@@ -26,7 +26,7 @@ export function Header({ userName, userEmail }: HeaderProps) {
           <SidebarNav />
         </MobileMenu>
         <Link
-          href="/propostas"
+          href="/hoje"
           className="rounded-lg px-2 py-1 font-display text-lg font-medium tracking-tight text-admin-text"
         >
           Gestão

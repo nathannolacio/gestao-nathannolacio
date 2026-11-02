@@ -10,7 +10,7 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
-const DEFAULT_REDIRECT = "/propostas";
+const DEFAULT_REDIRECT = "/hoje";
 
 // Não vale voltar para o login (loop) nem para a API.
 const BLOCKED = /^\/(login|api)(\/|$)/;
