@@ -17,5 +17,17 @@ export const relations = defineRelations(schema, (r) => ({
             from: r.proposalItems.proposalId,
             to: r.proposals.id,
         })
-    }
+    },
+    leads: {
+        contacts: r.many.leadContacts({
+            from: r.leads.id,
+            to: r.leadContacts.leadId,
+        }),
+    },
+    leadContacts: {
+        lead: r.one.leads({
+            from: r.leadContacts.leadId,
+            to: r.leads.id,
+        }),
+    },
 }))

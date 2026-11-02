@@ -37,7 +37,7 @@ export function MobileMenu({ children }: { children: ReactNode }) {
       >
         <div className="flex items-center justify-between">
           <Link
-            href="/propostas"
+            href="/hoje"
             className="rounded-lg px-3 py-1 font-display text-lg font-medium tracking-tight"
           >
             Gestão
