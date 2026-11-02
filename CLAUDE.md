@@ -305,6 +305,10 @@ rascunho → enviada → aprovada
     modelo do lead A de site; sem = modelo do lead B), editável, e "Abrir no WhatsApp" (`wa.me` com o texto; o envio é
     manual). `/hoje` ganhou a fila "Para abordar" (leads novos sem follow-up, A primeiro, 15 por vez); "Leads sem próximo
     passo" agora exclui os novos. Na lista de Leads, nota ao lado do nome e ordem A → B → C dentro do estágio.
+  - Prompt base de prospecção fixo no topo de `/leads/importar` (`lib/prospecting-prompt.ts`, componente
+    `prospecting-prompt.tsx`): nicho, cidades e quantidade preenchem o texto; regras A/B/C, gancho e formato das 10
+    colunas com ";" são fixos. Se mudar coluna/limite em `lib/lead-import.ts` ou no `leadSchema`, atualizar o prompt.
+    O parser ignora as cercas ``` de bloco de código coladas da resposta da IA.
 - Branches e ambientes (decisão de 14/10/2026, Etapa 9):
   - Fluxo Git: `feat/*` → `dev` (branch de integração) → `main` (produção, Production Branch da Vercel).
   - Neon conectado à Vercel (integração com preview branching): cada branch Git com deploy de preview ganha
