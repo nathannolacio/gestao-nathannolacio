@@ -58,6 +58,8 @@ export const proposals = snakeCase.table("proposals", {
     id: uuid().defaultRandom().primaryKey(),
     publicToken: varchar({ length:24 }).notNull().unique(),
     clientId: uuid().notNull().references(() => clients.id),
+    // Lead de origem (jornada comercial). Nulo em propostas criadas sem lead (ex.: antigas).
+    leadId: uuid().references(() => leads.id),
     title: varchar({ length:100 }).notNull(),
     deletedAt: timestamp({ withTimezone: true }),
     bonuses: jsonb().$type<ProposalBonus[]>().notNull().default([]),
@@ -118,6 +120,20 @@ export const contactChannelEnum = pgEnum("contact_channel", [
     "whatsapp", "call", "email", "dm", "in_person",
 ]);
 
+// Nota de prospecção (regra A/B/C da rotina de prospecção): A = prévia própria, B = demo do nicho, C = só se sobrar tempo.
+export const leadPriorityEnum = pgEnum("lead_priority", ["A", "B", "C"]);
+
+// Lotes de prospecção (etapa 1 da jornada): cada lista pedida ao Claude e importada vira um lote,
+// para medir a resposta por nicho, cidade e oferta.
+export const prospectingBatches = snakeCase.table("prospecting_batches", {
+    id: uuid().defaultRandom().primaryKey(),
+    // Chave de `prospectingOffers` (lib/prospecting-prompt.ts): "site" | "menu".
+    offer: varchar({ length: 20 }).notNull(),
+    niche: varchar({ length: 60 }).notNull(),
+    cities: varchar({ length: 200 }).notNull(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+})
+
 export const leads = snakeCase.table("leads", {
     id: uuid().defaultRandom().primaryKey(),
     businessName: varchar({ length: 100 }).notNull(),
@@ -137,10 +153,17 @@ export const leads = snakeCase.table("leads", {
     // Data (sem hora) do próximo contato. Nula em ganho/perdido.
     nextFollowUpAt: date({ mode: "string" }),
     notes: text(),
+    // Prospecção: nota A/B/C, gancho da 1ª mensagem e links (prévia feita para o lead e ficha do Google Maps).
+    priority: leadPriorityEnum(),
+    hook: varchar({ length: 300 }),
+    previewUrl: varchar({ length: 500 }),
+    mapsUrl: varchar({ length: 500 }),
     // Respostas do roteiro de diagnóstico, por id da pergunta (lib/leads.ts).
     diagnosis: jsonb().$type<LeadDiagnosis>(),
-    // Preenchido quando o lead vira cliente (Fase 2).
+    // Preenchido quando a proposta é criada a partir do lead (o cliente nasce ali).
     clientId: uuid().references(() => clients.id),
+    // Lote de prospecção que trouxe o lead (nulo para cadastro manual e importações antigas).
+    batchId: uuid().references(() => prospectingBatches.id),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
     deletedAt: timestamp({ withTimezone: true }),

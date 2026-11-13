@@ -1,7 +1,10 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { installableMetadata, installableViewport } from "@/lib/app-metadata";
 import { LoginForm } from "./_components/login-form";
 
-export const metadata = { title: "Entrar" };
+export const metadata: Metadata = { ...installableMetadata, title: "Entrar" };
+export const viewport = installableViewport;
 
 // searchParams é dado de requisição (dinâmico): com Cache Components precisa
 // ser lido dentro de <Suspense>, como as leituras de banco.

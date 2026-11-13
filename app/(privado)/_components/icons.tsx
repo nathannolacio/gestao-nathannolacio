@@ -37,6 +37,16 @@ export function LeadsIcon({ className }: IconProps) {
   );
 }
 
+export function PipelineIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <rect x="3.5" y="4" width="4.5" height="16" rx="1" />
+      <rect x="9.75" y="4" width="4.5" height="11" rx="1" />
+      <rect x="16" y="4" width="4.5" height="7" rx="1" />
+    </Icon>
+  );
+}
+
 export function ProposalsIcon({ className }: IconProps) {
   return (
     <Icon className={className}>
@@ -146,6 +156,58 @@ export function BellIcon({ className }: IconProps) {
     <Icon className={className}>
       <path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 1.5h-15L6 16.5Z" />
       <path d="M10 20.5a2 2 0 0 0 4 0" />
+    </Icon>
+  );
+}
+
+export function SearchIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4.4-4.4" />
+    </Icon>
+  );
+}
+
+export function PlusIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M12 5v14M5 12h14" />
+    </Icon>
+  );
+}
+
+export function ClockIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </Icon>
+  );
+}
+
+export function ChatIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M4.5 18.5 5.6 15A7.5 7.5 0 1 1 9 18.4l-4.5.1Z" />
+    </Icon>
+  );
+}
+
+export function SparkIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M12 3.5 13.8 10.2 20.5 12l-6.7 1.8L12 20.5l-1.8-6.7L3.5 12l6.7-1.8L12 3.5Z" />
+    </Icon>
+  );
+}
+
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M12 4v11" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+      <path d="M5 19.5h14" />
     </Icon>
   );
 }

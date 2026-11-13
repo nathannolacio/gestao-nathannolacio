@@ -106,7 +106,12 @@ function resolveGeneralDiscount<
 }
 
 export const proposalSchema = z
-    .object({ client: clientSchema, ...proposalFields })
+    .object({
+        client: clientSchema,
+        // Lead de origem (opcional): liga a proposta à jornada comercial do lead.
+        leadId: z.preprocess(emptyToUndefined, z.uuid("Lead inválido.").optional()),
+        ...proposalFields,
+    })
     .transform(resolveGeneralDiscount);
 
 // Edição: sem `client` (não se troca o cliente) e com o id da proposta.

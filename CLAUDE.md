@@ -291,6 +291,85 @@ rascunho → enviada → aprovada
   - `/hoje` é a tela inicial (raiz, login e logo do menu apontam para lá): follow-ups vencidos/de hoje, propostas
     enviadas aguardando (alerta a partir de 7 dias) e leads em aberto sem próximo passo.
   - Publicar: aplicar a migration na `preview/dev`, testar, e na `production` antes do deploy (fluxo de sempre).
+- Pronto: prospecção no módulo de Leads (02/11/2026; branch `feat/prospeccao-lote`; migration
+  `20261102164859_lead_prospecting`, só CREATE TYPE + ADD COLUMN nulas, NÃO aplicada em nenhum banco Neon; `tsc`,
+  `eslint` e `next build` passam; testado no navegador contra um Postgres local). Rotina em
+  https://claude.ai/artifact/NSYLu6mWRu9ukgGKpoAiMJ:
+  - Colunas novas em `leads`: `priority` (enum `lead_priority` A/B/C), `hook` (gancho da 1ª mensagem),
+    `preview_url` e `maps_url` (Zod só aceita http/https). Editáveis em "Dados do lead".
+  - `/leads/importar`: cola a lista (tab ou ";"; colunas em `importColumns` de `lib/lead-import.ts`, ou qualquer ordem
+    com cabeçalho). `previewLeadImport` (confere, sem gravar) e `importLeads` (grava num único INSERT) refazem a
+    análise NO SERVIDOR: cada linha passa pelo `leadSchema` (origem prospecting, estágio new) e duplicado (mesmo
+    WhatsApp, Instagram ou, sem os dois, mesmo nome, contra leads ativos e o próprio lote) é pulado. Até 200 linhas.
+  - Ficha do lead em "Novo" com WhatsApp: card "Primeira mensagem" (`firstMessage` em `lib/leads.ts`: com prévia =
+    modelo do lead A de site; sem = modelo do lead B), editável, e "Abrir no WhatsApp" (`wa.me` com o texto; o envio é
+    manual). `/hoje` ganhou a fila "Para abordar" (leads novos sem follow-up, A primeiro, 15 por vez); "Leads sem próximo
+    passo" agora exclui os novos. Na lista de Leads, nota ao lado do nome e ordem A → B → C dentro do estágio.
+  - Prompt base de prospecção fixo no topo de `/leads/importar` (`lib/prospecting-prompt.ts`, componente
+    `prospecting-prompt.tsx`): nicho, cidades e quantidade preenchem o texto; regras A/B/C, gancho e formato das 10
+    colunas com ";" são fixos. Se mudar coluna/limite em `lib/lead-import.ts` ou no `leadSchema`, atualizar o prompt.
+    O parser ignora as cercas ``` de bloco de código coladas da resposta da IA.
+- Pronto: arquivar/restaurar lead, duplicados contra tudo e mensagem de cardápio (02/11/2026; branch
+  `feat/leads-arquivar`; SEM migration; `tsc`, `eslint` e `next build` passam; testado no navegador contra Postgres local):
+  - Arquivar continua sendo soft delete (`leads.deleted_at`), agora para "não vale abordar agora". Botão "Arquivar" no
+    topo da ficha; aba "Arquivados" em `/leads` (mais recente primeiro); a ficha de um arquivado abre só leitura com
+    "Restaurar lead" (`restoreLead`: `requireUser()` + Zod, `deleted_at = null`, volta no estágio em que estava).
+  - Importação: duplicado é checado contra TODOS os leads (em aberto, ganhos, perdidos e arquivados) e as linhas anteriores
+    do lote: mesmo WhatsApp com ou sem o 9 (`phoneKey`), mesmo Instagram, ou mesmo nome (sem acento) na mesma cidade (ou sem
+    cidade em um dos dois). A conferência diz o motivo ("Já existe em Contatado: X", "Já está nos Arquivados: X",
+    "Repetido nesta lista"). WhatsApp fixo (12 dígitos) entra com aviso. "Novo lead" (cadastro manual) NÃO checa duplicado.
+  - Botão de arquivar (ícone) também em cada linha da lista de leads.
+  - Prompt: WhatsApp só celular (13 dígitos); fixo só se o negócio indicar que é WhatsApp.
+  - Primeira mensagem com seletor Site/Cardápio (`firstMessage(lead, offer)`, `suggestOffer(segment)` em `lib/leads.ts`:
+    segmento de comida sugere cardápio). A oferta NÃO é salva no lead; trocar refaz o texto.
+- Pronto: jornada comercial (13/11/2026; branch `feat/jornada-comercial`; migration `20261113162908_jornada_comercial`,
+  só CREATE TABLE + ADD COLUMN nulas + FKs, NÃO aplicada em nenhum banco Neon; `tsc` e `eslint` passam; `next build` e
+  teste no navegador AINDA NÃO feitos). Decisões (cartão de 13/11): vínculo lead → proposta, checklist calculado dos
+  dados (sem tabela), atalho que copia o prompt e abre o projeto do Claude, lotes de prospecção.
+  - Banco: `proposals.lead_id` (FK nula para `leads`), tabela `prospecting_batches` (offer, niche, cities) e
+    `leads.batch_id`. Relações novas em `db/relations.ts`: `proposals.lead`, `leads.proposals`, `leads.batch`,
+    `leads.client`, `prospectingBatches.leads`.
+  - Funil automático: `createProposal` aceita `leadId` (confere o lead e preenche `leads.client_id`); `sendProposal`
+    (agora em transação) leva o lead em aberto para `proposal` com follow-up em 2 dias; `approveProposal` (transação)
+    leva o lead para `won`, limpa follow-up e grava `client_id`.
+  - `/propostas/nova?lead=<id>`: formulário já com o cliente do lead (existente selecionado, ou novo com nome e WhatsApp).
+  - `lib/journey.ts`: etapas da barra (`journeySteps`), objetivo/saída por estágio (`stageGuide`), `journeyChecklist`
+    (itens `done` true/false calculados; `null` = acontece fora do sistema) e `nextActionLabel`.
+  - `lib/claude-prompts.ts`: prompts com os dados do lead (prévia, proposta, follow-up, contrato) + `CLAUDE_PROJECT_URL`
+    e `SITE_URL` (variáveis `NEXT_PUBLIC_CLAUDE_PROJECT_URL` e `NEXT_PUBLIC_SITE_URL`, com padrão). O projeto do Claude
+    sabe tratar prompts que começam com `[Sistema de gestão · etapa X]`.
+  - Ficha do lead: `JourneyPanel` (barra de etapas, "Agora", checklist e ações da etapa) + card "Propostas" do lead.
+    `ClaudeButton` copia o prompt e abre o projeto (texto visível em "Ver prompt").
+  - `/leads/importar`: `ImportWorkspace` liga o prompt à importação; com nicho preenchido, `importLeads` grava o lote e
+    os leads na mesma transação. Botão "Copiar e abrir no Claude".
+  - `/pipeline`: quadro com a coluna Prospectar (últimos lotes com % de resposta) e uma coluna por estágio (ganhos por 30
+    dias). Sem arrastar: o lead muda de coluna pelos registros da ficha.
+  - Menu agrupado: Hoje · Comercial (Pipeline, Leads, Propostas) · Operação (Clientes) · Configurações.
+- Pronto: sistema instalável / PWA (13/11/2026; branch `feat/pwa-instalavel`; SEM migration; `tsc`, `eslint` e
+  `next build` passam; conferido no Chromium local: manifest sem erros, zero erros de instalabilidade, SW ativo,
+  página offline funcionando, e a página pública da proposta SEM manifest).
+  - `public/manifest.webmanifest` (substituiu `app/manifest.ts`, que o Next ligava em TODAS as páginas): `start_url`
+    `/hoje`, `display: standalone`, cor `#0c0c10`, ícones 192/512 + maskable 512, atalhos (Hoje, Novo lead, Nova
+    proposta, Pipeline). Ícones = marca "N" dourada (gerados por HTML + Playwright).
+  - `lib/app-metadata.ts` (`installableMetadata` + `installableViewport` com `themeColor`): aplicado SÓ no layout do
+    admin e no login. O cliente que abre `/proposta/[token]` não recebe oferta de instalar "Gestão".
+  - `service-worker.tsx` registra `/sw.js` ao abrir o admin. `sw.js` agora guarda só `/offline.html` + ícone (cache
+    `gestao-offline-v1`) e mostra essa página quando uma navegação falha sem rede. NÃO guarda telas/dados em cache
+    (dados privados, sempre frescos). Clique na notificação abre `/hoje` por padrão.
+  - `install-button.tsx` no rodapé do menu: Chrome/Edge/Android usam `beforeinstallprompt`; iPhone mostra a dica
+    "Compartilhar → Adicionar à Tela de Início"; some quando já está aberto como app.
+- Pronto: visual "cara de sistema" (13/11/2026; branch `feat/visual-sistema`; SEM migration; `tsc`, `eslint` e `next build`
+  passam; conferido no navegador contra Postgres local). Direção escolhida: vidro suave, dourado como única cor de destaque,
+  brilho só em poucos pontos (card em destaque, item ativo do menu, botão Novo).
+  - Tokens/classes em `app/globals.css`: fundo `.admin-shell` com luzes douradas difusas fixas; `.admin-card` (vidro:
+    translúcido + `backdrop-filter` + borda em degradê via `::before` com máscara) e `.admin-card-featured`.
+  - Casca: `brand.tsx` (marca), `page-title.tsx` (trilha "Comercial / Leads"), `command-palette.tsx` (busca global Ctrl/⌘ K,
+    action `searchEverything` em `app/(privado)/busca/actions.ts`: `requireUser()` + Zod, `ilike` com curingas escapados),
+    `new-menu.tsx` (botão Novo), `nav-counts.tsx` (contadores do menu: follow-ups vencidos, leads novos, propostas enviadas).
+  - `page-header.tsx`: `PageHeader`, `StatTile` e as classes `buttonPrimary`/`buttonSecondary`, usados em Hoje, Pipeline,
+    Leads, Propostas e Clientes. Telas de formulário e a ficha do lead ainda no visual antigo.
+  - Hoje: saudação com o nome, 4 indicadores, gráfico "Atividade" (`hoje/_components/activity-chart.tsx`, contatos por dia,
+    7/14/30 dias, lê 30 dias no servidor) e "Funil em aberto" (leads por etapa).
 - Branches e ambientes (decisão de 14/10/2026, Etapa 9):
   - Fluxo Git: `feat/*` → `dev` (branch de integração) → `main` (produção, Production Branch da Vercel).
   - Neon conectado à Vercel (integração com preview branching): cada branch Git com deploy de preview ganha
@@ -623,8 +702,8 @@ rascunho → enviada → aprovada
     a página pública foi conferida no navegador (desktop) com um item de 2 páginas e outro de página única.
 - Pronto: notificação push de proposta aprovada (commit `cac8342`, 16/10/2026; código revisado em 17/10/2026, sem
   falha grave encontrada; a entrega real no celular NÃO foi retestada nesta revisão). PWA + Web Push:
-  - `app/manifest.ts` (PWA `standalone`, ícones em `public/icons/`) e `app/layout.tsx` (apple-touch-icon e
-    `appleWebApp`): o iOS só libera push para app instalado na tela inicial. `public/sw.js` (service worker) mostra a
+  - Manifest e `appleWebApp` (atualizado em 13/11/2026, ver "sistema instalável"): o iOS só libera push para app
+    instalado na tela inicial. `public/sw.js` (service worker) mostra a
     notificação (sempre chama `showNotification`, exigência do iOS) e, ao clicar, abre/foca o app só em caminho
     interno (anti open redirect). `sw.js` e o manifest passam no `proxy.ts` por terem extensão.
   - Botão "Ativar notificações" (`app/(privado)/_components/push-toggle.tsx`, no menu): pede permissão DENTRO do

@@ -1,8 +1,13 @@
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
+import { installableMetadata, installableViewport } from "@/lib/app-metadata";
 import { getOptionalUser } from "@/lib/auth";
 import { Header } from "./_components/header";
+import { ServiceWorker } from "./_components/service-worker";
 import { Sidebar } from "./_components/sidebar";
+
+export const metadata = installableMetadata;
+export const viewport = installableViewport;
 
 // Lê a sessão (dado de requisição, dinâmico), por isso fica dentro de <Suspense>.
 // Além de mostrar o usuário, é a validação REAL da sessão: o proxy só confere se
@@ -15,15 +20,16 @@ async function SessionHeader() {
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="admin-shell flex min-h-dvh flex-1 flex-col bg-admin-ground text-admin-text md:flex-row">
+    <div className="admin-shell flex min-h-dvh w-full min-w-0 flex-1 flex-col text-admin-text md:flex-row md:gap-3 md:p-3">
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Suspense fallback={<div className="h-14 shrink-0 border-b border-admin-line" />}>
+        <Suspense fallback={<div className="h-16 shrink-0" />}>
           <SessionHeader />
         </Suspense>
-        <main className="flex-1 p-4 sm:p-6 md:p-8">{children}</main>
+        <main className="min-w-0 flex-1 px-4 pt-2 pb-8 sm:px-6 md:px-5">{children}</main>
       </div>
+      <ServiceWorker />
     </div>
   );
 }

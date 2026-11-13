@@ -1,5 +1,8 @@
-import Link from "next/link";
+import { Brand } from "./brand";
+import { CommandPalette } from "./command-palette";
 import { MobileMenu } from "./mobile-menu";
+import { NewMenu } from "./new-menu";
+import { PageTitle } from "./page-title";
 import { SidebarNav } from "./sidebar-nav";
 
 type HeaderProps = {
@@ -17,32 +20,31 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+// Barra do topo: onde estou (trilha), busca global (Ctrl/⌘ K), "Novo" e o usuário.
 export function Header({ userName, userEmail }: HeaderProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-admin-line px-4 sm:px-6 md:justify-end md:px-8">
-      {/* Só mobile: hambúrguer (abre a gaveta com o menu) + nome do sistema. */}
-      <div className="flex items-center gap-1 md:hidden">
+    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b border-admin-line bg-admin-ground/80 px-4 backdrop-blur-md sm:px-6 md:static md:border-0 md:bg-transparent md:px-5 md:backdrop-blur-none">
+      {/* Só mobile: hambúrguer (abre a gaveta com o menu). */}
+      <div className="flex items-center md:hidden">
         <MobileMenu>
           <SidebarNav />
         </MobileMenu>
-        <Link
-          href="/hoje"
-          className="rounded-lg px-2 py-1 font-display text-lg font-medium tracking-tight text-admin-text"
-        >
-          Gestão
-        </Link>
+      </div>
+      <div className="md:hidden">
+        <Brand />
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="hidden text-right leading-tight sm:block">
-          <p className="text-sm text-admin-text">{userName}</p>
-          <p className="text-xs text-admin-muted">{userEmail}</p>
-        </div>
+      <PageTitle />
+
+      <div className="ml-auto flex items-center gap-2">
+        <CommandPalette />
+        <NewMenu />
         <span
-          aria-hidden="true"
-          className="flex size-8 items-center justify-center rounded-full bg-admin-raised text-xs font-medium text-dourado ring-1 ring-admin-line"
+          title={`${userName} · ${userEmail}`}
+          className="ml-1 flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-dourado to-bronze text-xs font-semibold text-grafite ring-2 ring-admin-ground"
         >
-          {initials(userName)}
+          <span aria-hidden="true">{initials(userName)}</span>
+          <span className="sr-only">{userName}</span>
         </span>
       </div>
     </header>
