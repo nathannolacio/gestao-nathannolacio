@@ -20,6 +20,11 @@ import { FirstMessage } from "../_components/first-message";
 import { LeadForm } from "../_components/lead-form";
 import { PriorityBadge } from "../_components/priority-badge";
 import { StageBadge } from "../_components/stage-badge";
+import { StatusBadge } from "../../propostas/_components/status-badge";
+import { JourneyPanel, type JourneyAction } from "../_components/journey-panel";
+import { contractPrompt, followUpPrompt, previewPrompt, proposalPrompt, SITE_URL } from "@/lib/claude-prompts";
+import { journeyChecklist, type JourneyFacts } from "@/lib/journey";
+import { leadStageLabel } from "@/lib/leads";
 
 type LeadPageProps = { params: Promise<{ id: string }> };
 
@@ -54,7 +59,29 @@ async function FichaDoLead({ params }: LeadPageProps) {
 
     const lead = await db.query.leads.findFirst({
         where: { id, deletedAt: { isNull: true } },
-        with: { contacts: { orderBy: { createdAt: "desc" } } },
+        with: {
+            contacts: { orderBy: { createdAt: "desc" } },
+            proposals: {
+                where: { deletedAt: { isNull: true } },
+                columns: { id: true, title: true, status: true, publicToken: true },
+                orderBy: { createdAt: "desc" },
+            },
+            client: {
+                columns: {
+                    id: true,
+                    legalName: true,
+                    document: true,
+                    email: true,
+                    zipCode: true,
+                    street: true,
+                    addressNumber: true,
+                    addressComplement: true,
+                    neighborhood: true,
+                    city: true,
+                    state: true,
+                },
+            },
+        },
     });
 
     if (!lead) notFound();
@@ -62,6 +89,92 @@ async function FichaDoLead({ params }: LeadPageProps) {
     const today = todayInSaoPaulo();
     const overdue = lead.nextFollowUpAt !== null && lead.nextFollowUpAt < today;
     const answered = diagnosisQuestions.filter((q) => lead.diagnosis?.[q.id]).length;
+
+    // Jornada: checklist calculado dos dados + ações da etapa (Claude, WhatsApp, telas do sistema).
+    const client = lead.client;
+    const facts: JourneyFacts = {
+        priority: lead.priority,
+        hasPhone: Boolean(lead.phoneNumber),
+        hasInstagram: Boolean(lead.instagram),
+        hasPreview: Boolean(lead.previewUrl),
+        contacts: lead.contacts.length,
+        hasFollowUp: lead.nextFollowUpAt !== null,
+        diagnosis: lead.diagnosis,
+        proposalStatuses: lead.proposals.map((p) => p.status),
+        contractDataReady: client
+            ? Boolean(
+                  client.legalName &&
+                      client.document &&
+                      client.zipCode &&
+                      client.street &&
+                      client.addressNumber &&
+                      client.city &&
+                      client.state,
+              )
+            : null,
+    };
+    const recentContacts = lead.contacts.slice(0, 5).map((c) => ({
+        date: dateTime.format(c.createdAt),
+        channel: contactChannelLabel[c.channel],
+        note: c.note,
+    }));
+    const activeProposal =
+        lead.proposals.find((p) => p.status === "approved") ?? lead.proposals.find((p) => p.status === "sent");
+    const whatsappAction: JourneyAction[] = lead.phoneNumber
+        ? [{ kind: "external", label: "Abrir WhatsApp", href: whatsappUrl(lead.phoneNumber) }]
+        : [];
+    const followUpAction: JourneyAction = {
+        kind: "claude",
+        label: "Escrever follow-up com o Claude",
+        prompt: followUpPrompt(lead, leadStageLabel[lead.stage], recentContacts),
+    };
+
+    const actions: JourneyAction[] = (() => {
+        switch (lead.stage) {
+            case "new":
+                return [
+                    ...(!lead.previewUrl && lead.priority !== "C"
+                        ? [{ kind: "claude", label: "Gerar prévia no Claude", prompt: previewPrompt(lead) } as const]
+                        : []),
+                    ...(lead.mapsUrl ? [{ kind: "external", label: "Ver no Google Maps", href: lead.mapsUrl } as const] : []),
+                ];
+            case "contacted":
+            case "talking":
+                return [followUpAction, ...whatsappAction];
+            case "diagnosis":
+                return [
+                    { kind: "claude", label: "Montar proposta com o Claude", prompt: proposalPrompt(lead, lead.diagnosis) },
+                    { kind: "internal", label: "Criar proposta", href: `/propostas/nova?lead=${lead.id}`, primary: true },
+                ];
+            case "proposal":
+                return [
+                    followUpAction,
+                    ...(activeProposal
+                        ? [{ kind: "external", label: "Ver página da proposta", href: `/proposta/${activeProposal.publicToken}` } as const]
+                        : []),
+                    ...whatsappAction,
+                ];
+            case "won":
+                return [
+                    ...(client
+                        ? [{ kind: "internal", label: "Completar dados do contrato", href: `/clientes/${client.id}/editar`, primary: !facts.contractDataReady } as const]
+                        : []),
+                    {
+                        kind: "claude",
+                        label: "Gerar contrato com o Claude",
+                        prompt: contractPrompt(
+                            lead,
+                            client ?? null,
+                            activeProposal
+                                ? { title: activeProposal.title, publicUrl: `${SITE_URL}/proposta/${activeProposal.publicToken}` }
+                                : null,
+                        ),
+                    },
+                ];
+            case "lost":
+                return [];
+        }
+    })();
 
     return (
         <>
@@ -121,7 +234,7 @@ async function FichaDoLead({ params }: LeadPageProps) {
                     )}
                     {(lead.stage === "diagnosis" || lead.stage === "proposal") && (
                         <Link
-                            href="/propostas/nova"
+                            href={`/propostas/nova?lead=${lead.id}`}
                             className="rounded-lg bg-dourado px-3 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
                         >
                             Criar proposta
@@ -130,11 +243,36 @@ async function FichaDoLead({ params }: LeadPageProps) {
                 </div>
             </div>
 
+            <div className="mt-6">
+                <JourneyPanel stage={lead.stage} checklist={journeyChecklist(lead.stage, facts)} actions={actions} />
+            </div>
+
             <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                 <div className="space-y-8">
                     {lead.stage === "new" && lead.phoneNumber && (
                         <Card title={lead.previewUrl ? "Primeira mensagem (com prévia)" : "Primeira mensagem"}>
                             <FirstMessage phone={lead.phoneNumber} initialText={firstMessage(lead)} />
+                        </Card>
+                    )}
+
+                    {lead.proposals.length > 0 && (
+                        <Card title={`Propostas · ${lead.proposals.length}`}>
+                            <ul className="divide-y divide-admin-line">
+                                {lead.proposals.map((proposal) => (
+                                    <li key={proposal.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
+                                        <Link
+                                            href={`/propostas/${proposal.id}/editar`}
+                                            className="min-w-0 text-sm text-admin-text hover:text-dourado"
+                                        >
+                                            {proposal.title}
+                                        </Link>
+                                        <span className="flex items-center gap-3">
+                                            <StatusBadge status={proposal.status} />
+                                            <ExternalButton href={`/proposta/${proposal.publicToken}`}>Ver página</ExternalButton>
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
                         </Card>
                     )}
 

@@ -169,10 +169,19 @@ export const leadDiagnosisSchema = z.object({
 export const leadIdSchema = z.object({ id: z.uuid("Lead inválido.") });
 
 // Importação em lote: só o texto colado (o servidor separa as colunas e valida linha a linha).
+// Lote de prospecção (oferta, nicho e cidades usados no prompt). Opcional: sem nicho, não grava lote.
+export const prospectingBatchSchema = z.object({
+    offer: z.enum(["site", "menu"], "Oferta inválida."),
+    niche: z.string().trim().min(1, "Informe o nicho.").max(60, "Nicho com no máximo 60 caracteres."),
+    cities: z.string().trim().min(1, "Informe as cidades.").max(200, "Cidades com no máximo 200 caracteres."),
+});
+export type ProspectingBatchInput = z.infer<typeof prospectingBatchSchema>;
+
 export const leadImportSchema = z.object({
     text: z
         .string("Cole a lista.")
         .trim()
         .min(1, "Cole a lista.")
         .max(200_000, "Lista grande demais: importe em partes de até 200 linhas."),
+    batch: prospectingBatchSchema.optional(),
 });

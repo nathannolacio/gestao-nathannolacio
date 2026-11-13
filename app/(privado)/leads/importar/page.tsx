@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { importColumns } from "@/lib/lead-import";
-import { ImportForm } from "../_components/import-form";
-import { ProspectingPrompt } from "../_components/prospecting-prompt";
+import { ImportWorkspace } from "../_components/import-workspace";
 
 export default function ImportarLeads() {
     return (
@@ -18,11 +17,7 @@ export default function ImportarLeads() {
             </p>
 
             <div className="mt-6 max-w-5xl space-y-8">
-                <ProspectingPrompt />
-                <section>
-                    <h2 className="mb-3 font-display text-lg font-medium">2. Colar e importar</h2>
-                    <ImportForm />
-                </section>
+                <ImportWorkspace />
             </div>
         </>
     );

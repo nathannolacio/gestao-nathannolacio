@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CLAUDE_PROJECT_URL } from "@/lib/claude-prompts";
+import type { ProspectingBatchInput } from "@/lib/schemas/lead";
 import { inputClass } from "@/app/(privado)/propostas/_components/proposal-form";
 import { MAX_IMPORT_ROWS } from "@/lib/lead-import";
 import {
@@ -11,7 +13,8 @@ import {
 
 // Prompt base para pedir a lista a uma IA já no formato da importação. Nicho, cidades e quantidade
 // preenchem o texto; o resto (regras A/B/C, gancho, formato das colunas) é fixo em lib/prospecting-prompt.ts.
-export function ProspectingPrompt() {
+// `onBatchChange`: avisa a tela de importação da oferta/nicho/cidades, que viram o lote de prospecção.
+export function ProspectingPrompt({ onBatchChange }: { onBatchChange?: (batch: ProspectingBatchInput | null) => void }) {
     const [offer, setOffer] = useState<ProspectingOffer>(defaultPromptInput.offer);
     const [exclude, setExclude] = useState(defaultPromptInput.exclude);
     const [niche, setNiche] = useState(defaultPromptInput.niche);
@@ -20,6 +23,16 @@ export function ProspectingPrompt() {
     const [copied, setCopied] = useState(false);
 
     const prompt = buildProspectingPrompt({ offer, niche, cities, count: Number(count), exclude });
+
+    useEffect(() => {
+        onBatchChange?.(niche.trim() && cities.trim() ? { offer, niche: niche.trim(), cities: cities.trim() } : null);
+    }, [offer, niche, cities, onBatchChange]);
+
+    // Copia e abre o projeto no Claude, que já conhece o negócio e o formato da importação.
+    async function openInClaude() {
+        await copy();
+        window.open(CLAUDE_PROJECT_URL, "_blank", "noopener,noreferrer");
+    }
 
     async function copy() {
         try {
@@ -43,7 +56,7 @@ export function ProspectingPrompt() {
             </summary>
 
             <p className="mt-3 text-sm text-admin-muted">
-                Preencha, copie o prompt e cole numa IA com busca na web. A resposta vem num bloco de código: copie o
+                Preencha, copie o prompt e cole no Claude (projeto Soluções Digitais, com busca na web). A resposta vem num bloco de código: copie o
                 bloco inteiro e cole no passo 2.
             </p>
 
@@ -133,6 +146,14 @@ export function ProspectingPrompt() {
                     className="cursor-pointer rounded-lg bg-dourado px-4 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
                 >
                     Copiar prompt
+                </button>
+                <button
+                    type="button"
+                    onClick={openInClaude}
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dourado/60 px-4 py-2 text-sm text-admin-text transition-colors duration-150 hover:bg-dourado/10"
+                >
+                    <span aria-hidden="true" className="text-dourado">✦</span>
+                    Copiar e abrir no Claude
                 </button>
                 {copied && <p className="text-sm text-admin-success">Copiado.</p>}
             </div>

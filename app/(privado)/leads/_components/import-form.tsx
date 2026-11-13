@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { importLeads, previewLeadImport } from "@/app/(privado)/leads/actions";
 import { inputClass } from "@/app/(privado)/propostas/_components/proposal-form";
 import { MAX_IMPORT_ROWS } from "@/lib/lead-import";
+import type { ProspectingBatchInput } from "@/lib/schemas/lead";
 import { PriorityBadge } from "./priority-badge";
 
 type Preview = Extract<Awaited<ReturnType<typeof previewLeadImport>>, { ok: true }>;
@@ -17,7 +18,8 @@ const statusLabel = {
 
 // Dois passos: "Conferir" (o servidor separa, valida e marca duplicados, sem gravar) e "Importar"
 // (o servidor refaz a mesma análise e grava só as linhas que entram).
-export function ImportForm() {
+// `batch`: oferta, nicho e cidades do prompt do passo 1; vira o lote de prospecção dos leads importados.
+export function ImportForm({ batch }: { batch?: ProspectingBatchInput | null }) {
     const router = useRouter();
     const [text, setText] = useState("");
     const [preview, setPreview] = useState<Preview | null>(null);
@@ -35,7 +37,7 @@ export function ImportForm() {
                 if (res.ok) setPreview(res);
                 else setFormError(res.formError);
             } else {
-                const res = await importLeads({ text });
+                const res = await importLeads({ text, batch: batch ?? undefined });
                 if (res.ok) {
                     router.push("/leads");
                     return;

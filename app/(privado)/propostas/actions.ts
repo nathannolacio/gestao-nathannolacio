@@ -6,14 +6,19 @@ import * as z from "zod";
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { clients, proposalItems, proposals } from "@/db/schema";
+import { clients, leads, proposalItems, proposals } from "@/db/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
 import { projectSubtotal, toDiscount } from "@/lib/proposal-calc";
+import { addDays, openLeadStages, todayInSaoPaulo } from "@/lib/leads";
 
 // Erro esperado (não é falha do sistema): serve para abortar a transação (rollback)
 // e ser convertido em retorno amigável fora dela.
 class ClientNotFoundError extends Error {}
+class LeadNotFoundError extends Error {}
+
+// Depois de enviar a proposta, o lead ganha follow-up em 2 dias (a validade é de 7).
+const FOLLOW_UP_AFTER_SEND_DAYS = 2;
 
 const DISCOUNT_TOO_BIG = "O desconto geral não pode ser maior que o subtotal dos itens.";
 
@@ -110,6 +115,16 @@ export async function createProposal(input: unknown) {
                 clientId = queryResult[0].insertedId;
             }
 
+            // Lead de origem: precisa existir e estar ativo.
+            const leadId = result.data.leadId ?? null;
+            if (leadId) {
+                const lead = await tx.query.leads.findFirst({
+                    where: { id: leadId, deletedAt: { isNull: true } },
+                    columns: { id: true },
+                });
+                if (!lead) throw new LeadNotFoundError("Lead não encontrado.");
+            }
+
             const proposalTemplate = await tx.query.proposalTemplate.findFirst();
 
             if (!proposalTemplate) {
@@ -121,6 +136,7 @@ export async function createProposal(input: unknown) {
             const [proposal] = await tx.insert(proposals).values({
                 publicToken,
                 clientId,
+                leadId,
                 title: result.data.title,
                 bonuses,
                 deliveryDays: result.data.deliveryDays,
@@ -143,6 +159,14 @@ export async function createProposal(input: unknown) {
                     position: index,
                 })),
             );
+
+            // O cliente nasce (ou é escolhido) aqui: o lead passa a apontar para ele.
+            if (leadId) {
+                await tx
+                    .update(leads)
+                    .set({ clientId })
+                    .where(and(eq(leads.id, leadId), isNull(leads.clientId)));
+            }
         })
     } catch (error) {
         if (error instanceof ClientNotFoundError) {
@@ -150,6 +174,14 @@ export async function createProposal(input: unknown) {
                 ok: false as const,
                 fieldErrors: {},
                 formError: "Cliente não encontrado. Selecione outro cliente.",
+            };
+        }
+
+        if (error instanceof LeadNotFoundError) {
+            return {
+                ok: false as const,
+                fieldErrors: {},
+                formError: "O lead desta proposta não existe mais. Crie a proposta pela ficha de outro lead.",
             };
         }
 
@@ -258,17 +290,40 @@ export async function sendProposal(input: unknown) {
 
     // A checagem do status e a troca acontecem num único UPDATE (atômico): se duas
     // requisições chegarem juntas, só uma encontra a linha ainda em "draft".
-    const updated = await db
-        .update(proposals)
-        .set({ status: "sent", sentAt: new Date(), updatedAt: new Date() })
-        .where(
-            and(
-                eq(proposals.id, result.data.id),
-                eq(proposals.status, "draft"),
-                isNull(proposals.deletedAt),
-            ),
-        )
-        .returning({ id: proposals.id });
+    // Na MESMA transação, o lead de origem avança para "Proposta enviada" (jornada comercial).
+    const updated = await db.transaction(async (tx) => {
+        const rows = await tx
+            .update(proposals)
+            .set({ status: "sent", sentAt: new Date(), updatedAt: new Date() })
+            .where(
+                and(
+                    eq(proposals.id, result.data.id),
+                    eq(proposals.status, "draft"),
+                    isNull(proposals.deletedAt),
+                ),
+            )
+            .returning({ id: proposals.id, leadId: proposals.leadId });
+
+        const leadId = rows[0]?.leadId;
+        if (leadId) {
+            // Só mexe em lead ainda em aberto: ganho/perdido não volta para trás.
+            await tx
+                .update(leads)
+                .set({
+                    stage: "proposal",
+                    nextFollowUpAt: addDays(todayInSaoPaulo(), FOLLOW_UP_AFTER_SEND_DAYS),
+                })
+                .where(
+                    and(
+                        eq(leads.id, leadId),
+                        inArray(leads.stage, [...openLeadStages]),
+                        isNull(leads.deletedAt),
+                    ),
+                );
+        }
+
+        return rows;
+    });
 
     if (updated.length === 0) {
         return {
@@ -278,6 +333,7 @@ export async function sendProposal(input: unknown) {
     }
 
     revalidatePath("/propostas");
+    revalidatePath("/leads");
 
     return { ok: true as const };
 }

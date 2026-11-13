@@ -309,6 +309,29 @@ rascunho → enviada → aprovada
     `prospecting-prompt.tsx`): nicho, cidades e quantidade preenchem o texto; regras A/B/C, gancho e formato das 10
     colunas com ";" são fixos. Se mudar coluna/limite em `lib/lead-import.ts` ou no `leadSchema`, atualizar o prompt.
     O parser ignora as cercas ``` de bloco de código coladas da resposta da IA.
+- Pronto: jornada comercial (13/11/2026; branch `feat/jornada-comercial`; migration `20261113162908_jornada_comercial`,
+  só CREATE TABLE + ADD COLUMN nulas + FKs, NÃO aplicada em nenhum banco Neon; `tsc` e `eslint` passam; `next build` e
+  teste no navegador AINDA NÃO feitos). Decisões (cartão de 13/11): vínculo lead → proposta, checklist calculado dos
+  dados (sem tabela), atalho que copia o prompt e abre o projeto do Claude, lotes de prospecção.
+  - Banco: `proposals.lead_id` (FK nula para `leads`), tabela `prospecting_batches` (offer, niche, cities) e
+    `leads.batch_id`. Relações novas em `db/relations.ts`: `proposals.lead`, `leads.proposals`, `leads.batch`,
+    `leads.client`, `prospectingBatches.leads`.
+  - Funil automático: `createProposal` aceita `leadId` (confere o lead e preenche `leads.client_id`); `sendProposal`
+    (agora em transação) leva o lead em aberto para `proposal` com follow-up em 2 dias; `approveProposal` (transação)
+    leva o lead para `won`, limpa follow-up e grava `client_id`.
+  - `/propostas/nova?lead=<id>`: formulário já com o cliente do lead (existente selecionado, ou novo com nome e WhatsApp).
+  - `lib/journey.ts`: etapas da barra (`journeySteps`), objetivo/saída por estágio (`stageGuide`), `journeyChecklist`
+    (itens `done` true/false calculados; `null` = acontece fora do sistema) e `nextActionLabel`.
+  - `lib/claude-prompts.ts`: prompts com os dados do lead (prévia, proposta, follow-up, contrato) + `CLAUDE_PROJECT_URL`
+    e `SITE_URL` (variáveis `NEXT_PUBLIC_CLAUDE_PROJECT_URL` e `NEXT_PUBLIC_SITE_URL`, com padrão). O projeto do Claude
+    sabe tratar prompts que começam com `[Sistema de gestão · etapa X]`.
+  - Ficha do lead: `JourneyPanel` (barra de etapas, "Agora", checklist e ações da etapa) + card "Propostas" do lead.
+    `ClaudeButton` copia o prompt e abre o projeto (texto visível em "Ver prompt").
+  - `/leads/importar`: `ImportWorkspace` liga o prompt à importação; com nicho preenchido, `importLeads` grava o lote e
+    os leads na mesma transação. Botão "Copiar e abrir no Claude".
+  - `/pipeline`: quadro com a coluna Prospectar (últimos lotes com % de resposta) e uma coluna por estágio (ganhos por 30
+    dias). Sem arrastar: o lead muda de coluna pelos registros da ficha.
+  - Menu agrupado: Hoje · Comercial (Pipeline, Leads, Propostas) · Operação (Clientes) · Configurações.
 - Branches e ambientes (decisão de 14/10/2026, Etapa 9):
   - Fluxo Git: `feat/*` → `dev` (branch de integração) → `main` (produção, Production Branch da Vercel).
   - Neon conectado à Vercel (integração com preview branching): cada branch Git com deploy de preview ganha

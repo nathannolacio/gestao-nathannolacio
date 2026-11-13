@@ -4,7 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { db } from "@/db";
-import { proposals } from "@/db/schema";
+import { leads, proposals } from "@/db/schema";
 import { notifyProposalApproved } from "@/lib/push";
 import { approveProposalSchema } from "@/lib/schemas/approve-proposal";
 
@@ -24,23 +24,36 @@ export async function approveProposal(input: unknown) {
     // Busca pelo token (nunca pelo ID), só aprova se estiver "sent", e grava tudo no
     // mesmo UPDATE. A condição no WHERE torna a checagem atômica: dois cliques
     // simultâneos não aprovam duas vezes.
-    const updated = await db
-        .update(proposals)
-        .set({
-            status: "approved",
-            paymentMethod,
-            cardInstallments,
-            approvedAt: new Date(),
-            updatedAt: new Date(),
-        })
-        .where(
-            and(
-                eq(proposals.publicToken, token),
-                eq(proposals.status, "sent"),
-                isNull(proposals.deletedAt),
-            ),
-        )
-        .returning({ id: proposals.id });
+    // Na MESMA transação, o lead de origem (se houver) vira "Ganho" e aponta para o cliente.
+    const updated = await db.transaction(async (tx) => {
+        const rows = await tx
+            .update(proposals)
+            .set({
+                status: "approved",
+                paymentMethod,
+                cardInstallments,
+                approvedAt: new Date(),
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(proposals.publicToken, token),
+                    eq(proposals.status, "sent"),
+                    isNull(proposals.deletedAt),
+                ),
+            )
+            .returning({ id: proposals.id, leadId: proposals.leadId, clientId: proposals.clientId });
+
+        const approved = rows[0];
+        if (approved?.leadId) {
+            await tx
+                .update(leads)
+                .set({ stage: "won", nextFollowUpAt: null, lostReason: null, clientId: approved.clientId })
+                .where(and(eq(leads.id, approved.leadId), isNull(leads.deletedAt)));
+        }
+
+        return rows;
+    });
 
     if (updated.length === 0) {
         return {
@@ -50,6 +63,7 @@ export async function approveProposal(input: unknown) {
     }
 
     revalidatePath("/propostas");
+    revalidatePath("/leads");
 
     // Avisa o dono no celular DEPOIS de responder ao cliente (after). A função nunca lança,
     // então uma falha no push não desfaz nem atrapalha a aprovação.
