@@ -345,6 +345,19 @@ rascunho → enviada → aprovada
   - `/pipeline`: quadro com a coluna Prospectar (últimos lotes com % de resposta) e uma coluna por estágio (ganhos por 30
     dias). Sem arrastar: o lead muda de coluna pelos registros da ficha.
   - Menu agrupado: Hoje · Comercial (Pipeline, Leads, Propostas) · Operação (Clientes) · Configurações.
+- Pronto: sistema instalável / PWA (13/11/2026; branch `feat/pwa-instalavel`; SEM migration; `tsc`, `eslint` e
+  `next build` passam; conferido no Chromium local: manifest sem erros, zero erros de instalabilidade, SW ativo,
+  página offline funcionando, e a página pública da proposta SEM manifest).
+  - `public/manifest.webmanifest` (substituiu `app/manifest.ts`, que o Next ligava em TODAS as páginas): `start_url`
+    `/hoje`, `display: standalone`, cor `#0c0c10`, ícones 192/512 + maskable 512, atalhos (Hoje, Novo lead, Nova
+    proposta, Pipeline). Ícones = marca "N" dourada (gerados por HTML + Playwright).
+  - `lib/app-metadata.ts` (`installableMetadata` + `installableViewport` com `themeColor`): aplicado SÓ no layout do
+    admin e no login. O cliente que abre `/proposta/[token]` não recebe oferta de instalar "Gestão".
+  - `service-worker.tsx` registra `/sw.js` ao abrir o admin. `sw.js` agora guarda só `/offline.html` + ícone (cache
+    `gestao-offline-v1`) e mostra essa página quando uma navegação falha sem rede. NÃO guarda telas/dados em cache
+    (dados privados, sempre frescos). Clique na notificação abre `/hoje` por padrão.
+  - `install-button.tsx` no rodapé do menu: Chrome/Edge/Android usam `beforeinstallprompt`; iPhone mostra a dica
+    "Compartilhar → Adicionar à Tela de Início"; some quando já está aberto como app.
 - Pronto: visual "cara de sistema" (13/11/2026; branch `feat/visual-sistema`; SEM migration; `tsc`, `eslint` e `next build`
   passam; conferido no navegador contra Postgres local). Direção escolhida: vidro suave, dourado como única cor de destaque,
   brilho só em poucos pontos (card em destaque, item ativo do menu, botão Novo).
@@ -689,8 +702,8 @@ rascunho → enviada → aprovada
     a página pública foi conferida no navegador (desktop) com um item de 2 páginas e outro de página única.
 - Pronto: notificação push de proposta aprovada (commit `cac8342`, 16/10/2026; código revisado em 17/10/2026, sem
   falha grave encontrada; a entrega real no celular NÃO foi retestada nesta revisão). PWA + Web Push:
-  - `app/manifest.ts` (PWA `standalone`, ícones em `public/icons/`) e `app/layout.tsx` (apple-touch-icon e
-    `appleWebApp`): o iOS só libera push para app instalado na tela inicial. `public/sw.js` (service worker) mostra a
+  - Manifest e `appleWebApp` (atualizado em 13/11/2026, ver "sistema instalável"): o iOS só libera push para app
+    instalado na tela inicial. `public/sw.js` (service worker) mostra a
     notificação (sempre chama `showNotification`, exigência do iOS) e, ao clicar, abre/foca o app só em caminho
     interno (anti open redirect). `sw.js` e o manifest passam no `proxy.ts` por terem extensão.
   - Botão "Ativar notificações" (`app/(privado)/_components/push-toggle.tsx`, no menu): pede permissão DENTRO do

@@ -201,3 +201,13 @@ export function SparkIcon({ className }: IconProps) {
     </Icon>
   );
 }
+
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M12 4v11" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+      <path d="M5 19.5h14" />
+    </Icon>
+  );
+}

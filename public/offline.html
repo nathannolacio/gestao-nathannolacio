@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0c10">
+<title>Sem conexão · Gestão</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #ececf1;
+    background: radial-gradient(40rem 26rem at 85% -10%, rgb(212 179 122 / 0.14), transparent 70%), #0c0c10;
+  }
+  main { max-width: 22rem; text-align: center; }
+  img { width: 72px; height: 72px; border-radius: 18px; }
+  h1 { margin: 20px 0 6px; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+  p { margin: 0 0 22px; color: #9a9aa6; font-size: 0.95rem; line-height: 1.5; }
+  button {
+    border: 0; border-radius: 999px; padding: 10px 20px; font: inherit; font-weight: 500; cursor: pointer;
+    color: #16161c; background: linear-gradient(#c9a56c, #b4915a);
+  }
+</style>
+</head>
+<body>
+<main>
+  <img src="/icons/icon-192.png" alt="">
+  <h1>Sem conexão</h1>
+  <p>O sistema precisa de internet para mostrar seus dados. Assim que a conexão voltar, é só tentar de novo.</p>
+  <button type="button" onclick="location.reload()">Tentar de novo</button>
+</main>
+<script>window.addEventListener("online", function () { location.reload(); });</script>
+</body>
+</html>

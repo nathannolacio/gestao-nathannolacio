@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ClientsIcon, LeadsIcon, LogoutIcon, PipelineIcon, ProposalsIcon, TemplateIcon, TodayIcon } from "./icons";
 import { NavLink } from "./nav-link";
 import { DueFollowUpsCount, NewLeadsCount, WaitingProposalsCount } from "./nav-counts";
+import { InstallButton } from "./install-button";
 import { PushToggle } from "./push-toggle";
 
 const disabledItem =
@@ -55,6 +56,7 @@ export function SidebarNav() {
       </nav>
 
       <div className="flex flex-col gap-0.5 border-t border-admin-line pt-3">
+      <InstallButton />
       <PushToggle />
 
       <form action={logout}>
