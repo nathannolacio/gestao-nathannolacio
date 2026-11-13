@@ -4,11 +4,15 @@ import { connection } from "next/server";
 import { db } from "@/db";
 import { formatDocument } from "@/lib/document";
 import { missingContractFields } from "@/lib/client-contract";
+import { PageHeader } from "../_components/page-header";
 
 export default function Clientes() {
     return (
         <>
-            <h1 className="font-display text-2xl font-medium tracking-tight">Clientes</h1>
+            <PageHeader
+                title="Clientes"
+                description="Quem já fechou. Complete os dados para o contrato."
+            />
 
             <div className="mt-6">
                 <Suspense fallback={<ListaSkeleton />}>
@@ -28,7 +32,7 @@ async function ListaClientes() {
 
     if (clientes.length === 0) {
         return (
-            <div className="rounded-xl border border-admin-line px-6 py-12 text-center">
+            <div className="rounded-2xl border border-dashed border-white/10 px-6 py-12 text-center">
                 <p className="text-admin-text">Nenhum cliente ainda.</p>
                 <p className="mt-1 text-sm text-admin-muted">
                     Os clientes cadastrados ao criar propostas aparecem aqui.
@@ -38,7 +42,7 @@ async function ListaClientes() {
     }
 
     return (
-        <ul className="divide-y divide-admin-line overflow-hidden rounded-xl border border-admin-line">
+        <ul className="admin-card divide-y divide-white/[0.05] overflow-hidden">
             {clientes.map((cliente) => {
                 const missing = missingContractFields(cliente);
 
@@ -84,7 +88,7 @@ async function ListaClientes() {
 
 function ListaSkeleton() {
     return (
-        <div aria-hidden="true" className="divide-y divide-admin-line overflow-hidden rounded-xl border border-admin-line">
+        <div aria-hidden="true" className="admin-card divide-y divide-white/[0.05] overflow-hidden">
             {[0, 1, 2].map((linha) => (
                 <div key={linha} className="flex items-center gap-4 px-4 py-4">
                     <div className="h-3 w-48 animate-pulse rounded bg-admin-raised" />

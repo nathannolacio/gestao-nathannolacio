@@ -345,6 +345,18 @@ rascunho → enviada → aprovada
   - `/pipeline`: quadro com a coluna Prospectar (últimos lotes com % de resposta) e uma coluna por estágio (ganhos por 30
     dias). Sem arrastar: o lead muda de coluna pelos registros da ficha.
   - Menu agrupado: Hoje · Comercial (Pipeline, Leads, Propostas) · Operação (Clientes) · Configurações.
+- Pronto: visual "cara de sistema" (13/11/2026; branch `feat/visual-sistema`; SEM migration; `tsc`, `eslint` e `next build`
+  passam; conferido no navegador contra Postgres local). Direção escolhida: vidro suave, dourado como única cor de destaque,
+  brilho só em poucos pontos (card em destaque, item ativo do menu, botão Novo).
+  - Tokens/classes em `app/globals.css`: fundo `.admin-shell` com luzes douradas difusas fixas; `.admin-card` (vidro:
+    translúcido + `backdrop-filter` + borda em degradê via `::before` com máscara) e `.admin-card-featured`.
+  - Casca: `brand.tsx` (marca), `page-title.tsx` (trilha "Comercial / Leads"), `command-palette.tsx` (busca global Ctrl/⌘ K,
+    action `searchEverything` em `app/(privado)/busca/actions.ts`: `requireUser()` + Zod, `ilike` com curingas escapados),
+    `new-menu.tsx` (botão Novo), `nav-counts.tsx` (contadores do menu: follow-ups vencidos, leads novos, propostas enviadas).
+  - `page-header.tsx`: `PageHeader`, `StatTile` e as classes `buttonPrimary`/`buttonSecondary`, usados em Hoje, Pipeline,
+    Leads, Propostas e Clientes. Telas de formulário e a ficha do lead ainda no visual antigo.
+  - Hoje: saudação com o nome, 4 indicadores, gráfico "Atividade" (`hoje/_components/activity-chart.tsx`, contatos por dia,
+    7/14/30 dias, lê 30 dias no servidor) e "Funil em aberto" (leads por etapa).
 - Branches e ambientes (decisão de 14/10/2026, Etapa 9):
   - Fluxo Git: `feat/*` → `dev` (branch de integração) → `main` (produção, Production Branch da Vercel).
   - Neon conectado à Vercel (integração com preview branching): cada branch Git com deploy de preview ganha

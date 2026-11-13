@@ -14,6 +14,7 @@ import {
 import { ArchiveLeadButton } from "./_components/archive-lead-button";
 import { PriorityBadge } from "./_components/priority-badge";
 import { StageBadge } from "./_components/stage-badge";
+import { PageHeader, buttonPrimary, buttonSecondary } from "../_components/page-header";
 
 // Abas da lista (filtro pela URL: ?filtro=ganhos). Padrão = em aberto, agrupados por estágio.
 // "Arquivados" não é estágio: são os leads com `deletedAt` (de qualquer estágio), numa lista só.
@@ -32,23 +33,20 @@ type LeadsProps = { searchParams: Promise<{ filtro?: string }> };
 export default function Leads({ searchParams }: LeadsProps) {
     return (
         <>
-            <div className="flex items-center justify-between gap-4">
-                <h1 className="font-display text-2xl font-medium tracking-tight">Leads</h1>
-                <div className="flex flex-wrap gap-2">
-                    <Link
-                        href="/leads/importar"
-                        className="rounded-lg border border-admin-line px-4 py-2 text-sm text-admin-text transition-colors duration-150 hover:border-dourado"
-                    >
-                        Importar lista
-                    </Link>
-                    <Link
-                        href="/leads/novo"
-                        className="rounded-lg bg-dourado px-4 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
-                    >
-                        Novo lead
-                    </Link>
-                </div>
-            </div>
+            <PageHeader
+                title="Leads"
+                description="Todos os negócios em negociação, agrupados pela etapa da jornada."
+                actions={
+                    <>
+                        <Link href="/leads/importar" className={buttonSecondary}>
+                            Importar lista
+                        </Link>
+                        <Link href="/leads/novo" className={buttonPrimary}>
+                            Novo lead
+                        </Link>
+                    </>
+                }
+            />
 
             <Suspense fallback={<ListaSkeleton />}>
                 <ListaLeads searchParams={searchParams} />
@@ -117,26 +115,26 @@ async function ListaLeads({ searchParams }: LeadsProps) {
 
             {active === "arquivados" ? (
                 archived.length === 0 ? (
-                    <div className="mt-6 rounded-xl border border-admin-line px-6 py-12 text-center">
+                    <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-6 py-12 text-center">
                         <p className="text-admin-text">Nenhum lead arquivado.</p>
                         <p className="mt-1 text-sm text-admin-muted">
                             Arquive pela ficha do lead quem não vale abordar agora. Ele fica aqui para revisitar.
                         </p>
                     </div>
                 ) : (
-                    <ul className="mt-6 divide-y divide-admin-line overflow-hidden rounded-xl border border-admin-line">
+                    <ul className="mt-6 admin-card divide-y divide-white/[0.05] overflow-hidden">
                         {archived.map((lead) => (
                             <li key={lead.id}>
                                 <Link
                                     href={`/leads/${lead.id}`}
-                                    className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors duration-150 hover:bg-admin-raised/50"
+                                    className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 transition-colors duration-150 hover:bg-white/[0.03]"
                                 >
                                     <div className="min-w-0 flex-1">
-                                        <p className="flex items-center gap-2 font-medium text-admin-text wrap-break-word">
+                                        <p className="flex items-center gap-2 text-sm font-medium text-admin-text wrap-break-word">
                                             {lead.priority && <PriorityBadge priority={lead.priority} />}
                                             {lead.businessName}
                                         </p>
-                                        <p className="mt-0.5 text-sm text-admin-muted wrap-break-word">
+                                        <p className="text-xs text-admin-muted wrap-break-word">
                                             {[lead.segment, lead.city, leadSourceLabel[lead.source]]
                                                 .filter(Boolean)
                                                 .join(" · ")}
@@ -152,7 +150,7 @@ async function ListaLeads({ searchParams }: LeadsProps) {
                     </ul>
                 )
             ) : byStage.length === 0 ? (
-                <div className="mt-6 rounded-xl border border-admin-line px-6 py-12 text-center">
+                <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-6 py-12 text-center">
                     <p className="text-admin-text">Nenhum lead aqui.</p>
                     {active === "abertos" && (
                         <p className="mt-1 text-sm text-admin-muted">
@@ -161,30 +159,33 @@ async function ListaLeads({ searchParams }: LeadsProps) {
                     )}
                 </div>
             ) : (
-                <div className="mt-6 space-y-8">
+                <div className="mt-6 space-y-6">
                     {byStage.map((group) => (
                         <section key={group.stage} aria-labelledby={`stage-${group.stage}`}>
                             <h2
                                 id={`stage-${group.stage}`}
-                                className="mb-2 text-xs font-medium tracking-wide text-admin-muted uppercase"
+                                className="mb-2 flex items-center gap-2 text-sm font-medium text-admin-text"
                             >
-                                {leadStageLabel[group.stage]} · {group.leads.length}
+                                {leadStageLabel[group.stage]}
+                                <span className="rounded-full bg-admin-raised px-1.5 text-[11px] text-admin-muted tabular-nums">
+                                    {group.leads.length}
+                                </span>
                             </h2>
-                            <ul className="divide-y divide-admin-line overflow-hidden rounded-xl border border-admin-line">
+                            <ul className="admin-card divide-y divide-white/[0.05] overflow-hidden">
                                 {group.leads.map((lead) => {
                                     const overdue = lead.nextFollowUpAt !== null && lead.nextFollowUpAt < today;
                                     return (
-                                        <li key={lead.id} className="flex items-center pr-2 hover:bg-admin-raised/50">
+                                        <li key={lead.id} className="flex items-center pr-2 transition-colors duration-150 hover:bg-white/[0.03]">
                                             <Link
                                                 href={`/leads/${lead.id}`}
-                                                className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3"
+                                                className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5"
                                             >
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="flex items-center gap-2 font-medium text-admin-text wrap-break-word">
+                                                    <p className="flex items-center gap-2 text-sm font-medium text-admin-text wrap-break-word">
                                                         {lead.priority && <PriorityBadge priority={lead.priority} />}
                                                         {lead.businessName}
                                                     </p>
-                                                    <p className="mt-0.5 text-sm text-admin-muted wrap-break-word">
+                                                    <p className="text-xs text-admin-muted wrap-break-word">
                                                         {[lead.segment, lead.city, leadSourceLabel[lead.source]]
                                                             .filter(Boolean)
                                                             .join(" · ")}
@@ -219,7 +220,7 @@ async function ListaLeads({ searchParams }: LeadsProps) {
 
 function ListaSkeleton() {
     return (
-        <div aria-hidden="true" className="mt-6 divide-y divide-admin-line overflow-hidden rounded-xl border border-admin-line">
+        <div aria-hidden="true" className="mt-6 admin-card divide-y divide-white/[0.05] overflow-hidden">
             {[0, 1, 2].map((linha) => (
                 <div key={linha} className="flex items-center gap-4 px-4 py-4">
                     <div className="h-3 w-48 animate-pulse rounded bg-admin-raised" />

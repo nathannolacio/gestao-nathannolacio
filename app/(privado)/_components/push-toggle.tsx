@@ -87,7 +87,7 @@ export function PushToggle() {
   }
 
   const base =
-    "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors";
+    "flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-sm transition-colors";
 
   if (status === "on") {
     return (
@@ -100,18 +100,28 @@ export function PushToggle() {
 
   if (status === "unsupported") {
     return (
-      <p className="px-3 py-2 text-xs leading-relaxed text-admin-muted">
-        Notificações indisponíveis aqui. No iPhone, abra o menu de compartilhar do Safari, toque em
-        “Adicionar à Tela de Início” e abra o sistema pelo ícone.
-      </p>
+      <details className="group px-3 py-1.5 text-sm text-admin-muted">
+        <summary className="flex cursor-pointer list-none items-center gap-3 whitespace-nowrap hover:text-admin-text [&::-webkit-details-marker]:hidden">
+          <BellIcon className="opacity-60" />
+          Notificações off
+        </summary>
+        <p className="mt-1 pl-8 text-xs leading-relaxed">
+          No iPhone, toque em compartilhar no Safari, depois em “Adicionar à Tela de Início”, e abra o
+          sistema pelo ícone.
+        </p>
+      </details>
     );
   }
 
   if (status === "denied") {
     return (
-      <p className="px-3 py-2 text-xs leading-relaxed text-admin-muted">
-        Notificações bloqueadas neste aparelho. Libere nos Ajustes do iPhone, em Notificações.
-      </p>
+      <details className="group px-3 py-1.5 text-sm text-admin-muted">
+        <summary className="flex cursor-pointer list-none items-center gap-3 whitespace-nowrap hover:text-admin-text [&::-webkit-details-marker]:hidden">
+          <BellIcon className="opacity-60" />
+          Notificações off
+        </summary>
+        <p className="mt-1 pl-8 text-xs leading-relaxed">Libere nos Ajustes do aparelho, em Notificações.</p>
+      </details>
     );
   }
 

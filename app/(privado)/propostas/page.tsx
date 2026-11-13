@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { StatusBadge } from "./_components/status-badge";
 import { ProposalActions } from "./_components/proposal-actions";
 import { connection } from "next/server";
+import { PageHeader, buttonPrimary } from "../_components/page-header";
 import {
     formatBRL,
     projectTotal,
@@ -15,17 +16,15 @@ export default function Propostas() {
 
     return (
         <>
-            <div className="flex items-center justify-between gap-4">
-                <h1 className="font-display text-2xl font-medium tracking-tight">
-                    Propostas
-                </h1>
-                <Link
-                    href="/propostas/nova"
-                    className="rounded-lg bg-dourado px-4 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
-                >
-                    Nova proposta
-                </Link>
-            </div>
+            <PageHeader
+                title="Propostas"
+                description="Rascunhos, enviadas e aprovadas. O cliente vê a proposta pelo link, ao vivo."
+                actions={
+                    <Link href="/propostas/nova" className={buttonPrimary}>
+                        Nova proposta
+                    </Link>
+                }
+            />
 
             <div className="mt-6">
                 <Suspense fallback={<ListaSkeleton />}>
@@ -55,7 +54,7 @@ async function ListaPropostas() {
 
     if (propostas.length === 0) {
         return (
-            <div className="rounded-xl border border-admin-line px-6 py-12 text-center">
+            <div className="rounded-2xl border border-dashed border-white/10 px-6 py-12 text-center">
                 <p className="text-admin-text">Nenhuma proposta ainda.</p>
                 <p className="mt-1 text-sm text-admin-muted">
                     As propostas criadas aparecem aqui.
@@ -65,7 +64,7 @@ async function ListaPropostas() {
     }
 
     return (
-        <div className="overflow-hidden rounded-xl border border-admin-line">
+        <div className="admin-card overflow-hidden">
             {/* Abaixo de md a tabela vira lista de cartões (grid 2 colunas por linha). */}
             <table className="w-full text-left text-sm max-md:block">
                 <thead className="max-md:hidden">
@@ -145,7 +144,7 @@ function totalDaProposta(proposta: {
 
 function ListaSkeleton() {
     return (
-        <div aria-hidden="true" className="divide-y divide-admin-line overflow-hidden rounded-xl border border-admin-line">
+        <div aria-hidden="true" className="admin-card divide-y divide-white/[0.05] overflow-hidden">
             {[0, 1, 2].map((linha) => (
                 <div key={linha} className="flex items-center gap-4 px-4 py-4">
                     <div className="h-3 w-48 animate-pulse rounded bg-admin-raised" />

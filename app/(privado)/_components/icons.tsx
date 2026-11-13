@@ -159,3 +159,45 @@ export function BellIcon({ className }: IconProps) {
     </Icon>
   );
 }
+
+export function SearchIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4.4-4.4" />
+    </Icon>
+  );
+}
+
+export function PlusIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M12 5v14M5 12h14" />
+    </Icon>
+  );
+}
+
+export function ClockIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </Icon>
+  );
+}
+
+export function ChatIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M4.5 18.5 5.6 15A7.5 7.5 0 1 1 9 18.4l-4.5.1Z" />
+    </Icon>
+  );
+}
+
+export function SparkIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M12 3.5 13.8 10.2 20.5 12l-6.7 1.8L12 20.5l-1.8-6.7L3.5 12l6.7-1.8L12 3.5Z" />
+    </Icon>
+  );
+}
