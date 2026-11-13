@@ -309,6 +309,19 @@ rascunho → enviada → aprovada
     `prospecting-prompt.tsx`): nicho, cidades e quantidade preenchem o texto; regras A/B/C, gancho e formato das 10
     colunas com ";" são fixos. Se mudar coluna/limite em `lib/lead-import.ts` ou no `leadSchema`, atualizar o prompt.
     O parser ignora as cercas ``` de bloco de código coladas da resposta da IA.
+- Pronto: arquivar/restaurar lead, duplicados contra tudo e mensagem de cardápio (02/11/2026; branch
+  `feat/leads-arquivar`; SEM migration; `tsc`, `eslint` e `next build` passam; testado no navegador contra Postgres local):
+  - Arquivar continua sendo soft delete (`leads.deleted_at`), agora para "não vale abordar agora". Botão "Arquivar" no
+    topo da ficha; aba "Arquivados" em `/leads` (mais recente primeiro); a ficha de um arquivado abre só leitura com
+    "Restaurar lead" (`restoreLead`: `requireUser()` + Zod, `deleted_at = null`, volta no estágio em que estava).
+  - Importação: duplicado é checado contra TODOS os leads (em aberto, ganhos, perdidos e arquivados) e as linhas anteriores
+    do lote: mesmo WhatsApp com ou sem o 9 (`phoneKey`), mesmo Instagram, ou mesmo nome (sem acento) na mesma cidade (ou sem
+    cidade em um dos dois). A conferência diz o motivo ("Já existe em Contatado: X", "Já está nos Arquivados: X",
+    "Repetido nesta lista"). WhatsApp fixo (12 dígitos) entra com aviso. "Novo lead" (cadastro manual) NÃO checa duplicado.
+  - Botão de arquivar (ícone) também em cada linha da lista de leads.
+  - Prompt: WhatsApp só celular (13 dígitos); fixo só se o negócio indicar que é WhatsApp.
+  - Primeira mensagem com seletor Site/Cardápio (`firstMessage(lead, offer)`, `suggestOffer(segment)` em `lib/leads.ts`:
+    segmento de comida sugere cardápio). A oferta NÃO é salva no lead; trocar refaz o texto.
 - Pronto: jornada comercial (13/11/2026; branch `feat/jornada-comercial`; migration `20261113162908_jornada_comercial`,
   só CREATE TABLE + ADD COLUMN nulas + FKs, NÃO aplicada em nenhum banco Neon; `tsc` e `eslint` passam; `next build` e
   teste no navegador AINDA NÃO feitos). Decisões (cartão de 13/11): vínculo lead → proposta, checklist calculado dos

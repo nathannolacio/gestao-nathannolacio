@@ -7,9 +7,9 @@ import { db } from "@/db";
 import {
     contactChannelLabel,
     diagnosisQuestions,
-    firstMessage,
     followUpLabel,
     leadSourceLabel,
+    suggestOffer,
     todayInSaoPaulo,
     whatsappUrl,
 } from "@/lib/leads";
@@ -57,8 +57,9 @@ async function FichaDoLead({ params }: LeadPageProps) {
     // O id vem da URL: valida antes de consultar (um texto qualquer quebraria o cast para uuid).
     if (!z.uuid().safeParse(id).success) notFound();
 
+    // Arquivado também abre (para revisitar e restaurar), mas só leitura: as actions de edição recusam arquivado.
     const lead = await db.query.leads.findFirst({
-        where: { id, deletedAt: { isNull: true } },
+        where: { id },
         with: {
             contacts: { orderBy: { createdAt: "desc" } },
             proposals: {
@@ -88,6 +89,7 @@ async function FichaDoLead({ params }: LeadPageProps) {
 
     const today = todayInSaoPaulo();
     const overdue = lead.nextFollowUpAt !== null && lead.nextFollowUpAt < today;
+    const archived = lead.deletedAt !== null;
     const answered = diagnosisQuestions.filter((q) => lead.diagnosis?.[q.id]).length;
 
     // Jornada: checklist calculado dos dados + ações da etapa (Claude, WhatsApp, telas do sistema).
@@ -232,7 +234,7 @@ async function FichaDoLead({ params }: LeadPageProps) {
                             @{lead.instagram}
                         </a>
                     )}
-                    {(lead.stage === "diagnosis" || lead.stage === "proposal") && (
+                    {!archived && (lead.stage === "diagnosis" || lead.stage === "proposal") && (
                         <Link
                             href={`/propostas/nova?lead=${lead.id}`}
                             className="rounded-lg bg-dourado px-3 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
@@ -240,84 +242,121 @@ async function FichaDoLead({ params }: LeadPageProps) {
                             Criar proposta
                         </Link>
                     )}
+                    {!archived && <ArchiveLeadButton leadId={lead.id} archived={false} />}
                 </div>
             </div>
 
-            <div className="mt-6">
-                <JourneyPanel stage={lead.stage} checklist={journeyChecklist(lead.stage, facts)} actions={actions} />
-            </div>
+            {archived ? (
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-dourado/40 px-4 py-3">
+                    <p className="text-sm text-admin-text">
+                        Arquivado em {dateTime.format(lead.deletedAt!)}. Para abordar ou editar, restaure o lead.
+                    </p>
+                    <ArchiveLeadButton leadId={lead.id} archived />
+                </div>
+            ) : (
+                <div className="mt-6">
+                    <JourneyPanel stage={lead.stage} checklist={journeyChecklist(lead.stage, facts)} actions={actions} />
+                </div>
+            )}
 
             <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-                <div className="space-y-8">
-                    {lead.stage === "new" && lead.phoneNumber && (
-                        <Card title={lead.previewUrl ? "Primeira mensagem (com prévia)" : "Primeira mensagem"}>
-                            <FirstMessage phone={lead.phoneNumber} initialText={firstMessage(lead)} />
-                        </Card>
-                    )}
-
-                    {lead.proposals.length > 0 && (
-                        <Card title={`Propostas · ${lead.proposals.length}`}>
-                            <ul className="divide-y divide-admin-line">
-                                {lead.proposals.map((proposal) => (
-                                    <li key={proposal.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
-                                        <Link
-                                            href={`/propostas/${proposal.id}/editar`}
-                                            className="min-w-0 text-sm text-admin-text hover:text-dourado"
-                                        >
-                                            {proposal.title}
-                                        </Link>
-                                        <span className="flex items-center gap-3">
-                                            <StatusBadge status={proposal.status} />
-                                            <ExternalButton href={`/proposta/${proposal.publicToken}`}>Ver página</ExternalButton>
-                                        </span>
-                                    </li>
+                {archived ? (
+                    <Card title="Dados do lead">
+                        <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+                            {[
+                                ["WhatsApp", lead.phoneNumber],
+                                ["Instagram", lead.instagram && `@${lead.instagram}`],
+                                ["Gancho", lead.hook],
+                                ["Prévia", lead.previewUrl],
+                                ["Google Maps", lead.mapsUrl],
+                            ]
+                                .filter(([, value]) => value)
+                                .map(([label, value]) => (
+                                    <div key={label} className="min-w-0">
+                                        <dt className="text-admin-muted">{label}</dt>
+                                        <dd className="text-admin-text wrap-break-word">{value}</dd>
+                                    </div>
                                 ))}
-                            </ul>
-                        </Card>
-                    )}
-
-                    <Card title="Registrar contato">
-                        {/* key: recria o formulário quando o estágio muda, para a sugestão de estágio acompanhar. */}
-                        <ContactForm
-                            key={`${lead.stage}-${lead.contacts.length}`}
-                            leadId={lead.id}
-                            currentStage={lead.stage}
-                            today={today}
-                        />
+                        </dl>
                     </Card>
+                ) : (
+                    <div className="space-y-8">
+                        {lead.stage === "new" && lead.phoneNumber && (
+                            <Card title={lead.previewUrl ? "Primeira mensagem (com prévia)" : "Primeira mensagem"}>
+                                <FirstMessage
+                                    phone={lead.phoneNumber}
+                                    lead={{
+                                        businessName: lead.businessName,
+                                        contactName: lead.contactName,
+                                        hook: lead.hook,
+                                        previewUrl: lead.previewUrl,
+                                    }}
+                                    initialOffer={suggestOffer(lead.segment)}
+                                />
+                            </Card>
+                        )}
 
-                    <Collapsible title="Diagnóstico" meta={`${answered} de ${diagnosisQuestions.length} respondidas`}>
-                        <DiagnosisForm leadId={lead.id} initial={lead.diagnosis} />
-                    </Collapsible>
+                        {lead.proposals.length > 0 && (
+                            <Card title={`Propostas · ${lead.proposals.length}`}>
+                                <ul className="divide-y divide-admin-line">
+                                    {lead.proposals.map((proposal) => (
+                                        <li key={proposal.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
+                                            <Link
+                                                href={`/propostas/${proposal.id}/editar`}
+                                                className="min-w-0 text-sm text-admin-text hover:text-dourado"
+                                            >
+                                                {proposal.title}
+                                            </Link>
+                                            <span className="flex items-center gap-3">
+                                                <StatusBadge status={proposal.status} />
+                                                <ExternalButton href={`/proposta/${proposal.publicToken}`}>Ver página</ExternalButton>
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </Card>
+                        )}
 
-                    <Collapsible title="Dados do lead">
-                        <LeadForm
-                            mode="edit"
-                            leadId={lead.id}
-                            initialValues={{
-                                businessName: lead.businessName,
-                                contactName: lead.contactName ?? "",
-                                segment: lead.segment ?? "",
-                                city: lead.city ?? "",
-                                phone: lead.phoneNumber ?? "",
-                                instagram: lead.instagram ?? "",
-                                source: lead.source,
-                                referredBy: lead.referredBy ?? "",
-                                stage: lead.stage,
-                                lostReason: lead.lostReason ?? "",
-                                nextFollowUpAt: lead.nextFollowUpAt ?? "",
-                                notes: lead.notes ?? "",
-                                priority: lead.priority ?? "",
-                                hook: lead.hook ?? "",
-                                previewUrl: lead.previewUrl ?? "",
-                                mapsUrl: lead.mapsUrl ?? "",
-                            }}
-                        />
-                        <div className="mt-6 border-t border-admin-line pt-4">
-                            <ArchiveLeadButton leadId={lead.id} />
-                        </div>
-                    </Collapsible>
-                </div>
+                        <Card title="Registrar contato">
+                            {/* key: recria o formulário quando o estágio muda, para a sugestão de estágio acompanhar. */}
+                            <ContactForm
+                                key={`${lead.stage}-${lead.contacts.length}`}
+                                leadId={lead.id}
+                                currentStage={lead.stage}
+                                today={today}
+                            />
+                        </Card>
+
+                        <Collapsible title="Diagnóstico" meta={`${answered} de ${diagnosisQuestions.length} respondidas`}>
+                            <DiagnosisForm leadId={lead.id} initial={lead.diagnosis} />
+                        </Collapsible>
+
+                        <Collapsible title="Dados do lead">
+                            <LeadForm
+                                mode="edit"
+                                leadId={lead.id}
+                                initialValues={{
+                                    businessName: lead.businessName,
+                                    contactName: lead.contactName ?? "",
+                                    segment: lead.segment ?? "",
+                                    city: lead.city ?? "",
+                                    phone: lead.phoneNumber ?? "",
+                                    instagram: lead.instagram ?? "",
+                                    source: lead.source,
+                                    referredBy: lead.referredBy ?? "",
+                                    stage: lead.stage,
+                                    lostReason: lead.lostReason ?? "",
+                                    nextFollowUpAt: lead.nextFollowUpAt ?? "",
+                                    notes: lead.notes ?? "",
+                                    priority: lead.priority ?? "",
+                                    hook: lead.hook ?? "",
+                                    previewUrl: lead.previewUrl ?? "",
+                                    mapsUrl: lead.mapsUrl ?? "",
+                                }}
+                            />
+                        </Collapsible>
+                    </div>
+                )}
 
                 <Card title={`Histórico · ${lead.contacts.length}`}>
                     {lead.notes && (

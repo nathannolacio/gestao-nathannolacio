@@ -13,7 +13,8 @@ export default function ImportarLeads() {
                 Cole as linhas da planilha (separadas por tab) ou de um CSV com ponto e vírgula. Colunas, nesta ordem:{" "}
                 <code className="text-admin-text">{importColumns.join("; ")}</code>. Com cabeçalho, a ordem pode ser
                 qualquer uma. Todos entram como <strong className="text-admin-text">Novo</strong>, origem Prospecção
-                ativa. Duplicados (mesmo WhatsApp, Instagram ou nome) são pulados.
+                ativa. Quem já está no sistema (mesmo WhatsApp, Instagram ou nome), inclusive ganhos, perdidos e
+                arquivados, é pulado.
             </p>
 
             <div className="mt-6 max-w-5xl space-y-8">

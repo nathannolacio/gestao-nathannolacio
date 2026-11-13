@@ -11,16 +11,21 @@ import {
     todayInSaoPaulo,
     type LeadStage,
 } from "@/lib/leads";
+import { ArchiveLeadButton } from "./_components/archive-lead-button";
 import { PriorityBadge } from "./_components/priority-badge";
 import { StageBadge } from "./_components/stage-badge";
 
 // Abas da lista (filtro pela URL: ?filtro=ganhos). Padrão = em aberto, agrupados por estágio.
+// "Arquivados" não é estágio: são os leads com `deletedAt` (de qualquer estágio), numa lista só.
 const filters = {
     abertos: { label: "Em aberto", stages: openLeadStages as readonly LeadStage[] },
     ganhos: { label: "Ganhos", stages: ["won"] as readonly LeadStage[] },
     perdidos: { label: "Perdidos", stages: ["lost"] as readonly LeadStage[] },
+    arquivados: { label: "Arquivados", stages: [] as readonly LeadStage[] },
 } as const;
 type FilterKey = keyof typeof filters;
+
+const shortDate = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
 
 type LeadsProps = { searchParams: Promise<{ filtro?: string }> };
 
@@ -58,15 +63,19 @@ async function ListaLeads({ searchParams }: LeadsProps) {
     const active: FilterKey = filtro && filtro in filters ? (filtro as FilterKey) : "abertos";
     const today = todayInSaoPaulo();
 
-    const all = await db.query.leads.findMany({
-        where: { deletedAt: { isNull: true } },
-        orderBy: { createdAt: "desc" },
-    });
+    const everyLead = await db.query.leads.findMany({ orderBy: { createdAt: "desc" } });
+    const all = everyLead.filter((lead) => lead.deletedAt === null);
+    // Arquivado mais recente primeiro.
+    const archived = everyLead
+        .filter((lead) => lead.deletedAt !== null)
+        .sort((a, b) => b.deletedAt!.getTime() - a.deletedAt!.getTime());
 
     const counts = Object.fromEntries(
         (Object.keys(filters) as FilterKey[]).map((key) => [
             key,
-            all.filter((lead) => filters[key].stages.includes(lead.stage)).length,
+            key === "arquivados"
+                ? archived.length
+                : all.filter((lead) => filters[key].stages.includes(lead.stage)).length,
         ]),
     ) as Record<FilterKey, number>;
 
@@ -106,7 +115,43 @@ async function ListaLeads({ searchParams }: LeadsProps) {
                 ))}
             </nav>
 
-            {byStage.length === 0 ? (
+            {active === "arquivados" ? (
+                archived.length === 0 ? (
+                    <div className="mt-6 rounded-xl border border-admin-line px-6 py-12 text-center">
+                        <p className="text-admin-text">Nenhum lead arquivado.</p>
+                        <p className="mt-1 text-sm text-admin-muted">
+                            Arquive pela ficha do lead quem não vale abordar agora. Ele fica aqui para revisitar.
+                        </p>
+                    </div>
+                ) : (
+                    <ul className="mt-6 divide-y divide-admin-line overflow-hidden rounded-xl border border-admin-line">
+                        {archived.map((lead) => (
+                            <li key={lead.id}>
+                                <Link
+                                    href={`/leads/${lead.id}`}
+                                    className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors duration-150 hover:bg-admin-raised/50"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <p className="flex items-center gap-2 font-medium text-admin-text wrap-break-word">
+                                            {lead.priority && <PriorityBadge priority={lead.priority} />}
+                                            {lead.businessName}
+                                        </p>
+                                        <p className="mt-0.5 text-sm text-admin-muted wrap-break-word">
+                                            {[lead.segment, lead.city, leadSourceLabel[lead.source]]
+                                                .filter(Boolean)
+                                                .join(" · ")}
+                                        </p>
+                                    </div>
+                                    <StageBadge stage={lead.stage} />
+                                    <span className="text-sm text-admin-muted">
+                                        Arquivado em {shortDate.format(lead.deletedAt!)}
+                                    </span>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                )
+            ) : byStage.length === 0 ? (
                 <div className="mt-6 rounded-xl border border-admin-line px-6 py-12 text-center">
                     <p className="text-admin-text">Nenhum lead aqui.</p>
                     {active === "abertos" && (
@@ -129,10 +174,10 @@ async function ListaLeads({ searchParams }: LeadsProps) {
                                 {group.leads.map((lead) => {
                                     const overdue = lead.nextFollowUpAt !== null && lead.nextFollowUpAt < today;
                                     return (
-                                        <li key={lead.id}>
+                                        <li key={lead.id} className="flex items-center pr-2 hover:bg-admin-raised/50">
                                             <Link
                                                 href={`/leads/${lead.id}`}
-                                                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors duration-150 hover:bg-admin-raised/50"
+                                                className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3"
                                             >
                                                 <div className="min-w-0 flex-1">
                                                     <p className="flex items-center gap-2 font-medium text-admin-text wrap-break-word">
@@ -159,6 +204,7 @@ async function ListaLeads({ searchParams }: LeadsProps) {
                                                     <StageBadge stage={lead.stage} />
                                                 )}
                                             </Link>
+                                            <ArchiveLeadButton leadId={lead.id} archived={false} compact />
                                         </li>
                                     );
                                 })}

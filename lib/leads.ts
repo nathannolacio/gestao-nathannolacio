@@ -125,24 +125,60 @@ export function priorityRank(priority: LeadPriority | null) {
     return priority === null ? leadPriorities.length : leadPriorities.indexOf(priority);
 }
 
-type MessageLead = {
+export type MessageLead = {
     businessName: string;
     contactName: string | null;
     hook: string | null;
     previewUrl: string | null;
 };
 
-// Texto da 1ª mensagem (modelos do doc "Prospecção com prévias"): com prévia = modelo do lead A de site;
-// sem prévia = modelo do lead B, que termina oferecendo a prévia. O texto abre editável na tela antes do envio.
-export function firstMessage(lead: MessageLead) {
+// Oferta da abordagem: site one-page ou cardápio digital (food). Não fica salva no lead: a tela sugere pelo
+// segmento (`suggestOffer`) e você troca na hora, se precisar.
+export const messageOffers = ["site", "menu"] as const;
+export type MessageOffer = (typeof messageOffers)[number];
+export const messageOfferLabel: Record<MessageOffer, string> = { site: "Site", menu: "Cardápio" };
+
+// Segmentos de comida que costumam pedir cardápio (comparados sem acento e em minúsculas).
+const foodSegments = [
+    "doce", "doceria", "confeitaria", "bolo", "marmita", "marmitaria", "hamburguer", "hamburgueria", "lanche",
+    "lanchonete", "pizza", "pizzaria", "acai", "restaurante", "comida", "esfiha", "pastel", "sorvete",
+    "sorveteria", "padaria", "cafeteria", "food", "salgado", "japones", "sushi", "churrasco", "espetinho",
+];
+
+export function suggestOffer(segment: string | null): MessageOffer {
+    if (!segment) return "site";
+    const text = segment.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    return foodSegments.some((word) => text.includes(word)) ? "menu" : "site";
+}
+
+// Texto da 1ª mensagem (modelos do doc "Prospecção com prévias"): com prévia = modelo do lead A;
+// sem prévia = modelo do lead B, que termina oferecendo a prévia. Cada um em versão site e cardápio.
+// O texto abre editável na tela antes do envio.
+export function firstMessage(lead: MessageLead, offer: MessageOffer = "site") {
     const greeting = lead.contactName ? `Oi, ${lead.contactName}, tudo bem?` : "Oi, tudo bem?";
     const hook = lead.hook ? ` ${lead.hook}` : "";
+    const optOut = "O que achou? Se não for o momento, é só me falar que eu não mando mais mensagem.";
+
+    if (offer === "menu") {
+        if (lead.previewUrl) {
+            return [
+                `${greeting} Aqui é o Nathan, de Caieiras. Faço cardápios digitais para negócios da região e montei uma prévia de como ficaria o cardápio da ${lead.businessName}: ${lead.previewUrl}`,
+                `Usei o nome, as cores e as fotos do Instagram de vocês. Os itens e preços são de exemplo.${hook}`,
+                optOut,
+            ].join("\n\n");
+        }
+        return [
+            `${greeting} Aqui é o Nathan, de Caieiras. Faço cardápios digitais para negócios da região: o cliente vê os produtos com foto e preço e manda o pedido pronto no WhatsApp.`,
+            `Faço um com o nome, as cores e as fotos da ${lead.businessName}.${hook}`,
+            "Quer que eu monte uma prévia com a cara de vocês? Sem compromisso.",
+        ].join("\n\n");
+    }
 
     if (lead.previewUrl) {
         return [
             `${greeting} Aqui é o Nathan, de Caieiras. Faço sites para negócios da região e montei uma prévia de como ficaria o site da ${lead.businessName}: ${lead.previewUrl}`,
             `Usei o nome, as cores e as fotos do Instagram de vocês. Os textos são de exemplo.${hook}`,
-            "O que achou? Se não for o momento, é só me falar que eu não mando mais mensagem.",
+            optOut,
         ].join("\n\n");
     }
 
