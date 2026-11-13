@@ -8,6 +8,8 @@ type NavLinkProps = {
   href: string;
   icon: ReactNode;
   children: ReactNode;
+  // Contador à direita (componente async do servidor, já dentro de <Suspense>).
+  badge?: ReactNode;
 };
 
 // O pathname só é conhecido em tempo de requisição nas rotas com segmento dinâmico
@@ -29,19 +31,20 @@ function ActiveNavLink(props: NavLinkProps) {
   return <NavLinkView {...props} active={active} />;
 }
 
-function NavLinkView({ href, icon, children, active }: NavLinkProps & { active: boolean }) {
+function NavLinkView({ href, icon, children, badge, active }: NavLinkProps & { active: boolean }) {
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 ${
+      className={`relative flex shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors duration-150 ${
         active
-          ? "bg-admin-raised text-admin-text [&_svg]:text-dourado"
-          : "text-admin-muted hover:bg-admin-raised/60 hover:text-admin-text"
+          ? "bg-gradient-to-r from-dourado/20 via-dourado/[0.06] to-transparent text-admin-text ring-1 ring-dourado/20 ring-inset [&>svg]:text-[#e0c088] [&>svg]:drop-shadow-[0_0_4px_rgb(212_179_122/0.5)]"
+          : "text-admin-muted hover:bg-white/[0.04] hover:text-admin-text"
       }`}
     >
       {icon}
       <span>{children}</span>
+      {badge && <Suspense fallback={null}>{badge}</Suspense>}
     </Link>
   );
 }

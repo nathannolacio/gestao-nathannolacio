@@ -10,10 +10,10 @@
   --font-display: var(--font-space-grotesk);
 
   /* Área administrativa (dark): derivados do grafite e do marfim da marca */
-  --color-admin-ground: #16161c;
-  --color-admin-sidebar: #121217;
-  --color-admin-raised: #1f1f26;
-  --color-admin-line: #2a2a31;
+  --color-admin-ground: #0e0e12;
+  --color-admin-sidebar: #131318;
+  --color-admin-raised: #1c1c23;
+  --color-admin-line: #26262e;
   --color-admin-text: #f1ede5;
   --color-admin-muted: #a39f95;
   --color-admin-success: #86b894;
@@ -121,6 +121,63 @@ body {
   color-scheme: dark;
   scrollbar-color: #3a3a42 transparent;
   --accent: var(--color-dourado);
+}
+
+/* Fundo do admin: luzes douradas difusas (fixas) que aparecem através do vidro dos cards. */
+.admin-shell {
+  background:
+    radial-gradient(9rem 34rem at 58% -12%, rgb(245 228 196 / 0.09), transparent 75%),
+    radial-gradient(42rem 26rem at 88% -6%, rgb(212 179 122 / 0.18), transparent 70%),
+    radial-gradient(34rem 24rem at 30% 8%, rgb(180 145 90 / 0.12), transparent 70%),
+    radial-gradient(38rem 30rem at 0% 100%, rgb(124 90 52 / 0.16), transparent 70%),
+    radial-gradient(30rem 22rem at 100% 85%, rgb(201 165 108 / 0.10), transparent 70%),
+    #0c0c10;
+  background-attachment: fixed;
+}
+
+/* Card de vidro: fundo translúcido com desfoque do que está atrás, borda clara e
+   um fio de luz na aresta de cima (a borda em degradê é feita com máscara no ::before). */
+.admin-card {
+  position: relative;
+  isolation: isolate;
+  border-radius: 1.25rem;
+  border: 1px solid rgb(255 255 255 / 0.07);
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.075), rgb(255 255 255 / 0.02) 45%, rgb(255 255 255 / 0.03));
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 24px 48px -24px rgb(0 0 0 / 0.8);
+}
+
+.admin-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.02) 35%, transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Card em destaque: brilho dourado "neon" por dentro e por fora. */
+.admin-card-featured {
+  background:
+    radial-gradient(20rem 12rem at 0% 0%, rgb(212 179 122 / 0.2), transparent 70%),
+    linear-gradient(160deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.02));
+  border-color: rgb(212 179 122 / 0.3);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 0 32px -12px rgb(212 179 122 / 0.35),
+    0 24px 48px -24px rgb(0 0 0 / 0.8);
+}
+
+.admin-card-featured::before {
+  background: linear-gradient(140deg, rgb(240 210 150 / 0.45), rgb(212 179 122 / 0.05) 40%, transparent 70%);
 }
 
 .admin-shell ::selection {

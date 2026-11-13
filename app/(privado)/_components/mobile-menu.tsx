@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useRef, type MouseEvent, type ReactNode } from "react";
+import { Brand } from "./brand";
 import { CloseIcon, MenuIcon } from "./icons";
 
 // Gaveta do menu no mobile, feita com <dialog>: o navegador cuida de Esc, foco preso
@@ -36,12 +36,7 @@ export function MobileMenu({ children }: { children: ReactNode }) {
         className="m-0 h-dvh max-h-dvh w-64 max-w-[85vw] flex-col gap-6 border-r border-admin-line bg-admin-sidebar p-3 text-admin-text backdrop:bg-black/60 open:flex"
       >
         <div className="flex items-center justify-between">
-          <Link
-            href="/hoje"
-            className="rounded-lg px-3 py-1 font-display text-lg font-medium tracking-tight"
-          >
-            Gestão
-          </Link>
+          <Brand />
           <button
             type="button"
             onClick={() => dialogRef.current?.close()}

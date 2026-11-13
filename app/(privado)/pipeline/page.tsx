@@ -6,32 +6,27 @@ import { journeySteps, nextActionLabel } from "@/lib/journey";
 import { addDays, followUpLabel, priorityRank, todayInSaoPaulo, type LeadStage } from "@/lib/leads";
 import { prospectingOffers, type ProspectingOffer } from "@/lib/prospecting-prompt";
 import { PriorityBadge } from "../leads/_components/priority-badge";
+import { PageHeader, buttonPrimary, buttonSecondary } from "../_components/page-header";
 
 // Pipeline: a jornada comercial inteira num quadro, da prospecção ao fechamento.
 // O lead muda de coluna pelos registros da ficha (contato, diagnóstico, proposta enviada/aprovada).
 export default function Pipeline() {
     return (
         <>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h1 className="font-display text-2xl font-medium tracking-tight">Pipeline</h1>
-                    <p className="mt-1 text-sm text-admin-muted">Da prospecção ao fechamento. Clique no card para ver a próxima ação.</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    <Link
-                        href="/leads/importar"
-                        className="rounded-lg border border-admin-line px-4 py-2 text-sm text-admin-text transition-colors duration-150 hover:border-dourado"
-                    >
-                        Novo lote
-                    </Link>
-                    <Link
-                        href="/leads/novo"
-                        className="rounded-lg bg-dourado px-4 py-2 text-sm font-medium text-grafite transition-opacity duration-150 hover:opacity-90"
-                    >
-                        Novo lead
-                    </Link>
-                </div>
-            </div>
+            <PageHeader
+                title="Pipeline"
+                description="Da prospecção ao fechamento. Clique no card para ver a próxima ação."
+                actions={
+                    <>
+                        <Link href="/leads/importar" className={buttonSecondary}>
+                            Novo lote
+                        </Link>
+                        <Link href="/leads/novo" className={buttonPrimary}>
+                            Novo lead
+                        </Link>
+                    </>
+                }
+            />
 
             <Suspense fallback={<BoardSkeleton />}>
                 <Board />
@@ -103,7 +98,7 @@ async function Board() {
                         const replied = batch.leads.filter((l) => !["new", "contacted", "lost"].includes(l.stage)).length;
                         const won = batch.leads.filter((l) => l.stage === "won").length;
                         return (
-                            <div key={batch.id} className="rounded-lg border border-admin-line bg-admin-ground p-3">
+                            <div key={batch.id} className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
                                 <p className="text-sm font-medium text-admin-text">{batch.niche}</p>
                                 <p className="text-xs text-admin-muted">
                                     {batch.cities} · {prospectingOffers[batch.offer as ProspectingOffer]?.split(" (")[0] ?? batch.offer}
@@ -142,7 +137,7 @@ async function Board() {
                                     <Link
                                         key={lead.id}
                                         href={`/leads/${lead.id}`}
-                                        className={`block rounded-lg border bg-admin-ground p-3 transition-colors duration-150 hover:border-dourado/70 ${
+                                        className={`block rounded-xl border bg-white/[0.03] p-3 transition-colors duration-150 hover:border-dourado/70 ${
                                             overdue ? "border-red-400/40" : "border-admin-line"
                                         }`}
                                     >
@@ -183,7 +178,7 @@ async function Board() {
 
 function Column({ title, count, hint, children }: { title: string; count: number; hint?: string; children: ReactNode }) {
     return (
-        <section aria-label={title} className="flex w-64 shrink-0 flex-col rounded-xl border border-admin-line bg-admin-raised/30">
+        <section aria-label={title} className="admin-card flex w-64 shrink-0 flex-col">
             <header className="border-b border-admin-line px-3 py-2.5">
                 <h2 className="flex items-center justify-between text-sm font-medium text-admin-text">
                     {title}
