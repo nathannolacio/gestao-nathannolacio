@@ -286,15 +286,16 @@ async function analyzeImport(text: string) {
                 .get(textKey(data.businessName))
                 ?.find((other) => other.city === null || city === null || other.city === city)?.reason;
 
-        // Registra a linha para pegar repetição dentro do próprio lote (sem sobrescrever o motivo de quem já existe).
+        if (duplicateOf) {
+            return { line, label: data.businessName, status: "duplicate" as ImportRowStatus, message: duplicateOf, data: null };
+        }
+
+        // Registra a linha que entra para pegar repetição dentro do próprio lote (sem sobrescrever o motivo de
+        // quem já existe). Linha recusada não é registrada: ela não vai ser gravada.
         remember(
             { phone: data.phone, instagram: data.instagram, name: data.businessName, city: data.city },
             `Repetido nesta lista (linha ${line}).`,
         );
-
-        if (duplicateOf) {
-            return { line, label: data.businessName, status: "duplicate" as ImportRowStatus, message: duplicateOf, data: null };
-        }
 
         // Fixo (12 dígitos) pode ter WhatsApp Business, mas muitas vezes não tem: entra, com aviso.
         const landline = data.phone !== null && data.phone.length === 12;

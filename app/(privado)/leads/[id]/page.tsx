@@ -120,8 +120,8 @@ async function FichaDoLead({ params }: LeadPageProps) {
         channel: contactChannelLabel[c.channel],
         note: c.note,
     }));
-    const activeProposal =
-        lead.proposals.find((p) => p.status === "approved") ?? lead.proposals.find((p) => p.status === "sent");
+    const approvedProposal = lead.proposals.find((p) => p.status === "approved");
+    const activeProposal = approvedProposal ?? lead.proposals.find((p) => p.status === "sent");
     const whatsappAction: JourneyAction[] = lead.phoneNumber
         ? [{ kind: "external", label: "Abrir WhatsApp", href: whatsappUrl(lead.phoneNumber) }]
         : [];
@@ -167,8 +167,8 @@ async function FichaDoLead({ params }: LeadPageProps) {
                         prompt: contractPrompt(
                             lead,
                             client ?? null,
-                            activeProposal
-                                ? { title: activeProposal.title, publicUrl: `${SITE_URL}/proposta/${activeProposal.publicToken}` }
+                            approvedProposal
+                                ? { title: approvedProposal.title, publicUrl: `${SITE_URL}/proposta/${approvedProposal.publicToken}` }
                                 : null,
                         ),
                     },
@@ -284,6 +284,8 @@ async function FichaDoLead({ params }: LeadPageProps) {
                         {lead.stage === "new" && lead.phoneNumber && (
                             <Card title={lead.previewUrl ? "Primeira mensagem (com prévia)" : "Primeira mensagem"}>
                                 <FirstMessage
+                                    // Remonta (refaz o texto) quando os dados salvos do lead mudam.
+                                    key={[lead.businessName, lead.contactName, lead.hook, lead.previewUrl, lead.segment].join("|")}
                                     phone={lead.phoneNumber}
                                     lead={{
                                         businessName: lead.businessName,

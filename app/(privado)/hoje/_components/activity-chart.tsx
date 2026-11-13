@@ -159,6 +159,25 @@ export function ActivityChart({ points: allPoints }: { points: ActivityPoint[] }
                 )}
             </div>
 
+            {/* Mesmos números em tabela para leitor de tela e teclado (o gráfico só mostra no hover). */}
+            <table className="sr-only">
+                <caption>Contatos por dia</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Dia</th>
+                        <th scope="col">Contatos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {points.map((point) => (
+                        <tr key={point.date}>
+                            <td>{point.label}</td>
+                            <td>{point.count}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
             <div className="relative mt-2 h-4 text-[11px] text-admin-muted tabular-nums">
                 {points.map((point, index) =>
                     (points.length - 1 - index) % labelEvery === 0 ? (

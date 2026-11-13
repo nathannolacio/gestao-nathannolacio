@@ -16,6 +16,7 @@ import { addDays, openLeadStages, todayInSaoPaulo } from "@/lib/leads";
 // e ser convertido em retorno amigável fora dela.
 class ClientNotFoundError extends Error {}
 class LeadNotFoundError extends Error {}
+class LeadClientMismatchError extends Error {}
 
 // Depois de enviar a proposta, o lead ganha follow-up em 2 dias (a validade é de 7).
 const FOLLOW_UP_AFTER_SEND_DAYS = 2;
@@ -120,9 +121,14 @@ export async function createProposal(input: unknown) {
             if (leadId) {
                 const lead = await tx.query.leads.findFirst({
                     where: { id: leadId, deletedAt: { isNull: true } },
-                    columns: { id: true },
+                    columns: { id: true, clientId: true },
                 });
                 if (!lead) throw new LeadNotFoundError("Lead não encontrado.");
+                // Lead já ligado a um cliente: a proposta precisa ser desse mesmo cliente,
+                // senão lead e proposta ficariam apontando para clientes diferentes.
+                if (lead.clientId && lead.clientId !== clientId) {
+                    throw new LeadClientMismatchError("Cliente diferente do lead.");
+                }
             }
 
             const proposalTemplate = await tx.query.proposalTemplate.findFirst();
@@ -174,6 +180,14 @@ export async function createProposal(input: unknown) {
                 ok: false as const,
                 fieldErrors: {},
                 formError: "Cliente não encontrado. Selecione outro cliente.",
+            };
+        }
+
+        if (error instanceof LeadClientMismatchError) {
+            return {
+                ok: false as const,
+                fieldErrors: {},
+                formError: "Este lead já está ligado a outro cliente. Selecione o cliente do lead para criar a proposta.",
             };
         }
 

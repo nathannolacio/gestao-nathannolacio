@@ -61,6 +61,8 @@ export function ImportForm({ batch }: { batch?: ProspectingBatchInput | null }) 
                     id="import-text"
                     rows={10}
                     value={text}
+                    // Travado enquanto o servidor confere/importa: a resposta tem que ser do texto que está na tela.
+                    readOnly={pending}
                     onChange={(e) => {
                         setText(e.target.value);
                         setPreview(null);
