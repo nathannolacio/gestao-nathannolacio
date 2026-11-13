@@ -1,15 +1,55 @@
 "use client";
 
 import { useState } from "react";
-import { whatsappUrl } from "@/lib/leads";
+import {
+    firstMessage,
+    messageOfferLabel,
+    messageOffers,
+    whatsappUrl,
+    type MessageLead,
+    type MessageOffer,
+} from "@/lib/leads";
 
-// Mensagem pronta da 1ª abordagem: vem preenchida (firstMessage, no servidor) e pode ser ajustada antes
-// de abrir o WhatsApp. O envio continua manual: o link só abre a conversa com o texto, quem envia é você.
-export function FirstMessage({ phone, initialText }: { phone: string; initialText: string }) {
-    const [text, setText] = useState(initialText);
+// Mensagem pronta da 1ª abordagem: vem preenchida (modelo de site ou de cardápio, sugerido pelo segmento)
+// e pode ser ajustada antes de abrir o WhatsApp. Trocar a oferta refaz o texto (perde o que foi editado).
+// O envio continua manual: o link só abre a conversa com o texto, quem envia é você.
+export function FirstMessage({
+    phone,
+    lead,
+    initialOffer,
+}: {
+    phone: string;
+    lead: MessageLead;
+    initialOffer: MessageOffer;
+}) {
+    const [offer, setOffer] = useState(initialOffer);
+    const [text, setText] = useState(() => firstMessage(lead, initialOffer));
+
+    function changeOffer(next: MessageOffer) {
+        setOffer(next);
+        setText(firstMessage(lead, next));
+    }
 
     return (
         <div className="space-y-3">
+            <div role="radiogroup" aria-label="Oferta" className="flex gap-1">
+                {messageOffers.map((option) => (
+                    <button
+                        key={option}
+                        type="button"
+                        role="radio"
+                        aria-checked={offer === option}
+                        onClick={() => changeOffer(option)}
+                        className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition-colors duration-150 ${
+                            offer === option
+                                ? "border-dourado text-admin-text"
+                                : "border-admin-line text-admin-muted hover:text-admin-text"
+                        }`}
+                    >
+                        {messageOfferLabel[option]}
+                    </button>
+                ))}
+            </div>
             <label htmlFor="first-message" className="sr-only">
                 Mensagem
             </label>
