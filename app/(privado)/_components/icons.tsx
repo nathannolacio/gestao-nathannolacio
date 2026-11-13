@@ -37,6 +37,16 @@ export function LeadsIcon({ className }: IconProps) {
   );
 }
 
+export function PipelineIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <rect x="3.5" y="4" width="4.5" height="16" rx="1" />
+      <rect x="9.75" y="4" width="4.5" height="11" rx="1" />
+      <rect x="16" y="4" width="4.5" height="7" rx="1" />
+    </Icon>
+  );
+}
+
 export function ProposalsIcon({ className }: IconProps) {
   return (
     <Icon className={className}>

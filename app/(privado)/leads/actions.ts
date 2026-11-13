@@ -4,7 +4,7 @@ import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
-import { leadContacts, leads } from "@/db/schema";
+import { leadContacts, leads, prospectingBatches } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { parseLeadImport } from "@/lib/lead-import";
 import { isOpenStage, leadStageLabel } from "@/lib/leads";
@@ -355,7 +355,14 @@ export async function importLeads(input: unknown) {
         return { ok: false as const, formError: "Nenhuma linha válida para importar." };
     }
 
-    await db.insert(leads).values(valid.map(({ phone, ...data }) => ({ ...data, phoneNumber: phone })));
+    // Lote + leads na mesma transação: o lote só existe se os leads entrarem.
+    const batch = result.data.batch;
+    await db.transaction(async (tx) => {
+        const batchId = batch
+            ? (await tx.insert(prospectingBatches).values(batch).returning({ id: prospectingBatches.id }))[0].id
+            : null;
+        await tx.insert(leads).values(valid.map(({ phone, ...data }) => ({ ...data, phoneNumber: phone, batchId })));
+    });
 
     revalidateLeads();
 

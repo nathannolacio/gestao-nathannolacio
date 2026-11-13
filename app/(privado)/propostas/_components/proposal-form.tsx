@@ -8,6 +8,13 @@ import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
 import { SCOPE_DESCRIPTION } from "@/lib/proposal-scope";
 
 type ClientOption = { id: string; name: string };
+// Lead de origem quando a proposta nasce da ficha do lead (/propostas/nova?lead=...).
+export type LeadPrefill = {
+    id: string;
+    businessName: string;
+    phoneNumber: string | null;
+    clientId: string | null;
+};
 type FieldErrors = Record<string, string[] | undefined>;
 
 export const inputClass =
@@ -77,7 +84,7 @@ export type ProposalFormValues = {
 
 // Criar: escolhe/cadastra o cliente. Editar: o cliente é o já gravado (só leitura).
 type ProposalFormProps =
-    | { mode: "create"; clients: ClientOption[] }
+    | { mode: "create"; clients: ClientOption[]; lead?: LeadPrefill | null }
     | {
           mode: "edit";
           proposalId: string;
@@ -107,14 +114,18 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
     const isEdit = props.mode === "edit";
     const clients = props.mode === "create" ? props.clients : [];
     const initial = props.mode === "edit" ? props.initialValues : null;
+    const lead = props.mode === "create" ? (props.lead ?? null) : null;
+    // Lead que já virou cliente: começa com o cliente selecionado. Senão, cadastro com os dados do lead.
+    const leadClientId =
+        lead?.clientId && clients.some((c) => c.id === lead.clientId) ? lead.clientId : null;
 
     const [clientMode, setClientMode] = useState<"existing" | "new">(
-        clients.length > 0 ? "existing" : "new",
+        leadClientId ? "existing" : lead ? "new" : clients.length > 0 ? "existing" : "new",
     );
-    const [clientId, setClientId] = useState("");
-    const [name, setName] = useState("");
+    const [clientId, setClientId] = useState(leadClientId ?? "");
+    const [name, setName] = useState(lead?.businessName ?? "");
     const [email, setEmail] = useState("");
-    const [phone, setPhone] = useState("");
+    const [phone, setPhone] = useState(lead?.phoneNumber ?? "");
     const [type, setType] = useState<"PF" | "PJ">("PF");
     // URL devolvida pelo upload (a logo já está no Blob; a proposta só guarda o link).
     const [logoUrl, setLogoUrl] = useState<string | null>(
@@ -270,6 +281,7 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                                         type,
                                         logoUrl: logoUrl ?? undefined,
                                     },
+                          leadId: lead?.id,
                           ...fields,
                       });
 
@@ -366,6 +378,13 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                 <h2 id="secao-cliente" className="font-display text-lg font-medium">
                     Cliente
                 </h2>
+
+                {lead && (
+                    <p className="rounded-lg border border-dourado/40 px-4 py-3 text-sm text-admin-text">
+                        Proposta do lead <strong className="font-medium">{lead.businessName}</strong>. Ao enviar,
+                        o lead vai para &quot;Proposta enviada&quot;; ao ser aprovada, para &quot;Ganho&quot;.
+                    </p>
+                )}
 
                 <fieldset className="flex flex-wrap gap-2">
                     <legend className="sr-only">Tipo de seleção do cliente</legend>
