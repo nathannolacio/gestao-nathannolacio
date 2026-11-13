@@ -23,6 +23,16 @@ export const relations = defineRelations(schema, (r) => ({
             from: r.proposals.id,
             to: r.proposalContacts.proposalId,
         }),
+        contracts: r.many.contracts({
+            from: r.proposals.id,
+            to: r.contracts.proposalId,
+        }),
+    },
+    contracts: {
+        proposal: r.one.proposals({
+            from: r.contracts.proposalId,
+            to: r.proposals.id,
+        }),
     },
     proposalViews: {
         proposal: r.one.proposals({
