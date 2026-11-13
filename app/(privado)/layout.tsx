@@ -1,8 +1,13 @@
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
+import { installableMetadata, installableViewport } from "@/lib/app-metadata";
 import { getOptionalUser } from "@/lib/auth";
 import { Header } from "./_components/header";
+import { ServiceWorker } from "./_components/service-worker";
 import { Sidebar } from "./_components/sidebar";
+
+export const metadata = installableMetadata;
+export const viewport = installableViewport;
 
 // Lê a sessão (dado de requisição, dinâmico), por isso fica dentro de <Suspense>.
 // Além de mostrar o usuário, é a validação REAL da sessão: o proxy só confere se
@@ -24,6 +29,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </Suspense>
         <main className="min-w-0 flex-1 px-4 pt-2 pb-8 sm:px-6 md:px-5">{children}</main>
       </div>
+      <ServiceWorker />
     </div>
   );
 }
