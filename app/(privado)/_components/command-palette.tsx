@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { searchEverything, type SearchResult } from "../busca/actions";
 import { SearchIcon } from "./icons";
 
@@ -35,13 +35,16 @@ export function CommandPalette() {
     const dialogRef = useRef<HTMLDialogElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const [query, setQuery] = useState("");
-    const [results, setResults] = useState<SearchResult[]>([]);
+    // Resultado guardado junto com o texto que o gerou: só aparece se ainda for o texto da caixa.
+    const [results, setResults] = useState<{ query: string; items: SearchResult[]; failed: boolean } | null>(null);
+    const listId = useId();
+    const listRef = useRef<HTMLUListElement>(null);
     const [active, setActive] = useState(0);
     const [pending, startTransition] = useTransition();
 
     function open() {
         setQuery("");
-        setResults([]);
+        setResults(null);
         setActive(0);
         dialogRef.current?.showModal();
         inputRef.current?.focus();
@@ -68,31 +71,45 @@ export function CommandPalette() {
     useEffect(() => {
         const text = query.trim();
         if (text.length < 2) return;
+        let stale = false;
         const timer = setTimeout(() => {
             startTransition(async () => {
-                const found = await searchEverything({ query: text });
-                setResults(found);
-                setActive(0);
+                try {
+                    const found = await searchEverything({ query: text });
+                    if (!stale) setResults({ query: text, items: found, failed: false });
+                } catch {
+                    // Sessão expirada ou falha no banco: avisa aqui em vez de derrubar a tela.
+                    if (!stale) setResults({ query: text, items: [], failed: true });
+                }
+                if (!stale) setActive(0);
             });
         }, 200);
-        return () => clearTimeout(timer);
+        return () => {
+            stale = true; // resposta que chegar depois de o texto mudar é descartada
+            clearTimeout(timer);
+        };
     }, [query]);
 
     const text = query.trim();
     const matchingActions = text
         ? quickActions.filter((action) => normalize(action.title).includes(normalize(text)))
         : quickActions;
-    const found: Item[] =
-        text.length >= 2
-            ? results.map((result) => ({
+    const current = text.length >= 2 && results?.query === text ? results : null;
+    const found: Item[] = current
+        ? current.items.map((result) => ({
                   id: `${result.kind}-${result.id}`,
                   group: groupLabel[result.kind],
                   title: result.title,
                   subtitle: result.subtitle,
                   href: result.href,
-              }))
-            : [];
+          }))
+        : [];
     const items = [...found, ...matchingActions];
+
+    // Mantém visível a opção escolhida pelas setas (a lista tem rolagem própria).
+    useEffect(() => {
+        listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
+    }, [active]);
 
     function go(item: Item) {
         close();
@@ -146,13 +163,23 @@ export function CommandPalette() {
                         onKeyDown={onInputKey}
                         placeholder="Buscar ou ir para…"
                         aria-label="Buscar"
+                        role="combobox"
+                        aria-expanded={items.length > 0}
+                        aria-controls={listId}
+                        aria-autocomplete="list"
+                        aria-activedescendant={items[active] ? `${listId}-${active}` : undefined}
                         className="h-12 flex-1 bg-transparent text-base outline-none placeholder:text-admin-muted sm:text-sm"
                     />
                     {pending && <span className="text-xs text-admin-muted">buscando…</span>}
                 </div>
 
-                <ul role="listbox" aria-label="Resultados" className="max-h-[50vh] overflow-y-auto p-2">
-                    {text.length >= 2 && !pending && found.length === 0 && (
+                <ul ref={listRef} id={listId} role="listbox" aria-label="Resultados" className="max-h-[50vh] overflow-y-auto p-2">
+                    {current?.failed && (
+                        <li role="alert" className="px-3 py-2 text-sm text-red-300">
+                            Não foi possível buscar agora. Digite de novo para tentar; se continuar, recarregue a página.
+                        </li>
+                    )}
+                    {current && !current.failed && !pending && found.length === 0 && (
                         <li className="px-3 py-2 text-sm text-admin-muted">Nada encontrado para “{text}”.</li>
                     )}
                     {items.map((item, index) => {
@@ -167,6 +194,9 @@ export function CommandPalette() {
                                 <button
                                     type="button"
                                     role="option"
+                                    id={`${listId}-${index}`}
+                                    data-index={index}
+                                    tabIndex={-1}
                                     aria-selected={index === active}
                                     onMouseMove={() => setActive(index)}
                                     onClick={() => go(item)}
