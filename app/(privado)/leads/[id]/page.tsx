@@ -161,6 +161,9 @@ async function FichaDoLead({ params }: LeadPageProps) {
                     ...(client
                         ? [{ kind: "internal", label: "Completar dados do contrato", href: `/clientes/${client.id}/editar`, primary: !facts.contractDataReady } as const]
                         : []),
+                    ...(approvedProposal
+                        ? [{ kind: "internal", label: "Gerar contrato", href: `/propostas/${approvedProposal.id}/contrato`, primary: Boolean(facts.contractDataReady) } as const]
+                        : []),
                     {
                         kind: "claude",
                         label: "Gerar contrato com o Claude",

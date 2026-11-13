@@ -347,3 +347,35 @@ body {
     transition: none;
   }
 }
+
+/* Impressão do contrato (botão "Imprimir / Salvar PDF"): sai só a folha, em preto no branco, sem menu,
+   cabeçalho nem fundo do sistema. `visibility` (e não `display`) para não depender da estrutura do layout. */
+@media print {
+  body:has(.contract-sheet) {
+    background: #fff;
+  }
+  body:has(.contract-sheet) .admin-shell {
+    background: #fff;
+    padding: 0;
+  }
+  body:has(.contract-sheet) * {
+    visibility: hidden;
+  }
+  body:has(.contract-sheet) .contract-sheet,
+  body:has(.contract-sheet) .contract-sheet * {
+    visibility: visible;
+  }
+  body:has(.contract-sheet) .contract-sheet {
+    position: absolute;
+    inset: 0 0 auto 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 11.5pt;
+  }
+  @page {
+    margin: 2cm;
+  }
+}

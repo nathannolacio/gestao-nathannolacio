@@ -585,6 +585,23 @@ rascunho → enviada → aprovada
 - Próximo passo: MVP no ar, edição de proposta e tela de Clientes prontas. Candidatos (decidir): testes
   automatizados do cálculo (`lib/proposal-calc.ts`) e do `approveProposal`/`updateProposal`/`updateClient`,
   data de envio/aprovação na listagem, tela do modelo de textos, geração do contrato a partir dos dados do cliente.
+- Pronto: documento do contrato (Etapa 2A da spec, 13/11/2026, branch `feat/contrato-documento`; testado no navegador
+  com banco local, inclusive o PDF). Migration NOVA e só aditiva `20261113231604_contratos` (enum `contract_kind`,
+  `contract_templates`, `contracts`). Falta a Etapa 2B (status do contrato, parcelas, mensalidades, alertas).
+  - Decisões (13/11): UM MODELO POR TIPO (`site` e `catalog`), com o texto dos .docx do Nathan; site + cardápio = dois
+    contratos. As condições "especial" (13-A) e "de lançamento" NÃO entram no contrato (controle interno). Sem IA.
+  - `lib/contract-defaults.ts`: texto padrão dos dois modelos, com `{{campos}}` e trechos `{{#se pagamento_pix}}...{{/se}}`.
+    `contract_templates` guarda o modelo editado (um por tipo); sem linha vale o padrão.
+  - `lib/contracts.ts`: `contractInputDefs` (campos da tela por tipo), `buildContractFields` (valida e formata: "R$ X" +
+    extenso via `lib/extenso.ts`, prazo "10 (dez)", data por extenso, forma de pagamento → condições), `renderContract`
+    e `unknownTemplateTokens`. Sem forma de pagamento escolhida, o contrato sai com as três opções e "( )".
+  - Telas: `/propostas/[id]/contrato` (botão "Contrato" na ficha da proposta enviada/aprovada; campos já preenchidos
+    com cliente + proposta, o que falta marcado; "Seus dados" vêm do último contrato gerado), `/contratos/[id]` (texto
+    CONGELADO em `contracts.body`; Imprimir/Salvar PDF pelo navegador com CSS de impressão em `globals.css`, copiar,
+    arquivar) e `/configuracoes/contratos` (editor dos modelos; recusa campo desconhecido).
+  - Actions em `app/(privado)/contratos/actions.ts` (todas `requireUser()` + Zod): `generateContract`, `archiveContract`,
+    `saveContractTemplate`, `resetContractTemplate`. O modelo é escolhido na tela (palpite pelos itens); NÃO foi criado
+    `proposal_items.service_type`.
 - Pronto: fichas de cliente e proposta + follow-up de proposta (Etapa 1 da spec "Fichas de cliente, proposta e
   contrato", 13/11/2026, branch `feat/fichas-cliente-proposta`; testado no navegador com banco local).
   Migration NOVA e só aditiva `20261113220913_fichas_follow_up` (`proposal_views`, `proposal_contacts`,

@@ -134,6 +134,11 @@ async function Ficha({ params }: FichaPropostaProps) {
                                 Editar
                             </Link>
                         )}
+                        {proposal.status !== "draft" && (
+                            <Link href={`/propostas/${proposal.id}/contrato`} className={buttonSecondary}>
+                                Contrato
+                            </Link>
+                        )}
                         <a href={publicPath} target="_blank" rel="noopener noreferrer" className={buttonPrimary}>
                             Ver página do cliente
                         </a>
