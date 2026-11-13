@@ -130,3 +130,37 @@ Proposta aprovada: ${proposal ? `${proposal.title} · ${proposal.publicUrl}` : "
 
 Use os valores, prazo e forma de pagamento da proposta aprovada. Gere em .docx e PDF e me diga o que faltar.`;
 }
+
+type PromptProposalFollowUp = {
+    clientName: string;
+    contactName: string | null;
+    title: string;
+    publicUrl: string;
+    total: string;
+    sentLabel: string;
+    viewsLabel: string;
+    attemptsWithoutReply: number;
+};
+
+// Follow-up de proposta enviada (ficha da proposta): leva o contexto que o Claude não tem
+// (há quantos dias foi enviada, se o cliente abriu o link, o histórico de tentativas).
+export function proposalFollowUpPrompt(proposal: PromptProposalFollowUp, contacts: PromptContact[]) {
+    const history =
+        contacts.length > 0
+            ? contacts.map((c) => `- ${c.date} · ${c.channel}${c.note ? `: ${c.note}` : ""}`).join("\n")
+            : "- (nenhum follow-up registrado ainda)";
+
+    return `[Sistema de gestão · Proposta enviada] Escreva a próxima mensagem de follow-up desta proposta pelo WhatsApp.
+
+- Cliente: ${proposal.clientName}${proposal.contactName ? ` (contato: ${proposal.contactName})` : ""}
+- Proposta: ${proposal.title} · ${proposal.total}
+- Link: ${proposal.publicUrl}
+- Envio: ${proposal.sentLabel}
+- Visualizações do link: ${proposal.viewsLabel}
+- Tentativas sem resposta desde o último retorno do cliente: ${proposal.attemptsWithoutReply}
+
+Histórico de follow-ups (mais recente primeiro):
+${history}
+
+Mensagem curta, natural, sem pressão, com um próximo passo claro. Leve em conta se ele já abriu o link ou não, e a validade de 7 dias da proposta. Se já foram 3 tentativas sem resposta, escreva a mensagem de encerramento.`;
+}

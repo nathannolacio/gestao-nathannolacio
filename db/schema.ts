@@ -2,7 +2,7 @@ import type { ProposalBonus } from "../lib/proposal-bonuses.ts";
 import type { FixedContent } from "../lib/proposal-content.ts";
 import type { ItemScope } from "../lib/proposal-scope.ts";
 import type { LeadDiagnosis } from "../lib/leads.ts";
-import { date, integer, jsonb, pgEnum, smallint, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, date, integer, jsonb, pgEnum, smallint, snakeCase, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema.ts";
 
 export const clientType = pgEnum("client_type", ["PF", "PJ"]);
@@ -73,6 +73,8 @@ export const proposals = snakeCase.table("proposals", {
     paymentMethod: paymentMethodEnum(),
     approvedAt: timestamp({ withTimezone: true }),
     cardInstallments: smallint(),
+    // Próximo lembrete de follow-up de uma proposta enviada (data em São Paulo, sem hora).
+    nextFollowUpAt: date({ mode: "string" }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 })
@@ -175,5 +177,23 @@ export const leadContacts = snakeCase.table("lead_contacts", {
     leadId: uuid().notNull().references(() => leads.id),
     channel: contactChannelEnum().notNull(),
     note: varchar({ length: 500 }),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+})
+
+// Cada abertura da página pública da proposta por quem NÃO está logado (o cliente).
+export const proposalViews = snakeCase.table("proposal_views", {
+    id: uuid().defaultRandom().primaryKey(),
+    proposalId: uuid().notNull().references(() => proposals.id),
+    viewedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+})
+
+// Follow-ups de uma proposta enviada (um registro por contato feito).
+export const proposalContacts = snakeCase.table("proposal_contacts", {
+    id: uuid().defaultRandom().primaryKey(),
+    proposalId: uuid().notNull().references(() => proposals.id),
+    channel: contactChannelEnum().notNull(),
+    note: varchar({ length: 500 }),
+    // true = o cliente respondeu neste contato (zera a contagem de tentativas sem resposta).
+    clientReplied: boolean().default(false).notNull(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 })

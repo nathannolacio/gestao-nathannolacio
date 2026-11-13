@@ -21,7 +21,8 @@ import {
 } from "@/lib/proposal-scope";
 import { getOptionalUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
-import { connection } from "next/server";
+import { after, connection } from "next/server";
+import { recordProposalView } from "@/lib/proposal-views";
 import { ClientCard } from "../_components/client-card";
 import { CoverGrid, Sunburst } from "../_components/cover-art";
 import { Icon } from "../_components/icons";
@@ -147,6 +148,13 @@ async function Proposal({ params, searchParams }: ProposalPageProps) {
   if (!row || !row.client) notFound();
   const user = await getOptionalUser();
   if (row.status === "draft" && !user) notFound();
+
+  // Visualização do cliente: só quem não está logado conta (o dono abrindo não é o cliente).
+  // `after` grava depois de a resposta sair: o cliente não espera o banco por isso.
+  if (!user) {
+    const proposalId = row.id;
+    after(() => recordProposalView(proposalId));
+  }
 
   // Convite de abertura: só para o cliente (sem sessão) e enquanto não aprovada. O dono
   // abre direto; para testar a animação, ?convite=1 (só vale com sessão, ignora o "já abriu").

@@ -185,3 +185,12 @@ export const leadImportSchema = z.object({
         .max(200_000, "Lista grande demais: importe em partes de até 200 linhas."),
     batch: prospectingBatchSchema.optional(),
 });
+
+// Follow-up de proposta enviada: o contato feito e quando lembrar de novo.
+export const proposalContactSchema = z.object({
+    proposalId: z.uuid("Proposta inválida."),
+    channel: z.enum(contactChannels, "Selecione o canal."),
+    note: optionalText("A anotação", 500),
+    clientReplied: z.boolean().default(false),
+    nextFollowUpAt: optionalDate,
+});

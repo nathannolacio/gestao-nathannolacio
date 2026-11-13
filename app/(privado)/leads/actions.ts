@@ -4,7 +4,7 @@ import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
-import { leadContacts, leads, prospectingBatches } from "@/db/schema";
+import { leadContacts, leads, proposals, prospectingBatches } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { parseLeadImport } from "@/lib/lead-import";
 import { isOpenStage, leadStageLabel } from "@/lib/leads";
@@ -103,6 +103,14 @@ export async function logLeadContact(input: unknown) {
                 nextFollowUpAt: isOpenStage(finalStage) ? nextFollowUpAt : null,
             })
             .where(eq(leads.id, leadId));
+
+        // Proposta enviada deste lead acompanha o lembrete (mesmo follow-up, visto da ficha da proposta).
+        if (isOpenStage(finalStage)) {
+            await tx
+                .update(proposals)
+                .set({ nextFollowUpAt })
+                .where(and(eq(proposals.leadId, leadId), eq(proposals.status, "sent"), isNull(proposals.deletedAt)));
+        }
 
         return true;
     });

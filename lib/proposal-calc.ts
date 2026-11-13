@@ -67,3 +67,20 @@ export function formatBRL(cents: number): string {
     currency: "BRL",
   });
 }
+
+type DiscountColumns = { discountType: DiscountType | null; discountValue: number | null };
+
+// Total a partir das linhas do banco (itens + desconto geral). Nada disso é salvo: calcula na hora.
+export function totalFromRows(
+  proposal: DiscountColumns & {
+    items: (DiscountColumns & { description: string; quantity: number; unitPrice: number })[];
+  },
+): number {
+  const items = proposal.items.map((item) => ({
+    description: item.description,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    discount: toDiscount(item.discountType, item.discountValue),
+  }));
+  return projectTotal(items, toDiscount(proposal.discountType, proposal.discountValue));
+}

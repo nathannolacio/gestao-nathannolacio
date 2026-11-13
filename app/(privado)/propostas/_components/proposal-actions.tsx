@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { archiveProposal, revertToDraft, sendProposal } from "../actions";
 import {
@@ -17,23 +18,29 @@ type Props = {
     status: "draft" | "sent" | "approved";
     // Só vem true em desenvolvimento (definido no Server Component).
     showDevRevert: boolean;
+    // Na ficha da proposta: o botão Editar já está no cabeçalho, e depois de arquivar volta para a lista.
+    hideEdit?: boolean;
+    archivedHref?: string;
 };
 
 const iconButtonClass =
     "inline-flex size-10 items-center md:size-8 justify-center rounded-lg border border-admin-line text-admin-muted transition-colors duration-150 hover:bg-admin-raised hover:text-admin-text disabled:opacity-50";
 
-export function ProposalActions({ id, publicToken, status, showDevRevert }: Props) {
+export function ProposalActions({ id, publicToken, status, showDevRevert, hideEdit = false, archivedHref }: Props) {
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
 
-    function run(action: typeof sendProposal) {
+    function run(action: typeof sendProposal, onSuccess?: () => void) {
         setError(null);
         startTransition(async () => {
             const result = await action({ id });
 
             if (!result.ok) {
                 setError(result.formError);
+                return;
             }
+            onSuccess?.();
         });
     }
 
@@ -42,7 +49,7 @@ export function ProposalActions({ id, publicToken, status, showDevRevert }: Prop
             "Arquivar esta proposta? Ela some da listagem e o link público deixa de funcionar.",
         );
 
-        if (ok) run(archiveProposal);
+        if (ok) run(archiveProposal, archivedHref ? () => router.push(archivedHref) : undefined);
     }
 
     return (
@@ -58,7 +65,7 @@ export function ProposalActions({ id, publicToken, status, showDevRevert }: Prop
                 >
                     <ExternalIcon className="size-4" />
                 </Link>
-                {status !== "approved" && (
+                {status !== "approved" && !hideEdit && (
                     <Link
                         href={`/propostas/${id}/editar`}
                         className={iconButtonClass}
