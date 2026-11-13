@@ -2,11 +2,12 @@
 
 import { requireUser } from "@/lib/auth"
 import { proposalSchema, updateProposalSchema } from "@/lib/schemas/proposal";
+import { proposalContactSchema } from "@/lib/schemas/lead";
 import * as z from "zod";
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { clients, leads, proposalItems, proposals } from "@/db/schema";
+import { clients, leadContacts, leads, proposalContacts, proposalItems, proposals } from "@/db/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { bonusCatalog, isRequiredBonus } from "@/lib/proposal-bonuses";
 import { projectSubtotal, toDiscount } from "@/lib/proposal-calc";
@@ -17,6 +18,13 @@ import { addDays, openLeadStages, todayInSaoPaulo } from "@/lib/leads";
 class ClientNotFoundError extends Error {}
 class LeadNotFoundError extends Error {}
 class LeadClientMismatchError extends Error {}
+
+// Lista, ficha da proposta e o painel Hoje mostram os mesmos dados.
+function revalidateProposal(id: string) {
+    revalidatePath("/propostas");
+    revalidatePath(`/propostas/${id}`);
+    revalidatePath("/hoje");
+}
 
 // Depois de enviar a proposta, o lead ganha follow-up em 2 dias (a validade é de 7).
 const FOLLOW_UP_AFTER_SEND_DAYS = 2;
@@ -286,7 +294,7 @@ export async function updateProposal(input: unknown) {
         };
     }
 
-    revalidatePath("/propostas");
+    revalidateProposal(data.id);
 
     return { ok: true as const };
 }
@@ -308,7 +316,12 @@ export async function sendProposal(input: unknown) {
     const updated = await db.transaction(async (tx) => {
         const rows = await tx
             .update(proposals)
-            .set({ status: "sent", sentAt: new Date(), updatedAt: new Date() })
+            .set({
+                status: "sent",
+                sentAt: new Date(),
+                nextFollowUpAt: addDays(todayInSaoPaulo(), FOLLOW_UP_AFTER_SEND_DAYS),
+                updatedAt: new Date(),
+            })
             .where(
                 and(
                     eq(proposals.id, result.data.id),
@@ -346,7 +359,7 @@ export async function sendProposal(input: unknown) {
         };
     }
 
-    revalidatePath("/propostas");
+    revalidateProposal(result.data.id);
     revalidatePath("/leads");
 
     return { ok: true as const };
@@ -382,7 +395,7 @@ export async function archiveProposal(input: unknown) {
         };
     }
 
-    revalidatePath("/propostas");
+    revalidateProposal(result.data.id);
 
     return { ok: true as const };
 }
@@ -407,6 +420,7 @@ export async function revertToDraft(input: unknown) {
         .set({
             status: "draft",
             sentAt: null,
+            nextFollowUpAt: null,
             approvedAt: null,
             paymentMethod: null,
             cardInstallments: null,
@@ -419,7 +433,67 @@ export async function revertToDraft(input: unknown) {
         return { ok: false as const, formError: "Proposta não encontrada." };
     }
 
-    revalidatePath("/propostas");
+    revalidateProposal(result.data.id);
+
+    return { ok: true as const };
+}
+// Follow-up de proposta enviada: grava o contato e, no MESMO passo (transação), troca o próximo lembrete.
+// Se a proposta veio de um lead, o contato também entra no histórico do lead e o lembrete dele acompanha,
+// para as duas telas não contarem histórias diferentes.
+export async function logProposalContact(input: unknown) {
+    await requireUser();
+
+    const result = proposalContactSchema.safeParse(input);
+    if (!result.success) {
+        return { ok: false as const, fieldErrors: z.flattenError(result.error).fieldErrors, formError: null };
+    }
+
+    const { proposalId, channel, note, clientReplied, nextFollowUpAt } = result.data;
+
+    const found = await db.transaction(async (tx) => {
+        // Só proposta enviada recebe follow-up (rascunho ainda não foi; aprovada já fechou).
+        const [proposal] = await tx
+            .update(proposals)
+            .set({ nextFollowUpAt, updatedAt: new Date() })
+            .where(and(eq(proposals.id, proposalId), eq(proposals.status, "sent"), isNull(proposals.deletedAt)))
+            .returning({ leadId: proposals.leadId });
+
+        if (!proposal) return false;
+
+        await tx.insert(proposalContacts).values({ proposalId, channel, note, clientReplied });
+
+        if (proposal.leadId) {
+            const [lead] = await tx
+                .update(leads)
+                .set({ nextFollowUpAt })
+                .where(
+                    and(
+                        eq(leads.id, proposal.leadId),
+                        inArray(leads.stage, [...openLeadStages]),
+                        isNull(leads.deletedAt),
+                    ),
+                )
+                .returning({ id: leads.id });
+
+            if (lead) {
+                const prefix = clientReplied ? "Cliente respondeu (proposta)" : "Follow-up da proposta";
+                await tx.insert(leadContacts).values({
+                    leadId: lead.id,
+                    channel,
+                    note: note ? `${prefix}: ${note}`.slice(0, 500) : prefix,
+                });
+            }
+        }
+
+        return true;
+    });
+
+    if (!found) {
+        return { ok: false as const, fieldErrors: {}, formError: "Proposta não encontrada ou não está aguardando resposta." };
+    }
+
+    revalidateProposal(proposalId);
+    revalidatePath("/leads");
 
     return { ok: true as const };
 }

@@ -5,12 +5,7 @@ import { StatusBadge } from "./_components/status-badge";
 import { ProposalActions } from "./_components/proposal-actions";
 import { connection } from "next/server";
 import { PageHeader, buttonPrimary } from "../_components/page-header";
-import {
-    formatBRL,
-    projectTotal,
-    toDiscount,
-    type DiscountType,
-} from "@/lib/proposal-calc";
+import { formatBRL, totalFromRows } from "@/lib/proposal-calc";
 
 export default function Propostas() {
 
@@ -86,14 +81,19 @@ async function ListaPropostas() {
                             className="transition-colors duration-150 hover:bg-admin-raised/50 max-md:grid max-md:grid-cols-[minmax(0,1fr)_auto] max-md:items-center max-md:gap-x-3 max-md:gap-y-3 max-md:px-4 max-md:py-4"
                         >
                             <td className="px-4 py-3.5 max-md:col-start-1 max-md:row-start-1 max-md:p-0">
-                                <p className="font-medium text-admin-text max-md:wrap-break-word">{proposta.title}</p>
+                                <Link
+                                    href={`/propostas/${proposta.id}`}
+                                    className="font-medium text-admin-text transition-colors hover:text-dourado max-md:wrap-break-word"
+                                >
+                                    {proposta.title}
+                                </Link>
                                 <p className="mt-0.5 text-admin-muted md:hidden">{proposta.client?.name}</p>
                             </td>
                             <td className="hidden px-4 py-3.5 text-admin-muted md:table-cell">
                                 {proposta.client?.name}
                             </td>
                             <td className="px-4 py-3.5 text-right tabular-nums text-admin-text max-md:col-start-1 max-md:row-start-2 max-md:p-0 max-md:text-left">
-                                {formatBRL(totalDaProposta(proposta))}
+                                {formatBRL(totalFromRows(proposta))}
                             </td>
                             <td className="px-4 py-3.5 max-md:col-start-2 max-md:row-start-1 max-md:justify-self-end max-md:p-0">
                                 <StatusBadge status={proposta.status} />
@@ -114,31 +114,6 @@ async function ListaPropostas() {
                 </tbody>
             </table>
         </div>
-    );
-}
-
-// Total calculado na hora a partir dos itens e do desconto geral (nada disso é salvo).
-function totalDaProposta(proposta: {
-    discountType: DiscountType | null;
-    discountValue: number | null;
-    items: {
-        description: string;
-        quantity: number;
-        unitPrice: number;
-        discountType: DiscountType | null;
-        discountValue: number | null;
-    }[];
-}) {
-    const items = proposta.items.map((item) => ({
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discount: toDiscount(item.discountType, item.discountValue),
-    }));
-
-    return projectTotal(
-        items,
-        toDiscount(proposta.discountType, proposta.discountValue),
     );
 }
 

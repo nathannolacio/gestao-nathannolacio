@@ -304,7 +304,7 @@ async function FichaDoLead({ params }: LeadPageProps) {
                                     {lead.proposals.map((proposal) => (
                                         <li key={proposal.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
                                             <Link
-                                                href={`/propostas/${proposal.id}/editar`}
+                                                href={`/propostas/${proposal.id}`}
                                                 className="min-w-0 text-sm text-admin-text hover:text-dourado"
                                             >
                                                 {proposal.title}

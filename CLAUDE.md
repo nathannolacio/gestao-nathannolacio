@@ -585,6 +585,24 @@ rascunho → enviada → aprovada
 - Próximo passo: MVP no ar, edição de proposta e tela de Clientes prontas. Candidatos (decidir): testes
   automatizados do cálculo (`lib/proposal-calc.ts`) e do `approveProposal`/`updateProposal`/`updateClient`,
   data de envio/aprovação na listagem, tela do modelo de textos, geração do contrato a partir dos dados do cliente.
+- Pronto: fichas de cliente e proposta + follow-up de proposta (Etapa 1 da spec "Fichas de cliente, proposta e
+  contrato", 13/11/2026, branch `feat/fichas-cliente-proposta`; testado no navegador com banco local).
+  Migration NOVA e só aditiva `20261113220913_fichas_follow_up` (`proposal_views`, `proposal_contacts`,
+  `proposals.next_follow_up_at`): rodar `db:migrate:prod` antes do deploy em produção.
+  - Clicar abre a ficha: `/clientes/[id]` (contato, origem pelo lead, dados do contrato, propostas) e
+    `/propostas/[id]` (linha do tempo criada/enviada/visualizada/aprovada, itens, bônus, condições, cliente,
+    histórico). Editar virou botão. Lista de clientes/propostas, busca, ficha do lead e Hoje apontam para as fichas;
+    salvar a edição volta para a ficha.
+  - Follow-up (bloco `#follow-up` da ficha, só com status `sent`): dias desde o envio, visualizações, tentativas
+    sem resposta (contatos desde o último `clientReplied`; 3+ sugere encerrar), próximo lembrete, WhatsApp,
+    prompt do Claude (`proposalFollowUpPrompt`) e formulário (`logProposalContact`).
+  - Sincronia com o lead: `logProposalContact` também grava no histórico do lead (prefixo "Follow-up da proposta"/
+    "Cliente respondeu (proposta)") e move `leads.nextFollowUpAt`; `logLeadContact` move o lembrete das propostas
+    enviadas do lead. `sendProposal` já define o lembrete da proposta (+2 dias). No Hoje, lead com proposta enviada
+    abre o follow-up da proposta.
+  - Visualização: a página pública grava com `after()` só quando NÃO há sessão (o dono não conta); recarregar em
+    até 30 min conta como a mesma visita (`lib/proposal-views.ts`).
+  - Não existe "proposta perdida" (enum só tem draft/sent/approved): encerrar é registrar e deixar sem lembrete.
 - Pronto: ajustes da proposta às decisões de 02/11/2026 (sem migration; `tsc`, `eslint` e `next build` passam):
   cortesia de hospedagem e manutenção passou de 60 para 30 DIAS, com até 4 alterações/mês (alteração = troca
   pontual de até 15 min, atendida em até 3 dias úteis; seção/página/layout novo é orçado à parte). Depois dos 30
