@@ -370,12 +370,16 @@ body {
     inset: 0 0 auto 0;
     max-width: none;
     margin: 0;
-    padding: 0;
     border-radius: 0;
     box-shadow: none;
     font-size: 11.5pt;
+    /* A margem fica no próprio texto (e se repete em cada página com clone): a margem da página é zero para
+       o navegador não imprimir cabeçalho e rodapé (título, data, endereço) nela. */
+    padding: 2cm;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
   }
   @page {
-    margin: 2cm;
+    margin: 0;
   }
 }
