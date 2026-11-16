@@ -5,13 +5,14 @@ import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 
 // Seção do menu de cada rota, para a barra do topo dizer onde você está.
-const sections: { prefix: string; group: string | null; label: string }[] = [
+// `href`: destino do link da trilha quando a seção não tem página própria na raiz (ex.: /contratos só tem /contratos/[id]).
+const sections: { prefix: string; group: string | null; label: string; href?: string }[] = [
     { prefix: "/hoje", group: null, label: "Hoje" },
     { prefix: "/pipeline", group: "Comercial", label: "Pipeline" },
     { prefix: "/leads", group: "Comercial", label: "Leads" },
     { prefix: "/propostas", group: "Comercial", label: "Propostas" },
     { prefix: "/clientes", group: "Operação", label: "Clientes" },
-    { prefix: "/contratos", group: "Operação", label: "Contratos" },
+    { prefix: "/contratos", group: "Operação", label: "Contratos", href: "/propostas" },
     { prefix: "/configuracoes/contratos", group: "Configurações", label: "Modelos de contrato" },
 ];
 
@@ -40,7 +41,7 @@ function Trail() {
                     </span>
                 </>
             )}
-            <Link href={section.prefix} className="text-admin-text hover:text-dourado">
+            <Link href={section.href ?? section.prefix} className="text-admin-text hover:text-dourado">
                 {section.label}
             </Link>
         </nav>

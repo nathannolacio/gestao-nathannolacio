@@ -96,9 +96,12 @@ const MONTHS = [
 export function dateInWords(isoDate: string) {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
     if (!match) return null;
-    const month = MONTHS[Number(match[2]) - 1];
+    const [year, monthNumber, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+    const month = MONTHS[monthNumber - 1];
     if (!month) return null;
-    return `${Number(match[3])} de ${month} de ${match[1]}`;
+    // 31/02 e 29/02 de ano comum não existem: Date.UTC "rola" para o mês seguinte, então comparar o dia detecta.
+    if (new Date(Date.UTC(year, monthNumber - 1, day)).getUTCDate() !== day) return null;
+    return `${day} de ${month} de ${year}`;
 }
 
 export type ContractFieldErrors = Partial<Record<keyof ContractInputs, string>>;
@@ -185,24 +188,31 @@ const CONDITIONAL = /\{\{#se ([a-z_]+)\}\}([\s\S]*?)\{\{\/se\}\}/g;
 const FIELD = /\{\{([a-z_]+)\}\}/g;
 
 // Campos que o modelo pode usar (para a legenda do editor e para avisar de campo desconhecido).
-export const templateFieldNames = [
-    ...new Set([
-        ...contractInputDefs.flatMap((def) => (def.type === "money" ? [def.key, `${def.key}_extenso`] : [def.key])),
-        "cliente_tipo_documento",
-        "valor_pix",
-        "marcador",
-    ]),
-];
+// Sem `kind`, todos os campos de todos os tipos; com `kind`, só os que a tela de geração daquele tipo preenche
+// (um modelo de Site com {{mensalidade}} passaria no salvar e travaria na hora de gerar o contrato).
+export function templateFieldNamesFor(kind?: ContractKind) {
+    const defs = kind ? inputDefsFor(kind) : contractInputDefs;
+    return [
+        ...new Set([
+            ...defs.flatMap((def) => (def.type === "money" ? [def.key, `${def.key}_extenso`] : [def.key])),
+            "cliente_tipo_documento",
+            "valor_pix",
+            "marcador",
+        ]),
+    ];
+}
+export const templateFieldNames = templateFieldNamesFor();
 export const templateFlagNames = ["pagamento_pix", "pagamento_dividido", "pagamento_cartao"];
 
 // Campos e condições citados no modelo que o sistema não conhece (erro de digitação no editor).
-export function unknownTemplateTokens(body: string) {
+export function unknownTemplateTokens(body: string, kind?: ContractKind) {
+    const allowed = templateFieldNamesFor(kind);
     const unknown = new Set<string>();
     for (const match of body.matchAll(CONDITIONAL)) {
         if (!templateFlagNames.includes(match[1])) unknown.add(`{{#se ${match[1]}}}`);
     }
     for (const match of body.replace(CONDITIONAL, "$2").matchAll(FIELD)) {
-        if (!templateFieldNames.includes(match[1])) unknown.add(`{{${match[1]}}}`);
+        if (!allowed.includes(match[1])) unknown.add(`{{${match[1]}}}`);
     }
     // Sobra de "{{" depois de tirar o que é válido = marcação quebrada (ex.: {{#se}} sem fechar).
     const leftovers = body.replace(CONDITIONAL, "$2").replace(FIELD, "");

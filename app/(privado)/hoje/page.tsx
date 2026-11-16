@@ -175,8 +175,15 @@ async function Painel() {
     const overdueCount = due.filter((lead) => lead.nextFollowUpAt! < today).length;
 
     // Lead com proposta enviada: o follow-up é da proposta, então a linha abre o painel de follow-up dela.
+    // Só vale quando o lead tem UMA proposta enviada: com mais de uma não dá para saber qual é a do lembrete,
+    // então a linha continua abrindo a ficha do lead (que lista todas).
+    const sentProposalsByLead = new Map<string, string[]>();
+    for (const proposal of waitingProposals) {
+        if (!proposal.leadId) continue;
+        sentProposalsByLead.set(proposal.leadId, [...(sentProposalsByLead.get(proposal.leadId) ?? []), proposal.id]);
+    }
     const sentProposalByLead = new Map(
-        waitingProposals.filter((p) => p.leadId).map((p) => [p.leadId!, p.id] as const),
+        [...sentProposalsByLead].filter(([, ids]) => ids.length === 1).map(([leadId, ids]) => [leadId, ids[0]] as const),
     );
 
     return (

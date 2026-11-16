@@ -264,7 +264,17 @@ async function analyzeImport(text: string) {
         );
     }
 
-    const rows = parsed.rows.map(({ line, values }) => {
+    const rows = parsed.rows.map(({ line, values, unclosedQuote }) => {
+        if (unclosedQuote) {
+            return {
+                line,
+                label: "(linha com aspas abertas)",
+                status: "invalid" as ImportRowStatus,
+                message: 'Tem aspas (") abertas sem fechar. Feche as aspas ou tire-as dessa linha.',
+                data: null,
+            };
+        }
+
         const result = leadSchema.safeParse({
             businessName: values.negocio,
             contactName: values.contato,

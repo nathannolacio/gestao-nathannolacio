@@ -55,6 +55,7 @@ export function TemplateEditor({
                 id="template-body"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
+                readOnly={pending}
                 rows={28}
                 spellCheck={false}
                 className={`${inputClass} font-mono text-[13px] leading-relaxed sm:text-[13px]`}
