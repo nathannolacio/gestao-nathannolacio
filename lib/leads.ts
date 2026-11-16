@@ -101,6 +101,13 @@ export function followUpLabel(isoDate: string, today: string) {
     return formatShortDate(isoDate);
 }
 
+// Telefone salvo só com dígitos (DDI + DDD + número): mostra no formato brasileiro.
+export function formatPhone(digits: string) {
+    const local = digits.startsWith("55") && digits.length > 11 ? digits.slice(2) : digits;
+    const match = /^(\d{2})(\d{4,5})(\d{4})$/.exec(local);
+    return match ? `(${match[1]}) ${match[2]}-${match[3]}` : digits;
+}
+
 // Link do WhatsApp (abre a conversa no app ou no WhatsApp Web).
 export function whatsappUrl(phoneDigits: string, message?: string) {
     const base = `https://wa.me/${phoneDigits}`;

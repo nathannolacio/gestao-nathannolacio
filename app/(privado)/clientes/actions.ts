@@ -80,6 +80,7 @@ export async function updateClient(input: unknown) {
     }
 
     revalidatePath("/clientes");
+    revalidatePath(`/clientes/${id}`);
     revalidatePath("/propostas");
 
     return { ok: true as const };

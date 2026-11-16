@@ -111,7 +111,7 @@ export function ClientForm({
             });
 
             if (res.ok) {
-                router.push("/clientes");
+                router.push(`/clientes/${clientId}`);
                 return;
             }
 

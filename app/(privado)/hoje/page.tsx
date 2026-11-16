@@ -127,7 +127,10 @@ async function Painel() {
         }),
         db.query.proposals.findMany({
             where: { deletedAt: { isNull: true }, status: "sent" },
-            with: { client: true },
+            with: {
+                client: true,
+                views: { columns: { viewedAt: true }, orderBy: { viewedAt: "desc" }, limit: 1 },
+            },
             orderBy: { sentAt: "asc" },
         }),
         db.query.leadContacts.findMany({
@@ -170,6 +173,11 @@ async function Painel() {
     const stalled = withoutNextStep.filter((lead) => lead.stage !== "new");
 
     const overdueCount = due.filter((lead) => lead.nextFollowUpAt! < today).length;
+
+    // Lead com proposta enviada: o follow-up é da proposta, então a linha abre o painel de follow-up dela.
+    const sentProposalByLead = new Map(
+        waitingProposals.filter((p) => p.leadId).map((p) => [p.leadId!, p.id] as const),
+    );
 
     return (
         <div className="mt-6 space-y-4 lg:space-y-6">
@@ -263,7 +271,11 @@ async function Painel() {
                             return (
                                 <Row
                                     key={lead.id}
-                                    href={`/leads/${lead.id}`}
+                                    href={
+                                        sentProposalByLead.has(lead.id)
+                                            ? `/propostas/${sentProposalByLead.get(lead.id)}#follow-up`
+                                            : `/leads/${lead.id}`
+                                    }
                                     title={lead.businessName}
                                     subtitle={lead.segment}
                                 >
@@ -280,20 +292,31 @@ async function Painel() {
                         {waitingProposals.map((proposal) => {
                             const days = proposal.sentAt ? daysBetween(todayInSaoPaulo(proposal.sentAt), today) : null;
                             const late = days !== null && days >= PROPOSAL_NUDGE_DAYS;
+                            const reminderDue = proposal.nextFollowUpAt !== null && proposal.nextFollowUpAt <= today;
                             return (
                                 <Row
                                     key={proposal.id}
-                                    href={`/propostas/${proposal.id}/editar`}
+                                    href={`/propostas/${proposal.id}#follow-up`}
                                     title={proposal.client?.name ?? proposal.title}
                                     subtitle={proposal.title}
                                 >
-                                    <span className={`text-sm ${late ? "text-red-300" : "text-admin-muted"}`}>
-                                        {days === null
-                                            ? "Enviada"
-                                            : days === 0
-                                              ? "Enviada hoje"
-                                              : `Enviada há ${days} ${days === 1 ? "dia" : "dias"}`}
-                                        {late && " · último follow-up"}
+                                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                                        <span className={proposal.views.length > 0 ? "text-admin-success" : "text-admin-muted"}>
+                                            {proposal.views.length > 0 ? "Visualizada" : "Não abriu"}
+                                        </span>
+                                        <span className={late ? "text-red-300" : "text-admin-muted"}>
+                                            {days === null
+                                                ? "Enviada"
+                                                : days === 0
+                                                  ? "Enviada hoje"
+                                                  : `Enviada há ${days} ${days === 1 ? "dia" : "dias"}`}
+                                            {late && " · último follow-up"}
+                                        </span>
+                                        {proposal.nextFollowUpAt && (
+                                            <span className={reminderDue ? "text-dourado" : "text-admin-muted"}>
+                                                Lembrete: {followUpLabel(proposal.nextFollowUpAt, today)}
+                                            </span>
+                                        )}
                                     </span>
                                 </Row>
                             );

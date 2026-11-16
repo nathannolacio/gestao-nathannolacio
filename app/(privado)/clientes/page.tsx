@@ -49,7 +49,7 @@ async function ListaClientes() {
                 return (
                     <li key={cliente.id}>
                         <Link
-                            href={`/clientes/${cliente.id}/editar`}
+                            href={`/clientes/${cliente.id}`}
                             className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 transition-colors duration-150 hover:bg-admin-raised/50"
                         >
                             <div className="min-w-0 flex-1">

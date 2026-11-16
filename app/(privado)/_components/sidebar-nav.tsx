@@ -6,9 +6,6 @@ import { DueFollowUpsCount, NewLeadsCount, WaitingProposalsCount } from "./nav-c
 import { InstallButton } from "./install-button";
 import { PushToggle } from "./push-toggle";
 
-const disabledItem =
-  "flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm text-admin-muted/60 cursor-not-allowed";
-
 // Grupo do menu, na ordem da jornada: Comercial (prospecção → proposta), Operação (entrega), Configurações.
 function NavGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -48,10 +45,9 @@ export function SidebarNav() {
         </NavGroup>
 
         <NavGroup label="Configurações">
-          <span aria-disabled="true" title="Em breve" className={disabledItem}>
-            <TemplateIcon />
-            Modelo de textos
-          </span>
+          <NavLink href="/configuracoes/contratos" icon={<TemplateIcon />}>
+            Modelos de contrato
+          </NavLink>
         </NavGroup>
       </nav>
 

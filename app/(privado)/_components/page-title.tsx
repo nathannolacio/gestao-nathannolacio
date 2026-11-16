@@ -11,6 +11,8 @@ const sections: { prefix: string; group: string | null; label: string }[] = [
     { prefix: "/leads", group: "Comercial", label: "Leads" },
     { prefix: "/propostas", group: "Comercial", label: "Propostas" },
     { prefix: "/clientes", group: "Operação", label: "Clientes" },
+    { prefix: "/contratos", group: "Operação", label: "Contratos" },
+    { prefix: "/configuracoes/contratos", group: "Configurações", label: "Modelos de contrato" },
 ];
 
 // Trilha "Comercial / Leads" na barra do topo (só desktop). O pathname é dado de

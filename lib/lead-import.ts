@@ -50,9 +50,35 @@ function normalizeHeader(cell: string) {
         .replace(/[\s_-]/g, "");
 }
 
+// Separa as colunas respeitando aspas de CSV: `"Doces; Bolos";Maria` são 2 colunas, e `""` dentro
+// de um campo entre aspas vira uma aspa só.
 function splitLine(line: string, separator: string) {
-    // Tira aspas das pontas (CSV simples); campos com o separador dentro não são suportados.
-    return line.split(separator).map((cell) => cell.trim().replace(/^"(.*)"$/, "$1").trim());
+    const cells: string[] = [];
+    let cell = "";
+    let quoted = false;
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (quoted) {
+            if (char === '"' && line[i + 1] === '"') {
+                cell += '"';
+                i++;
+            } else if (char === '"') {
+                quoted = false;
+            } else {
+                cell += char;
+            }
+        } else if (char === '"' && cell.trim() === "") {
+            quoted = true;
+            cell = "";
+        } else if (char === separator) {
+            cells.push(cell);
+            cell = "";
+        } else {
+            cell += char;
+        }
+    }
+    cells.push(cell);
+    return cells.map((value) => value.trim());
 }
 
 export type ParsedImport = {

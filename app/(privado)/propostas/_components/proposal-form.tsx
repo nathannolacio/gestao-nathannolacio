@@ -286,7 +286,8 @@ function ProposalFormFields(props: ProposalFormProps & { onCreated: () => void }
                       });
 
             if (res.ok) {
-                router.push("/propostas");
+                // Editou: volta para a ficha da proposta. Criou: vai para a lista.
+                router.push(props.mode === "edit" ? `/propostas/${props.proposalId}` : "/propostas");
                 if (props.mode === "create") props.onCreated();
                 return;
             }

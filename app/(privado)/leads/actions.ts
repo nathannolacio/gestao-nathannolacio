@@ -4,7 +4,7 @@ import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
-import { leadContacts, leads, prospectingBatches } from "@/db/schema";
+import { leadContacts, leads, proposals, prospectingBatches } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { parseLeadImport } from "@/lib/lead-import";
 import { isOpenStage, leadStageLabel } from "@/lib/leads";
@@ -103,6 +103,14 @@ export async function logLeadContact(input: unknown) {
                 nextFollowUpAt: isOpenStage(finalStage) ? nextFollowUpAt : null,
             })
             .where(eq(leads.id, leadId));
+
+        // Proposta enviada deste lead acompanha o lembrete (mesmo follow-up, visto da ficha da proposta).
+        if (isOpenStage(finalStage)) {
+            await tx
+                .update(proposals)
+                .set({ nextFollowUpAt })
+                .where(and(eq(proposals.leadId, leadId), eq(proposals.status, "sent"), isNull(proposals.deletedAt)));
+        }
 
         return true;
     });
@@ -286,15 +294,16 @@ async function analyzeImport(text: string) {
                 .get(textKey(data.businessName))
                 ?.find((other) => other.city === null || city === null || other.city === city)?.reason;
 
-        // Registra a linha para pegar repetição dentro do próprio lote (sem sobrescrever o motivo de quem já existe).
+        if (duplicateOf) {
+            return { line, label: data.businessName, status: "duplicate" as ImportRowStatus, message: duplicateOf, data: null };
+        }
+
+        // Registra a linha que entra para pegar repetição dentro do próprio lote (sem sobrescrever o motivo de
+        // quem já existe). Linha recusada não é registrada: ela não vai ser gravada.
         remember(
             { phone: data.phone, instagram: data.instagram, name: data.businessName, city: data.city },
             `Repetido nesta lista (linha ${line}).`,
         );
-
-        if (duplicateOf) {
-            return { line, label: data.businessName, status: "duplicate" as ImportRowStatus, message: duplicateOf, data: null };
-        }
 
         // Fixo (12 dígitos) pode ter WhatsApp Business, mas muitas vezes não tem: entra, com aviso.
         const landline = data.phone !== null && data.phone.length === 12;

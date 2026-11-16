@@ -65,7 +65,6 @@ export async function searchEverything(input: unknown): Promise<SearchResult[]> 
                 id: proposals.id,
                 title: proposals.title,
                 status: proposals.status,
-                token: proposals.publicToken,
             })
             .from(proposals)
             .where(and(isNull(proposals.deletedAt), ilike(proposals.title, pattern)))
@@ -88,15 +87,14 @@ export async function searchEverything(input: unknown): Promise<SearchResult[]> 
             id: client.id,
             title: client.name,
             subtitle: client.legalName,
-            href: `/clientes/${client.id}/editar`,
+            href: `/clientes/${client.id}`,
         })),
         ...proposalRows.map((proposal) => ({
             kind: "proposal" as const,
             id: proposal.id,
             title: proposal.title,
             subtitle: proposalStatus[proposal.status],
-            // Aprovada não se edita mais: abre a página que o cliente vê.
-            href: proposal.status === "approved" ? `/proposta/${proposal.token}` : `/propostas/${proposal.id}/editar`,
+            href: `/propostas/${proposal.id}`,
         })),
     ];
 }

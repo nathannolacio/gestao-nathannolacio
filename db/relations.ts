@@ -15,6 +15,36 @@ export const relations = defineRelations(schema, (r) => ({
             from: r.proposals.leadId,
             to: r.leads.id,
         }),
+        views: r.many.proposalViews({
+            from: r.proposals.id,
+            to: r.proposalViews.proposalId,
+        }),
+        contacts: r.many.proposalContacts({
+            from: r.proposals.id,
+            to: r.proposalContacts.proposalId,
+        }),
+        contracts: r.many.contracts({
+            from: r.proposals.id,
+            to: r.contracts.proposalId,
+        }),
+    },
+    contracts: {
+        proposal: r.one.proposals({
+            from: r.contracts.proposalId,
+            to: r.proposals.id,
+        }),
+    },
+    proposalViews: {
+        proposal: r.one.proposals({
+            from: r.proposalViews.proposalId,
+            to: r.proposals.id,
+        }),
+    },
+    proposalContacts: {
+        proposal: r.one.proposals({
+            from: r.proposalContacts.proposalId,
+            to: r.proposals.id,
+        }),
     },
     proposalItems: {
         proposal: r.one.proposals({
@@ -44,6 +74,16 @@ export const relations = defineRelations(schema, (r) => ({
         leads: r.many.leads({
             from: r.prospectingBatches.id,
             to: r.leads.batchId,
+        }),
+    },
+    clients: {
+        proposals: r.many.proposals({
+            from: r.clients.id,
+            to: r.proposals.clientId,
+        }),
+        leads: r.many.leads({
+            from: r.clients.id,
+            to: r.leads.clientId,
         }),
     },
     leadContacts: {

@@ -120,8 +120,8 @@ async function FichaDoLead({ params }: LeadPageProps) {
         channel: contactChannelLabel[c.channel],
         note: c.note,
     }));
-    const activeProposal =
-        lead.proposals.find((p) => p.status === "approved") ?? lead.proposals.find((p) => p.status === "sent");
+    const approvedProposal = lead.proposals.find((p) => p.status === "approved");
+    const activeProposal = approvedProposal ?? lead.proposals.find((p) => p.status === "sent");
     const whatsappAction: JourneyAction[] = lead.phoneNumber
         ? [{ kind: "external", label: "Abrir WhatsApp", href: whatsappUrl(lead.phoneNumber) }]
         : [];
@@ -161,14 +161,17 @@ async function FichaDoLead({ params }: LeadPageProps) {
                     ...(client
                         ? [{ kind: "internal", label: "Completar dados do contrato", href: `/clientes/${client.id}/editar`, primary: !facts.contractDataReady } as const]
                         : []),
+                    ...(approvedProposal
+                        ? [{ kind: "internal", label: "Gerar contrato", href: `/propostas/${approvedProposal.id}/contrato`, primary: Boolean(facts.contractDataReady) } as const]
+                        : []),
                     {
                         kind: "claude",
                         label: "Gerar contrato com o Claude",
                         prompt: contractPrompt(
                             lead,
                             client ?? null,
-                            activeProposal
-                                ? { title: activeProposal.title, publicUrl: `${SITE_URL}/proposta/${activeProposal.publicToken}` }
+                            approvedProposal
+                                ? { title: approvedProposal.title, publicUrl: `${SITE_URL}/proposta/${approvedProposal.publicToken}` }
                                 : null,
                         ),
                     },
@@ -284,6 +287,8 @@ async function FichaDoLead({ params }: LeadPageProps) {
                         {lead.stage === "new" && lead.phoneNumber && (
                             <Card title={lead.previewUrl ? "Primeira mensagem (com prévia)" : "Primeira mensagem"}>
                                 <FirstMessage
+                                    // Remonta (refaz o texto) quando os dados salvos do lead mudam.
+                                    key={[lead.businessName, lead.contactName, lead.hook, lead.previewUrl, lead.segment].join("|")}
                                     phone={lead.phoneNumber}
                                     lead={{
                                         businessName: lead.businessName,
@@ -302,7 +307,7 @@ async function FichaDoLead({ params }: LeadPageProps) {
                                     {lead.proposals.map((proposal) => (
                                         <li key={proposal.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
                                             <Link
-                                                href={`/propostas/${proposal.id}/editar`}
+                                                href={`/propostas/${proposal.id}`}
                                                 className="min-w-0 text-sm text-admin-text hover:text-dourado"
                                             >
                                                 {proposal.title}
