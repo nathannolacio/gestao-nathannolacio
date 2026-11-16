@@ -34,7 +34,7 @@ const dateTime = new Intl.DateTimeFormat("pt-BR", {
 // A página só repassa a promessa; o `await` fica dentro do Suspense (cacheComponents).
 export default function GerarContrato({ params }: GerarContratoProps) {
     return (
-        <Suspense fallback={<div aria-hidden="true" className="h-96 animate-pulse rounded-2xl bg-white/[0.04]" />}>
+        <Suspense fallback={<div aria-hidden="true" className="h-96 motion-safe:animate-pulse rounded-2xl bg-white/[0.04]" />}>
             <Tela params={params} />
         </Suspense>
     );

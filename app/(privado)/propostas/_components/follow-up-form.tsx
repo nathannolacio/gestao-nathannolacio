@@ -90,6 +90,7 @@ export function FollowUpForm({ proposalId, today }: { proposalId: string; today:
                     rows={3}
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
+                    readOnly={pending}
                     placeholder={
                         clientReplied
                             ? "Ex.: gostou, vai ver com o sócio até sexta"

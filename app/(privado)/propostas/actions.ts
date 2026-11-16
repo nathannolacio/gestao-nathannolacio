@@ -127,10 +127,13 @@ export async function createProposal(input: unknown) {
             // Lead de origem: precisa existir e estar ativo.
             const leadId = result.data.leadId ?? null;
             if (leadId) {
-                const lead = await tx.query.leads.findFirst({
-                    where: { id: leadId, deletedAt: { isNull: true } },
-                    columns: { id: true, clientId: true },
-                });
+                // FOR UPDATE: duas propostas ao mesmo tempo para o mesmo lead sem cliente passariam as duas na checagem
+                // abaixo; com o travamento, a segunda espera a primeira gravar o `clientId` e então é barrada.
+                const [lead] = await tx
+                    .select({ id: leads.id, clientId: leads.clientId })
+                    .from(leads)
+                    .where(and(eq(leads.id, leadId), isNull(leads.deletedAt)))
+                    .for("update");
                 if (!lead) throw new LeadNotFoundError("Lead não encontrado.");
                 // Lead já ligado a um cliente: a proposta precisa ser desse mesmo cliente,
                 // senão lead e proposta ficariam apontando para clientes diferentes.

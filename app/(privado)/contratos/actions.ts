@@ -98,7 +98,7 @@ export async function saveContractTemplate(input: unknown) {
 
     const { kind, body } = result.data;
 
-    const unknown = unknownTemplateTokens(body);
+    const unknown = unknownTemplateTokens(body, kind);
     if (unknown.length > 0) {
         return { ok: false as const, formError: `Campos que o sistema não conhece: ${unknown.join(", ")}.` };
     }

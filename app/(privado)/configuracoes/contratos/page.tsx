@@ -6,7 +6,7 @@ import {
     contractKindLabel,
     contractKinds,
     defaultContractBody,
-    templateFieldNames,
+    templateFieldNamesFor,
     templateFlagNames,
     type ContractKind,
 } from "@/lib/contracts";
@@ -78,7 +78,7 @@ async function Editor({ searchParams }: ModelosProps) {
                     apagar; não invente campos novos.
                 </p>
                 <ul className="mt-3 space-y-1 font-mono text-xs text-admin-text">
-                    {templateFieldNames.map((name) => (
+                    {templateFieldNamesFor(kind).map((name) => (
                         <li key={name}>{`{{${name}}}`}</li>
                     ))}
                 </ul>

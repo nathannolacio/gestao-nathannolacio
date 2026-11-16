@@ -78,11 +78,13 @@ function splitLine(line: string, separator: string) {
         }
     }
     cells.push(cell);
-    return cells.map((value) => value.trim());
+    // Aspas abertas e nunca fechadas: o resto da linha foi engolido pelo primeiro campo, então não dá para confiar.
+    return { cells: cells.map((value) => value.trim()), unclosedQuote: quoted };
 }
 
 export type ParsedImport = {
-    rows: { line: number; values: Partial<Record<ImportColumn, string>> }[];
+    // `unclosedQuote`: a linha tem aspas abertas sem fechar; fica sem valores e a conferência a mostra como inválida.
+    rows: { line: number; values: Partial<Record<ImportColumn, string>>; unclosedQuote?: boolean }[];
     hasHeader: boolean;
     // Nomes do cabeçalho que não correspondem a nenhuma coluna (avisados na tela, ignorados).
     unknownHeaders: string[];
@@ -101,7 +103,7 @@ export function parseLeadImport(text: string): ParsedImport {
     // Planilha colada vem separada por tab; CSV exportado no Brasil costuma usar ";".
     const separator = text.includes("\t") ? "\t" : ";";
 
-    const firstCells = splitLine(lines[0].raw, separator);
+    const firstCells = splitLine(lines[0].raw, separator).cells;
     const hasHeader = firstCells.some((cell) => aliases[normalizeHeader(cell)] === "negocio");
 
     let columns: (ImportColumn | null)[] = [...importColumns];
@@ -118,7 +120,9 @@ export function parseLeadImport(text: string): ParsedImport {
 
     const rows = dataLines.slice(0, MAX_IMPORT_ROWS).map(({ line, raw }) => {
         const values: Partial<Record<ImportColumn, string>> = {};
-        splitLine(raw, separator).forEach((cell, index) => {
+        const { cells, unclosedQuote } = splitLine(raw, separator);
+        if (unclosedQuote) return { line, values, unclosedQuote: true };
+        cells.forEach((cell, index) => {
             const column = columns[index];
             if (column && cell !== "") values[column] = cell;
         });

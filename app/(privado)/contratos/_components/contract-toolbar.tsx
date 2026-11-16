@@ -26,12 +26,17 @@ export function ContractToolbar({ id, body, proposalId }: { id: string; body: st
         if (!window.confirm("Arquivar este contrato? Ele some da proposta; você pode gerar outro depois.")) return;
         setError(null);
         startTransition(async () => {
-            const res = await archiveContract({ id });
-            if (!res.ok) {
-                setError(res.formError);
-                return;
+            try {
+                const res = await archiveContract({ id });
+                if (!res.ok) {
+                    setError(res.formError);
+                    return;
+                }
+                router.push(`/propostas/${proposalId}/contrato`);
+            } catch {
+                // Ex.: sessão expirada (requireUser lança): sem isto a tela ficaria sem aviso nenhum.
+                setError("Não foi possível arquivar. Recarregue a página e tente de novo.");
             }
-            router.push(`/propostas/${proposalId}/contrato`);
         });
     }
 

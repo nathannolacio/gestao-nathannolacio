@@ -406,9 +406,9 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 function FichaSkeleton() {
     return (
         <div aria-hidden="true" className="space-y-6">
-            <div className="h-16 w-2/3 animate-pulse rounded-xl bg-white/[0.04]" />
-            <div className="h-20 animate-pulse rounded-2xl bg-white/[0.04]" />
-            <div className="h-64 animate-pulse rounded-2xl bg-white/[0.04]" />
+            <div className="h-16 w-2/3 motion-safe:animate-pulse rounded-xl bg-white/[0.04]" />
+            <div className="h-20 motion-safe:animate-pulse rounded-2xl bg-white/[0.04]" />
+            <div className="h-64 motion-safe:animate-pulse rounded-2xl bg-white/[0.04]" />
         </div>
     );
 }
