@@ -7,6 +7,19 @@ import { contractKindLabel } from "@/lib/contracts";
 import { PageHeader } from "../../_components/page-header";
 import { ContractToolbar } from "../_components/contract-toolbar";
 
+// Rótulos em negrito, como no modelo em Word: "CONTRATANTE:", "CONTRATADO:" e "a) Etapa 1 – Layout:".
+// Devolve nós do React (nada de HTML), então o texto continua escapado.
+function boldLabel(paragraph: string) {
+    const match = /^((?:[a-z]\) )?(?:CONTRATANTE:|CONTRATADO:|Etapa \d – [^:]{1,60}:))/.exec(paragraph);
+    if (!match) return paragraph;
+    return (
+        <>
+            <strong>{match[1]}</strong>
+            {paragraph.slice(match[1].length)}
+        </>
+    );
+}
+
 type ContratoProps = { params: Promise<{ id: string }> };
 
 const dateTime = new Intl.DateTimeFormat("pt-BR", {
@@ -54,7 +67,7 @@ async function Documento({ params }: ContratoProps) {
                 actions={<ContractToolbar id={contract.id} body={contract.body} proposalId={contract.proposal.id} />}
             />
 
-            <article className="contract-sheet mx-auto mt-6 max-w-3xl rounded-xl bg-white px-6 py-8 text-[15px] leading-relaxed text-neutral-900 shadow-2xl sm:px-12 sm:py-12">
+            <article className="contract-sheet mx-auto mt-6 max-w-3xl rounded-xl bg-white px-6 py-8 font-[Arial,Helvetica,sans-serif] text-[15px] leading-relaxed text-neutral-900 shadow-2xl sm:px-12 sm:py-12">
                 {paragraphs.map((paragraph, index) => {
                     if (index === 0) {
                         return (
@@ -70,17 +83,29 @@ async function Documento({ params }: ContratoProps) {
                             </h3>
                         );
                     }
-                    // Bloco de assinatura: linha, nome e papel, sem quebrar entre páginas.
+                    // Bloco de assinatura: linha, nome (negrito) e papel, sem quebrar entre páginas.
                     if (paragraph.startsWith("____")) {
+                        const [line, name, ...role] = paragraph.split("\n");
                         return (
-                            <p key={index} className="mt-10 whitespace-pre-line [break-inside:avoid]">
-                                {paragraph}
+                            <p key={index} className="mt-10 [break-inside:avoid]">
+                                {line}
+                                <br />
+                                <strong>{name}</strong>
+                                {role.map((text) => (
+                                    <span key={text}>
+                                        <br />
+                                        {text}
+                                    </span>
+                                ))}
                             </p>
                         );
                     }
+                    // Alíneas (a), b)...) e opções de pagamento ficam recuadas, como no documento do Word.
+                    const previous = paragraphs[index - 1] ?? "";
+                    const indented = /^[a-z]\) /.test(paragraph) || (previous.endsWith(":") && !/^(CONTRATANTE|CONTRATADO):/.test(previous));
                     return (
-                        <p key={index} className="mb-3 text-justify whitespace-pre-line">
-                            {paragraph}
+                        <p key={index} className={`mb-3 text-justify whitespace-pre-line ${indented ? "pl-8" : ""}`}>
+                            {boldLabel(paragraph)}
                         </p>
                     );
                 })}
